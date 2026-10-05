@@ -20,6 +20,7 @@ DIRS = ((0, 1), (1, 0), (0, -1), (-1, 0))
 AROUND = tuple((dx, dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1) if (dx, dy) != (0, 0))
 
 MEEPLES_PER_PLAYER = 7
+NO_REQ = ("-", "-", "-", "-")
 FARM_POINTS_PER_CITY = 3
 
 
@@ -40,7 +41,8 @@ class State:
         self.deck = list(deck)  # 引く順に並べた種別index（開始タイルを除く）
         self.draw_pos = 0
         self.board: dict[tuple[int, int], tuple[int, int]] = {}
-        self.frontier: set[tuple[int, int]] = set()
+        # 空きマス（盤面に隣接）-> 4辺それぞれが隣接タイルから要求する辺種別（未接なら '-'）
+        self.req: dict[tuple[int, int], tuple[str, str, str, str]] = {}
         self.tile_nodes: dict[tuple[int, int], tuple[int, ...]] = {}
         # Union-Find と特徴ごとの集計（根でのみ有効）
         self.parent: list[int] = []
@@ -76,7 +78,7 @@ class State:
         c.deck = self.deck  # 不変として共有（再決定化時は置き換える）
         c.draw_pos = self.draw_pos
         c.board = dict(self.board)
-        c.frontier = set(self.frontier)
+        c.req = dict(self.req)
         c.tile_nodes = dict(self.tile_nodes)
         c.parent = list(self.parent)
         c.kind = list(self.kind)
@@ -140,7 +142,7 @@ class State:
         """タイルを置き、断片ノードの生成と隣接タイルとの連結を行う（得点処理はしない）。"""
         v = self.ts.types[ti].variants[vi]
         self.board[pos] = (ti, vi)
-        self.frontier.discard(pos)
+        self.req.pop(pos, None)
         nodes: list[int] = []
         for p in v.pieces:
             n = self._new_node(p.kind)
@@ -158,7 +160,9 @@ class State:
             npos = (pos[0] + dx, pos[1] + dy)
             nb = self.board.get(npos)
             if nb is None:
-                self.frontier.add(npos)
+                r = list(self.req.get(npos, NO_REQ))
+                r[(s + 2) % 4] = v.edges[s]
+                self.req[npos] = tuple(r)  # type: ignore[assignment]
                 continue
             nv = self.ts.types[nb[0]].variants[nb[1]]
             nnodes = self.tile_nodes[npos]
@@ -202,33 +206,35 @@ class State:
         self._finish()
 
     def _fits(self, pos: tuple[int, int], edges: tuple[str, ...]) -> bool:
-        touching = False
-        for s, (dx, dy) in enumerate(DIRS):
-            nb = self.board.get((pos[0] + dx, pos[1] + dy))
-            if nb is None:
-                continue
-            touching = True
-            if self.ts.types[nb[0]].variants[nb[1]].edges[(s + 2) % 4] != edges[s]:
-                return False
-        return touching
+        req = self.req.get(pos)
+        return req is not None and all(r == "-" or r == e for r, e in zip(req, edges))
+
+    def _fitting_variants(self, ti: int, pos: tuple[int, int]) -> tuple[int, ...]:
+        """タイル種別 ti を pos に置ける向き（variant index）。要求パターンごとにメモ化する。"""
+        key = (ti, self.req[pos])
+        cache = self.ts.fit_cache
+        hit = cache.get(key)
+        if hit is None:
+            hit = tuple(
+                vi
+                for vi, v in enumerate(self.ts.types[ti].variants)
+                if all(r == "-" or r == e for r, e in zip(key[1], v.edges))
+            )
+            cache[key] = hit
+        return hit
 
     def _has_placement(self, ti: int) -> bool:
-        for pos in self.frontier:
-            for v in self.ts.types[ti].variants:
-                if self._fits(pos, v.edges):
-                    return True
-        return False
+        return any(self._fitting_variants(ti, pos) for pos in self.req)
 
     def placements(self) -> list[tuple[int, int, int]]:
         """現在のタイルの合法な配置 (x, y, variant) の一覧。"""
         if self.current is None:
             return []
-        out = []
-        for pos in sorted(self.frontier):
-            for vi, v in enumerate(self.ts.types[self.current].variants):
-                if self._fits(pos, v.edges):
-                    out.append((pos[0], pos[1], vi))
-        return out
+        return [
+            (pos[0], pos[1], vi)
+            for pos in sorted(self.req)
+            for vi in self._fitting_variants(self.current, pos)
+        ]
 
     def _occupied(self, pos: tuple[int, int], v, piece_idx: int) -> bool:
         """pos にvの向きで置いた場合、その断片が連結する特徴に既にミープルがいるか。"""
@@ -282,7 +288,7 @@ class State:
         pos = (move.x, move.y)
         ti = self.current
         v = self.ts.types[ti].variants[move.variant]
-        if pos in self.board or pos not in self.frontier or not self._fits(pos, v.edges):
+        if pos in self.board or pos not in self.req or not self._fits(pos, v.edges):
             raise ValueError(f"不正な配置: {move}")
         if move.piece is not None:
             if self.supply[self.player] <= 0:
@@ -336,9 +342,9 @@ class State:
     def _surrounded(self, pos: tuple[int, int]) -> bool:
         return all((pos[0] + dx, pos[1] + dy) in self.board for dx, dy in AROUND)
 
-    def _finish(self) -> None:
-        """終局処理: 未完成の特徴と農民の得点。"""
-        self.over = True
+    def _end_awards(self) -> list[tuple[int, int]]:
+        """今ゲームが終わった場合の (根, 得点) 一覧。ミープルのいる特徴のみ。状態は変更しない。"""
+        out: list[tuple[int, int]] = []
         seen: set[int] = set()
         for n in range(len(self.parent)):
             r = self._find(n)
@@ -347,18 +353,38 @@ class State:
             seen.add(r)
             k = self.kind[r]
             if k == CITY:
-                self._award(r, len(self.tiles[r]) + self.pennants[r])
+                out.append((r, len(self.tiles[r]) + self.pennants[r]))
             elif k == ROAD:
-                self._award(r, len(self.tiles[r]))
+                out.append((r, len(self.tiles[r])))
             elif k == FIELD:
                 cities = {self._find(c) for c in self.field_cities[r]}
                 done = sum(1 for c in cities if self.open_ends[c] == 0)
-                self._award(r, FARM_POINTS_PER_CITY * done)
+                out.append((r, FARM_POINTS_PER_CITY * done))
         for mpos, n in self.monasteries.items():
             r = self._find(n)
             if any(self.meeples[r]):
                 around = sum(1 for dx, dy in AROUND if (mpos[0] + dx, mpos[1] + dy) in self.board)
-                self._award(r, 1 + around)
+                out.append((r, 1 + around))
+        return out
+
+    def _finish(self) -> None:
+        """終局処理: 未完成の特徴と農民の得点。"""
+        self.over = True
+        for r, points in self._end_awards():
+            self._award(r, points)
+
+    def projected_scores(self) -> list[int]:
+        """今終局した場合の得点（評価関数・探索の打ち切り用）。終局後は確定得点。"""
+        out = list(self.scores)
+        if self.over:
+            return out
+        for r, points in self._end_awards():
+            m = self.meeples[r]
+            top = max(m)
+            for p in (0, 1):
+                if m[p] == top:
+                    out[p] += points
+        return out
 
     # ---- 結果 ------------------------------------------------------------
 

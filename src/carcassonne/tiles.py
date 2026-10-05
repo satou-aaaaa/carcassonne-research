@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 
@@ -109,6 +109,7 @@ class TileSet:
     types: tuple[TileType, ...]
     start: int  # 開始タイルの種別index
     index: dict  # id -> 種別index
+    fit_cache: dict = field(default_factory=dict, compare=False, repr=False)  # 配置可否のメモ
 
     @property
     def total(self) -> int:
