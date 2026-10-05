@@ -1,0 +1,9 @@
+v4: 31216局面（累計31216） 線形R2=0.354 842s
+  score_diff=0.27 proj_diff=0.77 proj_city=0.24 proj_road=0.21 proj_field=0.15 proj_monastery=-0.10 meeples_city=1.29 meeples_road=-1.36 meeples_field=-1.83 meeples_monastery=1.59 supply_diff=0.32 remaining=0.73 proj_x_remaining=-0.23 bias=0.62 open_city_mine=-0.77 open_city_theirs=0.77 open_road_mine=0.60 open_road_theirs=-0.56 n_features_mine=-1.41 n_features_theirs=1.46 remaining_sq=-2.06 supply_mine=1.00
+v4: MLP(H=32) 検証R2=0.385
+v5: 31220局面（累計62436） 線形R2=0.413 921s
+  score_diff=0.26 proj_diff=0.79 proj_city=0.35 proj_road=0.35 proj_field=0.09 proj_monastery=-0.26 meeples_city=1.23 meeples_road=-2.28 meeples_field=-1.42 meeples_monastery=1.69 supply_diff=0.78 remaining=1.22 proj_x_remaining=0.12 bias=0.89 open_city_mine=-0.69 open_city_theirs=0.67 open_road_mine=-0.17 open_road_theirs=0.06 n_features_mine=-0.37 n_features_theirs=0.42 remaining_sq=-2.05 supply_mine=0.67
+v5: MLP(H=32) 検証R2=0.451
+v6: 31227局面（累計93663） 線形R2=0.386 858s
+  score_diff=0.24 proj_diff=0.83 proj_city=0.36 proj_road=0.31 proj_field=0.04 proj_monastery=-0.12 meeples_city=0.93 meeples_road=-2.03 meeples_field=-0.77 meeples_monastery=0.68 supply_diff=1.18 remaining=0.87 proj_x_remaining=-0.05 bias=0.97 open_city_mine=-0.85 open_city_theirs=0.84 open_road_mine=-0.17 open_road_theirs=0.08 n_features_mine=0.17 n_features_theirs=-0.13 remaining_sq=-1.90 supply_mine=0.72
+v6: MLP(H=32) 検証R2=0.421

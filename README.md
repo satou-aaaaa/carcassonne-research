@@ -15,3 +15,16 @@
 - 実験は設定ファイルとシード付きで記録し、結果を再現できるようにする。
 
 ロードマップは [docs/ROADMAP.md](docs/ROADMAP.md) を参照。
+
+## 現状（2026-10-05）
+
+- ルールエンジン（Python版・Numba高速版、全手で一致を検証）、ベースライン、決定化MCTS、
+  自己対戦による評価関数の方策反復まで実装済み。
+- 最強設定（線形評価関数v6＋MCTS 12000回/手）は貪欲法に勝率79%（+16点）、ロールアウト版MCTSと同等の強さを
+  約1/2.5の時間で達成。詳細は [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md)。
+
+```bash
+py -m venv .venv && .venv\Scripts\pip install pytest hypothesis ruff numpy numba pypdf
+.venv\Scripts\python -m pytest -q
+.venv\Scripts\python scripts/run_match.py "fmcts:sims=12000,eval=models/eval_v6_lin.npy" greedy --seeds 20 --workers 8
+```
