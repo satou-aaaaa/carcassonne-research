@@ -1,0 +1,4 @@
+A=fmcts:sims=13000,eval=models/eval_v0.npy  B=fmcts:sims=2000
+60局 Aの勝率 0.433 [0.316, 0.559] 平均得点差 -3.20±2.54
+A=fmcts:sims=13000,eval=models/eval_v0.npy,c=0.2,scale=15  B=fmcts:sims=2000
+60局 Aの勝率 0.433 [0.316, 0.559] 平均得点差 -1.43±2.52
