@@ -34,7 +34,7 @@ from .fast import (
     rollout,
     seed_rng,
 )
-from .fast_eval import NF, LinearEval, features
+from .fast_eval import NF, eval_value, features, load_eval
 from .state import Move, State
 
 
@@ -195,19 +195,15 @@ def run_tree(
         if ntype[node] == 1:  # ミープル節点が葉: ミープルなしで置いた後を評価
             apply_move(W, T, P, kcell[node], kg[node], -1, stamp, stamp_box, out_cell, out_g)
         v0 = 0.0
-        if eval_mode == 1 and wsc[SC_OVER] == 0:
+        if eval_mode >= 1 and wsc[SC_OVER] == 0:
             # 学習型評価関数: depth手のロールアウトで進めた後の局面を線形モデルで評価する
             if depth > 0:
                 rollout(W, T, P, meeple_prob, depth, stamp, stamp_box, out_cell, out_g, free, rec)
             if wsc[SC_OVER] == 0:
                 features(W, T, P, 0, fbuf)
-                v0 = 0.0
-                for q in range(NF):
-                    v0 += eval_w[q] * fbuf[q]
+                v0 = eval_value(eval_w, eval_mode, fbuf)
                 features(W, T, P, 1, fbuf)
-                v1m = 0.0
-                for q in range(NF):
-                    v1m += eval_w[q] * fbuf[q]
+                v1m = eval_value(eval_w, eval_mode, fbuf)
             else:
                 v0 = float(wsc[SC_S0] - wsc[SC_S1])
                 v1m = -v0
@@ -324,7 +320,7 @@ class FastMCTSAgent:
         self.meeple_prob = meeple_prob
         self.rollout_depth = rollout_depth
         self.eval_path = eval_path
-        self.eval_w = LinearEval.load(eval_path).w if eval_path else np.zeros(NF)
+        self.eval_w, self.eval_mode = load_eval(eval_path) if eval_path else (np.zeros(NF), 0)
         self.fbuf = np.zeros(NF)
         self.fast = Fast()
         tag = f",eval={eval_path.replace(chr(92), '/').split('/')[-1]}" if eval_path else ""
@@ -363,7 +359,7 @@ class FastMCTSAgent:
             sc.free,
             sc.rec,
             self.eval_w,
-            1 if self.eval_path else 0,
+            self.eval_mode,
             self.fbuf,
         )
         return int(cell), int(g), int(piece)

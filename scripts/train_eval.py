@@ -17,7 +17,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from carcassonne.fast_eval import FEATURE_NAMES, fit_ridge
+from carcassonne.fast_eval import FEATURE_NAMES, fit_mlp, fit_ridge
 from carcassonne.selfplay import generate
 
 
@@ -31,6 +31,14 @@ def main() -> None:
     ap.add_argument("--start", type=int, default=1, help="出力する最初のバージョン番号")
     ap.add_argument("--init", default=None, help="反復0の代わりに使う初期重み(.npy)")
     ap.add_argument("--lam", type=float, default=10.0)
+    ap.add_argument(
+        "--model",
+        choices=["linear", "mlp"],
+        default="linear",
+        help="次反復のデータ生成に使うモデル",
+    )
+    ap.add_argument("--hidden", type=int, default=32)
+    ap.add_argument("--epochs", type=int, default=40)
     args = ap.parse_args()
 
     Path("models").mkdir(exist_ok=True)
@@ -47,12 +55,18 @@ def main() -> None:
         X_all.append(X)
         y_all.append(y)
         Xa, ya = np.concatenate(X_all), np.concatenate(y_all)
-        m = fit_ridge(Xa, ya, args.lam)
-        r2 = 1 - ((ya - Xa @ m.w) ** 2).sum() / ((ya - ya.mean()) ** 2).sum()
-        out = f"models/eval_v{k}.npy"
-        m.save(out)
-        print(f"v{k}: {len(y)}局面 R2={r2:.3f} {time.time() - t:.0f}s -> {out}", flush=True)
-        print("  " + " ".join(f"{n}={w:.2f}" for n, w in zip(FEATURE_NAMES, m.w)), flush=True)
+        lin = fit_ridge(Xa, ya, args.lam)
+        r2 = 1 - ((ya - Xa @ lin.w) ** 2).sum() / ((ya - ya.mean()) ** 2).sum()
+        lin.save(f"models/eval_v{k}_lin.npy")
+        print(
+            f"v{k}: {len(y)}局面（累計{len(ya)}） 線形R2={r2:.3f} {time.time() - t:.0f}s",
+            flush=True,
+        )
+        print("  " + " ".join(f"{n}={w:.2f}" for n, w in zip(FEATURE_NAMES, lin.w)), flush=True)
+        mlp, r2m = fit_mlp(Xa, ya, hidden=args.hidden, epochs=args.epochs)
+        np.save(f"models/eval_v{k}_mlp.npy", mlp)
+        print(f"v{k}: MLP(H={args.hidden}) 検証R2={r2m:.3f}", flush=True)
+        out = f"models/eval_v{k}_{'mlp' if args.model == 'mlp' else 'lin'}.npy"
         prev = out
 
 
