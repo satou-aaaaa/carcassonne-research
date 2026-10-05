@@ -1,6 +1,16 @@
 {
   "best": "models/eval_v6_lin.npy",
   "history": [
-    {"version": "v6_lin", "note": "初期（手動の方策反復v4〜v6。貪欲法に勝率79%）"}
+    {
+      "version": "v6_lin",
+      "note": "初期（手動の方策反復v4〜v6。貪欲法に勝率79%）"
+    },
+    {
+      "version": "c1_lin",
+      "win_rate_vs_best": 0.458,
+      "mean_diff": 0.32,
+      "promoted": false,
+      "date": "2026-10-06"
+    }
   ]
 }
