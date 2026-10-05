@@ -4,7 +4,7 @@
     py scripts/run_match.py greedy random --seeds 100 --workers 10
     py scripts/run_match.py mcts:sims=400,det=8 greedy --seeds 50 --workers 10 --log runs/m1.jsonl
 
-エージェント指定は `名前[:キー=値,...]`。名前は random / greedy / mcts。
+エージェント指定は `名前[:キー=値,...]`。名前は random / greedy / mcts（Python版）/ fmcts（Numba版）。
 同じシードで先後を入れ替えた2局を1組として集計する（山札の運の差を打ち消す）。
 """
 
@@ -19,9 +19,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from carcassonne.agents import GreedyAgent, RandomAgent
 from carcassonne.arena import run_match
+from carcassonne.fast_mcts import FastMCTSAgent
 from carcassonne.mcts import MCTSAgent
 
-FACTORIES = {"random": RandomAgent, "greedy": GreedyAgent, "mcts": MCTSAgent}
+FACTORIES = {
+    "random": RandomAgent,
+    "greedy": GreedyAgent,
+    "mcts": MCTSAgent,
+    "fmcts": FastMCTSAgent,
+}
 INT_KEYS = {"sims": "n_sims", "det": "n_det", "depth": "rollout_depth"}
 BOOL_KEYS = {"fact": "factored"}
 FLOAT_KEYS = {

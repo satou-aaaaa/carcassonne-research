@@ -1,18 +1,41 @@
 # 先行研究・既存実装の調査メモ
 
-調査日: 2026-10-05（Web検索・GitHub検索による。論文本文の精読は未了のため、要点は
-概要・抄録ベース。引用前に必ず原文で確認すること）。
+調査日: 2026-10-05（Web検索・GitHub検索による。Ameneyro・Jappertは本文を読んだが、
+チェコ語の学位論文は未読。引用前に必ず原文で確認すること）。
 
-## 論文・学位論文
+## 論文・学位論文（本文を精読済み: Ameneyro・Jappert）
 
-| 文献 | 内容（確認できた範囲） | 状態 |
+### Ameneyro, Galván, Kuri Morales (2020) [arXiv:2009.12974](https://arxiv.org/abs/2009.12974)
+- 設定: 基本セット・2人対戦・完全情報（山札の順序のみ確率的）。置けないタイルは山札の底に戻して引き直し
+  （全局の約2.3%で発生）。先手有利のため、同じ山札列で先後を入れ替えて対戦（本プロジェクトも同方式）。
+- 比較: vanilla MCTS / MCTS-RAVE / Star2.5（深さ3、手の順序は 都市→修道院→道→置かない→草原 への
+  ミープル配置）。MCTS系が Star2.5 に勝ち、vanilla MCTS は MCTS-RAVE より安定。
+- 報酬: **勝敗ではなく「予測得点差（virtual score差）」**。引き分け寄りの局面や逆転狙いの差を見分けられる。
+- パラメータ: UCT定数 C=3（報酬が得点差スケールのため）、1ステップあたり100回のシミュレーション。
+  デフォルト方策は「配置は一様、ミープルは置ける全選択肢＋置かないを一様」。
+- 計算量: 1局36〜71分（ICHEC 336ノード）。計算資源が結果を左右する典型例。
+- 示唆: 評価関数による打ち切り（ヒューリスティック評価）は今後の課題として提案されている。
+
+### Jappert (2022) 学士論文（バーゼル大）[PDF](https://ai.dmi.unibas.ch/papers/theses/jappert-bachelor-22.pdf)
+- 設定: 2人対戦のMCTS。木の形（単一木／配置→ミープル→チャンスの3段／アンサンブル）、
+  木方策（Greedy・ε-Greedy・UCT・UCT-Tuned・Boltzmann）、デフォルト方策（ランダム／ヒューリスティック／
+  直接ヒューリスティック評価）を比較。
+- 結論: **最良は無知識（ドメイン知識なし）のMCTS**。UCT-Tuned＋探索定数の減衰（c'=512/t）＋
+  **ランダムロールアウトでミープル配置確率30%**。アンサンブル4本×各750回が人間平均を上回る。
+- 所見: ヒューリスティックロールアウトはロールアウト数を犠牲にするため、同じ時間ならランダムの方が強い。
+  複数ロールアウト（1葉あたり複数回）は効果なし。バックプロパゲーションの重み付けは悪化。
+  1本の木は約1000反復で性能が頭打ちになり、複数の木の多数決（アンサンブル）で上積みできる。
+- 本プロジェクトへの反映: 配置→ミープルの2段木、ミープル確率30%のロールアウト、得点差ベース報酬
+  （tanh正規化）を採用。実測では決定化4本×100回より **1本×400回の方が強い**（`docs/EXPERIMENTS.md`）。
+
+### その他
+| 文献 | 内容 | 状態 |
 |---|---|---|
-| Ameneyro, Galván, Kuri Morales, "Playing Carcassonne with Monte Carlo Tree Search" (2020) [arXiv:2009.12974](https://arxiv.org/abs/2009.12974) | 2人対戦。vanilla MCTS と MCTS-RAVE を、ドメイン固有ヒューリスティック付き Star2.5 と比較。MCTS系が Star2.5 を上回り、vanilla MCTS の方が MCTS-RAVE より安定。Carcassonneは確率的で「得点が欺瞞的（deceptive）」と指摘 | 抄録確認。本文のルール簡略化・シミュレーション数・勝率は**要精読** |
-| Jappert, Bachelor thesis, Univ. Basel（[PDF](https://ai.dmi.unibas.ch/papers/theses/jappert-bachelor-22.pdf)） | Carcassonne関連の学士論文。内容は未確認（PDFをテキスト抽出できなかった） | **要精読** |
-| Charles University (Praha) 学位論文「Umělá inteligence pro hru Carcassonne」（[handle](https://dspace.cuni.cz/handle/20.500.11956/119448)） | Carcassonne AI。内容は未確認 | **要精読** |
+| Charles University (Praha) 学位論文「Umělá inteligence pro hru Carcassonne」（[handle](https://dspace.cuni.cz/handle/20.500.11956/119448)） | Carcassonne AI（チェコ語） | 未精読 |
 
-先行研究が少ない（Ameneyroらも "limited prior research" と述べている）ため、
-本プロジェクトは「基本ルール・2人対戦」に絞ってAlphaZero型まで踏み込む余地がある。
+確認できた学術的な先行研究はMCTS止まり。AlphaZero型は、GitHubに個人実装
+（TommyX12/carcassonne-alpha-zero）があるものの、論文としての評価は見つけられていない
+（網羅的な文献調査は未実施）。価値・方策ネット＋MCTSの系統的評価は差別化点になりうる。
 
 ## 既存OSS実装（GitHub）
 

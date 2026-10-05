@@ -59,6 +59,7 @@ class State:
         self.current: int | None = None  # 手番プレイヤーが引いて置くタイル
         self.over = False
         self.discarded: list[int] = []
+        self.history: list[tuple[int, int, int, int, int | None]] = []  # (x, y, 種別, 向き, 断片)
         self._place_start()
         self._draw()
 
@@ -94,6 +95,7 @@ class State:
         c.current = self.current
         c.over = self.over
         c.discarded = list(self.discarded)
+        c.history = list(self.history)
         return c
 
     # ---- Union-Find ------------------------------------------------------
@@ -316,6 +318,7 @@ class State:
                 raise ValueError("ミープルが残っていない")
             if not (0 <= move.piece < len(v.pieces)) or self._occupied(pos, v, move.piece):
                 raise ValueError(f"不正なミープル配置: {move}")
+        self.history.append((move.x, move.y, ti, move.variant, move.piece))
         self._put_tile(pos, ti, move.variant)
         if move.piece is not None:
             root = self._find(self.tile_nodes[pos][move.piece])
