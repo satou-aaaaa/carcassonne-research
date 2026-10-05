@@ -1,0 +1,902 @@
+{
+ "start_tile": "city_top_straight_road",
+ "tiles": [
+  {
+   "id": "bent_road",
+   "count": 9,
+   "monastery": false,
+   "cities": [],
+   "roads": [
+    [
+     2,
+     3
+    ]
+   ],
+   "fields": [
+    {
+     "halves": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      7
+     ],
+     "cities": []
+    },
+    {
+     "halves": [
+      5,
+      6
+     ],
+     "cities": []
+    }
+   ],
+   "merged_from": [
+    "bent_road",
+    "bent_road_flowers"
+   ]
+  },
+  {
+   "id": "chapel",
+   "count": 4,
+   "monastery": true,
+   "cities": [],
+   "roads": [],
+   "fields": [
+    {
+     "halves": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "cities": []
+    }
+   ],
+   "merged_from": [
+    "chapel"
+   ]
+  },
+  {
+   "id": "chapel_with_road",
+   "count": 2,
+   "monastery": true,
+   "cities": [],
+   "roads": [
+    [
+     0
+    ]
+   ],
+   "fields": [
+    {
+     "halves": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "cities": []
+    }
+   ],
+   "merged_from": [
+    "chapel_with_road"
+   ]
+  },
+  {
+   "id": "city_bottom_grass",
+   "count": 3,
+   "monastery": false,
+   "cities": [
+    {
+     "sides": [
+      0,
+      1,
+      2
+     ],
+     "pennant": false
+    }
+   ],
+   "roads": [],
+   "fields": [
+    {
+     "halves": [
+      6,
+      7
+     ],
+     "cities": [
+      0
+     ]
+    }
+   ],
+   "merged_from": [
+    "city_bottom_grass",
+    "city_bottom_grass_flowers"
+   ]
+  },
+  {
+   "id": "city_bottom_grass_shield",
+   "count": 1,
+   "monastery": false,
+   "cities": [
+    {
+     "sides": [
+      0,
+      1,
+      2
+     ],
+     "pennant": true
+    }
+   ],
+   "roads": [],
+   "fields": [
+    {
+     "halves": [
+      6,
+      7
+     ],
+     "cities": [
+      0
+     ]
+    }
+   ],
+   "merged_from": [
+    "city_bottom_grass_shield"
+   ]
+  },
+  {
+   "id": "city_bottom_road",
+   "count": 1,
+   "monastery": false,
+   "cities": [
+    {
+     "sides": [
+      0,
+      1,
+      2
+     ],
+     "pennant": false
+    }
+   ],
+   "roads": [
+    [
+     3
+    ]
+   ],
+   "fields": [
+    {
+     "halves": [
+      6
+     ],
+     "cities": [
+      0
+     ]
+    },
+    {
+     "halves": [
+      7
+     ],
+     "cities": [
+      0
+     ]
+    }
+   ],
+   "merged_from": [
+    "city_bottom_road"
+   ]
+  },
+  {
+   "id": "city_bottom_road_shield",
+   "count": 2,
+   "monastery": false,
+   "cities": [
+    {
+     "sides": [
+      0,
+      1,
+      2
+     ],
+     "pennant": true
+    }
+   ],
+   "roads": [
+    [
+     3
+    ]
+   ],
+   "fields": [
+    {
+     "halves": [
+      6
+     ],
+     "cities": [
+      0
+     ]
+    },
+    {
+     "halves": [
+      7
+     ],
+     "cities": [
+      0
+     ]
+    }
+   ],
+   "merged_from": [
+    "city_bottom_road_shield"
+   ]
+  },
+  {
+   "id": "city_diagonal_top_left_road",
+   "count": 3,
+   "monastery": false,
+   "cities": [
+    {
+     "sides": [
+      0,
+      1
+     ],
+     "pennant": false
+    }
+   ],
+   "roads": [
+    [
+     2,
+     3
+    ]
+   ],
+   "fields": [
+    {
+     "halves": [
+      4,
+      7
+     ],
+     "cities": [
+      0
+     ]
+    },
+    {
+     "halves": [
+      5,
+      6
+     ],
+     "cities": []
+    }
+   ],
+   "merged_from": [
+    "city_diagonal_top_left_road"
+   ]
+  },
+  {
+   "id": "city_diagonal_top_left_shield_road",
+   "count": 2,
+   "monastery": false,
+   "cities": [
+    {
+     "sides": [
+      0,
+      1
+     ],
+     "pennant": true
+    }
+   ],
+   "roads": [
+    [
+     2,
+     3
+    ]
+   ],
+   "fields": [
+    {
+     "halves": [
+      4,
+      7
+     ],
+     "cities": [
+      0
+     ]
+    },
+    {
+     "halves": [
+      5,
+      6
+     ],
+     "cities": []
+    }
+   ],
+   "merged_from": [
+    "city_diagonal_top_left_shield_road"
+   ]
+  },
+  {
+   "id": "city_diagonal_top_right",
+   "count": 3,
+   "monastery": false,
+   "cities": [
+    {
+     "sides": [
+      0,
+      1
+     ],
+     "pennant": false
+    }
+   ],
+   "roads": [],
+   "fields": [
+    {
+     "halves": [
+      4,
+      5,
+      6,
+      7
+     ],
+     "cities": [
+      0
+     ]
+    }
+   ],
+   "merged_from": [
+    "city_diagonal_top_right",
+    "city_diagonal_top_right_flowers"
+   ]
+  },
+  {
+   "id": "city_diagonal_top_right_shield",
+   "count": 2,
+   "monastery": false,
+   "cities": [
+    {
+     "sides": [
+      0,
+      1
+     ],
+     "pennant": true
+    }
+   ],
+   "roads": [],
+   "fields": [
+    {
+     "halves": [
+      4,
+      5,
+      6,
+      7
+     ],
+     "cities": [
+      0
+     ]
+    }
+   ],
+   "merged_from": [
+    "city_diagonal_top_right_shield",
+    "city_diagonal_top_right_shield_flowers"
+   ]
+  },
+  {
+   "id": "city_left_right",
+   "count": 3,
+   "monastery": false,
+   "cities": [
+    {
+     "sides": [
+      0
+     ],
+     "pennant": false
+    },
+    {
+     "sides": [
+      2
+     ],
+     "pennant": false
+    }
+   ],
+   "roads": [],
+   "fields": [
+    {
+     "halves": [
+      2,
+      3,
+      6,
+      7
+     ],
+     "cities": [
+      0,
+      1
+     ]
+    }
+   ],
+   "merged_from": [
+    "city_left_right",
+    "city_top_bottom_flowers"
+   ]
+  },
+  {
+   "id": "city_narrow",
+   "count": 1,
+   "monastery": false,
+   "cities": [
+    {
+     "sides": [
+      0,
+      2
+     ],
+     "pennant": false
+    }
+   ],
+   "roads": [],
+   "fields": [
+    {
+     "halves": [
+      2,
+      3
+     ],
+     "cities": [
+      0
+     ]
+    },
+    {
+     "halves": [
+      6,
+      7
+     ],
+     "cities": [
+      0
+     ]
+    }
+   ],
+   "merged_from": [
+    "city_narrow"
+   ]
+  },
+  {
+   "id": "city_narrow_shield",
+   "count": 2,
+   "monastery": false,
+   "cities": [
+    {
+     "sides": [
+      0,
+      2
+     ],
+     "pennant": true
+    }
+   ],
+   "roads": [],
+   "fields": [
+    {
+     "halves": [
+      2,
+      3
+     ],
+     "cities": [
+      0
+     ]
+    },
+    {
+     "halves": [
+      6,
+      7
+     ],
+     "cities": [
+      0
+     ]
+    }
+   ],
+   "merged_from": [
+    "city_narrow_shield"
+   ]
+  },
+  {
+   "id": "city_top",
+   "count": 5,
+   "monastery": false,
+   "cities": [
+    {
+     "sides": [
+      0
+     ],
+     "pennant": false
+    }
+   ],
+   "roads": [],
+   "fields": [
+    {
+     "halves": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "cities": [
+      0
+     ]
+    }
+   ],
+   "merged_from": [
+    "city_top",
+    "city_top_flowers"
+   ]
+  },
+  {
+   "id": "city_top_crossroads",
+   "count": 3,
+   "monastery": false,
+   "cities": [
+    {
+     "sides": [
+      0
+     ],
+     "pennant": false
+    }
+   ],
+   "roads": [
+    [
+     1
+    ],
+    [
+     2
+    ],
+    [
+     3
+    ]
+   ],
+   "fields": [
+    {
+     "halves": [
+      2,
+      7
+     ],
+     "cities": [
+      0
+     ]
+    },
+    {
+     "halves": [
+      3,
+      4
+     ],
+     "cities": []
+    },
+    {
+     "halves": [
+      5,
+      6
+     ],
+     "cities": []
+    }
+   ],
+   "merged_from": [
+    "city_top_crossroads"
+   ]
+  },
+  {
+   "id": "city_top_right",
+   "count": 2,
+   "monastery": false,
+   "cities": [
+    {
+     "sides": [
+      0
+     ],
+     "pennant": false
+    },
+    {
+     "sides": [
+      1
+     ],
+     "pennant": false
+    }
+   ],
+   "roads": [],
+   "fields": [
+    {
+     "halves": [
+      4,
+      5,
+      6,
+      7
+     ],
+     "cities": [
+      0,
+      1
+     ]
+    }
+   ],
+   "merged_from": [
+    "city_top_right",
+    "city_top_left_flowers"
+   ]
+  },
+  {
+   "id": "city_top_road_bend_left",
+   "count": 3,
+   "monastery": false,
+   "cities": [
+    {
+     "sides": [
+      0
+     ],
+     "pennant": false
+    }
+   ],
+   "roads": [
+    [
+     2,
+     3
+    ]
+   ],
+   "fields": [
+    {
+     "halves": [
+      2,
+      3,
+      4,
+      7
+     ],
+     "cities": [
+      0
+     ]
+    },
+    {
+     "halves": [
+      5,
+      6
+     ],
+     "cities": []
+    }
+   ],
+   "merged_from": [
+    "city_top_road_bend_left"
+   ]
+  },
+  {
+   "id": "city_top_road_bend_right",
+   "count": 3,
+   "monastery": false,
+   "cities": [
+    {
+     "sides": [
+      0
+     ],
+     "pennant": false
+    }
+   ],
+   "roads": [
+    [
+     1,
+     2
+    ]
+   ],
+   "fields": [
+    {
+     "halves": [
+      2,
+      5,
+      6,
+      7
+     ],
+     "cities": [
+      0
+     ]
+    },
+    {
+     "halves": [
+      3,
+      4
+     ],
+     "cities": []
+    }
+   ],
+   "merged_from": [
+    "city_top_road_bend_right"
+   ]
+  },
+  {
+   "id": "city_top_straight_road",
+   "count": 4,
+   "monastery": false,
+   "cities": [
+    {
+     "sides": [
+      0
+     ],
+     "pennant": false
+    }
+   ],
+   "roads": [
+    [
+     1,
+     3
+    ]
+   ],
+   "fields": [
+    {
+     "halves": [
+      2,
+      7
+     ],
+     "cities": [
+      0
+     ]
+    },
+    {
+     "halves": [
+      3,
+      4,
+      5,
+      6
+     ],
+     "cities": []
+    }
+   ],
+   "merged_from": [
+    "city_top_straight_road"
+   ]
+  },
+  {
+   "id": "crossroads",
+   "count": 1,
+   "monastery": false,
+   "cities": [],
+   "roads": [
+    [
+     0
+    ],
+    [
+     1
+    ],
+    [
+     2
+    ],
+    [
+     3
+    ]
+   ],
+   "fields": [
+    {
+     "halves": [
+      0,
+      7
+     ],
+     "cities": []
+    },
+    {
+     "halves": [
+      1,
+      2
+     ],
+     "cities": []
+    },
+    {
+     "halves": [
+      3,
+      4
+     ],
+     "cities": []
+    },
+    {
+     "halves": [
+      5,
+      6
+     ],
+     "cities": []
+    }
+   ],
+   "merged_from": [
+    "crossroads"
+   ]
+  },
+  {
+   "id": "full_city_with_shield",
+   "count": 1,
+   "monastery": false,
+   "cities": [
+    {
+     "sides": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "pennant": true
+    }
+   ],
+   "roads": [],
+   "fields": [],
+   "merged_from": [
+    "full_city_with_shield"
+   ]
+  },
+  {
+   "id": "straight_road",
+   "count": 8,
+   "monastery": false,
+   "cities": [],
+   "roads": [
+    [
+     1,
+     3
+    ]
+   ],
+   "fields": [
+    {
+     "halves": [
+      0,
+      1,
+      2,
+      7
+     ],
+     "cities": []
+    },
+    {
+     "halves": [
+      3,
+      4,
+      5,
+      6
+     ],
+     "cities": []
+    }
+   ],
+   "merged_from": [
+    "straight_road",
+    "straight_road_flowers"
+   ]
+  },
+  {
+   "id": "three_split_road",
+   "count": 4,
+   "monastery": false,
+   "cities": [],
+   "roads": [
+    [
+     1
+    ],
+    [
+     2
+    ],
+    [
+     3
+    ]
+   ],
+   "fields": [
+    {
+     "halves": [
+      0,
+      1,
+      2,
+      7
+     ],
+     "cities": []
+    },
+    {
+     "halves": [
+      3,
+      4
+     ],
+     "cities": []
+    },
+    {
+     "halves": [
+      5,
+      6
+     ],
+     "cities": []
+    }
+   ],
+   "merged_from": [
+    "three_split_road"
+   ]
+  }
+ ]
+}
