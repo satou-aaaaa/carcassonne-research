@@ -1,0 +1,6 @@
+{
+  "best": "models/eval_v6_lin.npy",
+  "history": [
+    {"version": "v6_lin", "note": "初期（手動の方策反復v4〜v6。貪欲法に勝率79%）"}
+  ]
+}
