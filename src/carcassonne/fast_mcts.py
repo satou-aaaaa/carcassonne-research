@@ -34,6 +34,7 @@ from .fast import (
     rollout,
     seed_rng,
 )
+from .fast_eval import NF, LinearEval, features
 from .state import Move, State
 
 
@@ -55,8 +56,8 @@ def copy_into(dst, src):
 
 
 @njit(cache=True)
-def reward_of(s0, s1, mover, scale):
-    diff = (s0 - s1) if mover == 0 else (s1 - s0)
+def reward_of(diff, scale):
+    """mover視点の（予測）得点差 diff を [0,1] の報酬に変換する。scale<=0 なら勝敗報酬。"""
     if scale <= 0.0:
         if diff > 0:
             return 1.0
@@ -88,6 +89,9 @@ def run_tree(
     rp_cell,
     rp_g,
     nrp,
+    eval_w,
+    eval_mode,
+    fbuf,
 ):
     """1本の木を `sims` 回反復し、根の訪問数を agg1/agg2 に加算する。"""
     N = sims + 2
@@ -190,18 +194,38 @@ def run_tree(
         # 評価
         if ntype[node] == 1:  # ミープル節点が葉: ミープルなしで置いた後を評価
             apply_move(W, T, P, kcell[node], kg[node], -1, stamp, stamp_box, out_cell, out_g)
-        if wsc[SC_OVER] == 1:
-            s0 = wsc[SC_S0]
-            s1 = wsc[SC_S1]
+        v0 = 0.0
+        if eval_mode == 1 and wsc[SC_OVER] == 0:
+            # 学習型評価関数: depth手のロールアウトで進めた後の局面を線形モデルで評価する
+            if depth > 0:
+                rollout(W, T, P, meeple_prob, depth, stamp, stamp_box, out_cell, out_g, free, rec)
+            if wsc[SC_OVER] == 0:
+                features(W, T, P, 0, fbuf)
+                v0 = 0.0
+                for q in range(NF):
+                    v0 += eval_w[q] * fbuf[q]
+                features(W, T, P, 1, fbuf)
+                v1m = 0.0
+                for q in range(NF):
+                    v1m += eval_w[q] * fbuf[q]
+            else:
+                v0 = float(wsc[SC_S0] - wsc[SC_S1])
+                v1m = -v0
         else:
-            s0, s1 = rollout(
-                W, T, P, meeple_prob, depth, stamp, stamp_box, out_cell, out_g, free, rec
-            )
+            if wsc[SC_OVER] == 1:
+                s0 = wsc[SC_S0]
+                s1 = wsc[SC_S1]
+            else:
+                s0, s1 = rollout(
+                    W, T, P, meeple_prob, depth, stamp, stamp_box, out_cell, out_g, free, rec
+                )
+            v0 = float(s0 - s1)
+            v1m = -v0
         for q in range(plen):
             nd = path[q]
             vis[nd] += 1
             if mover[nd] >= 0:
-                wsum[nd] += reward_of(s0, s1, mover[nd], scale)
+                wsum[nd] += reward_of(v0 if mover[nd] == 0 else v1m, scale)
     # 根の訪問数を集計
     ch = fch[0]
     while ch >= 0:
@@ -234,6 +258,9 @@ def search(
     out_g,
     free,
     rec,
+    eval_w,
+    eval_mode,
+    fbuf,
 ):
     """根局面 S から決定化MCTSを行い、(マス, 向きID, 断片) を返す。"""
     sc = S[10]
@@ -259,6 +286,7 @@ def search(
         run_tree(
             D, T, P, sims, c, scale, meeple_prob, depth, stamp, stamp_box,
             out_cell, out_g, free, rec, W, agg1, agg2, rp_cell, rp_g, k,
+            eval_w, eval_mode, fbuf,
         )  # fmt: skip
     top = agg1.max()
     cands = np.where(agg1 == top)[0]
@@ -283,17 +311,26 @@ class FastMCTSAgent:
         reward_scale: float | None = 30.0,
         meeple_prob: float = 0.3,
         rollout_depth: int | None = None,
+        eval_path: str | None = None,
     ) -> None:
+        """eval_path に線形評価関数の重み(.npy)を渡すと、葉をその評価関数で評価する。
+
+        その場合 rollout_depth は評価前に進めるランダム手数（未指定は0=評価のみ）。
+        """
         self.n_sims = n_sims
         self.n_det = n_det
         self.c = c
         self.reward_scale = reward_scale
         self.meeple_prob = meeple_prob
         self.rollout_depth = rollout_depth
+        self.eval_path = eval_path
+        self.eval_w = LinearEval.load(eval_path).w if eval_path else np.zeros(NF)
+        self.fbuf = np.zeros(NF)
         self.fast = Fast()
+        tag = f",eval={eval_path.replace(chr(92), '/').split('/')[-1]}" if eval_path else ""
         self.name = (
             f"fastmcts(sims={n_sims},det={n_det},c={c:g},scale={reward_scale},"
-            f"mp={meeple_prob:g},depth={rollout_depth})"
+            f"mp={meeple_prob:g},depth={rollout_depth}{tag})"
         )
 
     def to_fast(self, state: State):
@@ -308,6 +345,9 @@ class FastMCTSAgent:
         if len(moves) == 1:
             return moves[0]
         seed_rng(rng.getrandbits(31))
+        depth = (
+            self.rollout_depth if self.rollout_depth is not None else (0 if self.eval_path else -1)
+        )
         S = self.to_fast(state)
         sc = self.fast.scratch
         cell, g, piece = search(
@@ -319,13 +359,16 @@ class FastMCTSAgent:
             self.c,
             -1.0 if self.reward_scale is None else self.reward_scale,
             self.meeple_prob,
-            -1 if self.rollout_depth is None else self.rollout_depth,
+            depth,
             sc.stamp,
             sc.stamp_box,
             sc.out_cell,
             sc.out_g,
             sc.free,
             sc.rec,
+            self.eval_w,
+            1 if self.eval_path else 0,
+            self.fbuf,
         )
         ti = state.current
         vi = int(g) - int(self.fast.T[11][ti])
