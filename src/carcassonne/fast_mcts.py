@@ -340,15 +340,11 @@ class FastMCTSAgent:
             self.fast.apply(S, x, y, ti, vi, piece)
         return S
 
-    def act(self, state: State, rng: random.Random) -> Move:
-        moves = state.legal_moves()
-        if len(moves) == 1:
-            return moves[0]
-        seed_rng(rng.getrandbits(31))
+    def choose(self, S):
+        """Numba状態 S（手番側が指す局面）から (マス, 向きID, 断片) を返す。乱数は seed_rng 済みとする。"""
         depth = (
             self.rollout_depth if self.rollout_depth is not None else (0 if self.eval_path else -1)
         )
-        S = self.to_fast(state)
         sc = self.fast.scratch
         cell, g, piece = search(
             S,
@@ -370,6 +366,13 @@ class FastMCTSAgent:
             1 if self.eval_path else 0,
             self.fbuf,
         )
-        ti = state.current
-        vi = int(g) - int(self.fast.T[11][ti])
-        return Move(int(cell) // G - C0, int(cell) % G - C0, vi, None if piece < 0 else int(piece))
+        return int(cell), int(g), int(piece)
+
+    def act(self, state: State, rng: random.Random) -> Move:
+        moves = state.legal_moves()
+        if len(moves) == 1:
+            return moves[0]
+        seed_rng(rng.getrandbits(31))
+        cell, g, piece = self.choose(self.to_fast(state))
+        vi = g - int(self.fast.T[11][state.current])
+        return Move(cell // G - C0, cell % G - C0, vi, None if piece < 0 else piece)
