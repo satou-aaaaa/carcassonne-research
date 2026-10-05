@@ -236,6 +236,27 @@ class State:
             for vi in self._fitting_variants(self.current, pos)
         ]
 
+    def random_move(self, rng: random.Random, meeple_prob: float = 0.3) -> Move:
+        """ロールアウト用の高速な乱択。配置は一様、ミープルは確率 meeple_prob で置く（置ける断片から一様）。
+
+        全手を列挙する `legal_moves()` と違い、ミープル配置を列挙しないため速い。
+        Jappert (2022) のランダムロールアウト（ミープル確率30%）に倣う。
+        """
+        x, y, vi = rng.choice(
+            [
+                (pos[0], pos[1], vi)
+                for pos in self.req
+                for vi in self._fitting_variants(self.current, pos)
+            ]
+        )
+        piece = None
+        if self.supply[self.player] > 0 and rng.random() < meeple_prob:
+            v = self.ts.types[self.current].variants[vi]
+            free = [pi for pi in range(len(v.pieces)) if not self._occupied((x, y), v, pi)]
+            if free:
+                piece = rng.choice(free)
+        return Move(x, y, vi, piece)
+
     def _occupied(self, pos: tuple[int, int], v, piece_idx: int) -> bool:
         """pos にvの向きで置いた場合、その断片が連結する特徴に既にミープルがいるか。"""
         p = v.pieces[piece_idx]

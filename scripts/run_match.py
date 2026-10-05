@@ -17,13 +17,19 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from carcassonne.agents import GreedyAgent, RandomAgent  # noqa: E402
-from carcassonne.arena import run_match  # noqa: E402
-from carcassonne.mcts import MCTSAgent  # noqa: E402
+from carcassonne.agents import GreedyAgent, RandomAgent
+from carcassonne.arena import run_match
+from carcassonne.mcts import MCTSAgent
 
 FACTORIES = {"random": RandomAgent, "greedy": GreedyAgent, "mcts": MCTSAgent}
-INT_KEYS = {"sims": "n_sims", "det": "n_det"}
-FLOAT_KEYS = {"c": "c", "scale": "reward_scale", "meeple_cost": "meeple_cost"}
+INT_KEYS = {"sims": "n_sims", "det": "n_det", "depth": "rollout_depth"}
+BOOL_KEYS = {"fact": "factored"}
+FLOAT_KEYS = {
+    "c": "c",
+    "scale": "reward_scale",
+    "meeple_cost": "meeple_cost",
+    "mp": "meeple_prob",
+}
 
 
 def parse_agent(spec: str):
@@ -35,6 +41,8 @@ def parse_agent(spec: str):
         key, _, value = item.partition("=")
         if key in INT_KEYS:
             kwargs[INT_KEYS[key]] = int(value)
+        elif key in BOOL_KEYS:
+            kwargs[BOOL_KEYS[key]] = value not in ("0", "false", "False")
         elif key in FLOAT_KEYS:
             kwargs[FLOAT_KEYS[key]] = float(value)
         else:
