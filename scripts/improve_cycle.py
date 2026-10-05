@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import glob
 import json
+import os
 import sys
 import time
 from datetime import date
@@ -25,12 +26,14 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from carcassonne import ridge_stats
 from carcassonne.arena import run_match
-from carcassonne.fast_eval import NF, fit_ridge
+from carcassonne.fast_eval import NF, LinearEval
 from carcassonne.fast_mcts import FastMCTSAgent
 from carcassonne.selfplay import generate
 
 BEST_JSON = ROOT / "models" / "best.json"
+STATS_PATH = ROOT / "models" / "ridge_stats.npz"
 EXPERIMENTS = ROOT / "docs" / "EXPERIMENTS.md"
 
 
@@ -49,9 +52,12 @@ def main() -> None:
     ap.add_argument(
         "--max-files", type=int, default=8, help="学習に使うデータファイルの最大数（新しい順）"
     )
-    ap.add_argument("--workers", type=int, default=1)
+    ap.add_argument("--workers", type=int, default=1, help="0でCPU数")
+    ap.add_argument("--decay", type=float, default=0.7, help="過去の統計の減衰率（1サイクルごと）")
     ap.add_argument("--dry-run", action="store_true", help="記録・昇格をしない")
     args = ap.parse_args()
+    if args.workers == 0:
+        args.workers = os.cpu_count() or 1
 
     state = load_best()
     best_path = str(ROOT / state["best"])
@@ -69,22 +75,27 @@ def main() -> None:
     data_path.parent.mkdir(exist_ok=True)
     np.savez_compressed(data_path, X=X, y=y)
 
-    # 2. 蓄積データで再学習
-    xs, ys = [], []
-    files = sorted(
-        glob.glob(str(ROOT / "runs" / "data_*.npz")), key=lambda f: Path(f).stat().st_mtime
-    )
-    for f in files[-args.max_files :]:  # 新しい方策のデータを優先して直近のみ使う
-        d = np.load(f)
-        if d["X"].shape[1] == NF:
-            xs.append(d["X"])
-            ys.append(d["y"])
-    Xa, ya = np.concatenate(xs), np.concatenate(ys)
-    model = fit_ridge(Xa, ya, args.lam)
-    r2 = 1 - ((ya - Xa @ model.w) ** 2).sum() / ((ya - ya.mean()) ** 2).sum()
+    # 2. 十分統計量を持ち越して再学習（ローカルに生データが残っていれば初回の土台に使う）
+    stats = ridge_stats.load(STATS_PATH)
+    if stats is None:
+        files = sorted(
+            glob.glob(str(ROOT / "runs" / "data_*.npz")), key=lambda f: Path(f).stat().st_mtime
+        )
+        old = [np.load(f) for f in files[-args.max_files : -1]]
+        old = [(d["X"], d["y"]) for d in old if d["X"].shape[1] == NF]
+        if old:
+            stats = ridge_stats.stats_of(
+                np.concatenate([x for x, _ in old]), np.concatenate([v for _, v in old])
+            )
+    stats = ridge_stats.merge(stats, ridge_stats.stats_of(X, y), args.decay)
+    w = ridge_stats.solve_ridge(stats, args.lam)
+    model = LinearEval(w)
+    r2 = ridge_stats.r2(stats, w)
     version = f"c{cycle}_lin"
     cand = ROOT / "models" / f"eval_{version}.npy"
     model.save(str(cand))
+    if not args.dry_run:
+        ridge_stats.save(stats, STATS_PATH)
 
     # 3. ゲーティング対戦（候補A vs ベストB、同じ探索予算）
     seeds = range(50_000 + cycle * 1000, 50_000 + cycle * 1000 + args.eval_seeds)
@@ -101,7 +112,7 @@ def main() -> None:
     today = date.today().isoformat()  # noqa: DTZ011
     line = (
         f"\n### 自動改善サイクル #{cycle}（{today}）\n"
-        f"- データ: 新規{len(y)}局面（累計{len(ya)}）、線形R²={r2:.3f}、所要{elapsed:.0f}分\n"
+        f"- データ: 新規{len(y)}局面（有効累計{int(stats['n'])}）、線形R²={r2:.3f}、所要{elapsed:.0f}分\n"
         f"- 候補 `{cand.name}` vs 現ベスト `{Path(best_path).name}`"
         f"（各{args.eval_sims}回/手、{summary}）\n"
         f"- 判定: {'**昇格**' if promoted else '据え置き'}（閾値 勝率{args.threshold:.2f}）\n"

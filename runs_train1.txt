@@ -1,6 +1,0 @@
-v1: 31228局面 R2=0.383 481s -> models/eval_v1.npy
-  score_diff=0.21 proj_diff=0.85 proj_city=0.21 proj_road=0.16 proj_field=0.05 proj_monastery=0.22 meeples_city=0.18 meeples_road=-0.04 meeples_field=-0.26 meeples_monastery=-1.47 supply_diff=1.59 remaining=-0.76 proj_x_remaining=-0.33 bias=0.92
-v2: 31223局面 R2=0.377 1148s -> models/eval_v2.npy
-  score_diff=0.22 proj_diff=0.82 proj_city=0.15 proj_road=0.19 proj_field=0.07 proj_monastery=0.20 meeples_city=0.33 meeples_road=-0.52 meeples_field=-0.74 meeples_monastery=-1.04 supply_diff=1.97 remaining=-0.72 proj_x_remaining=-0.20 bias=1.09
-v3: 31217局面 R2=0.374 1142s -> models/eval_v3.npy
-  score_diff=0.22 proj_diff=0.81 proj_city=0.17 proj_road=0.13 proj_field=0.14 proj_monastery=0.16 meeples_city=0.35 meeples_road=-0.51 meeples_field=-0.62 meeples_monastery=-0.50 supply_diff=1.30 remaining=-0.54 proj_x_remaining=-0.15 bias=1.20

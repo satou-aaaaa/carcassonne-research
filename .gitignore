@@ -9,3 +9,6 @@ logs/
 checkpoints/
 *.pt
 *.npz
+
+runs_*.txt
+!models/ridge_stats.npz
