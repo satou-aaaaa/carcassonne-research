@@ -28,3 +28,13 @@ py -m venv .venv && .venv\Scripts\pip install pytest hypothesis ruff numpy numba
 .venv\Scripts\python -m pytest -q
 .venv\Scripts\python scripts/run_match.py "fmcts:sims=12000,eval=models/eval_v6_lin.npy" greedy --seeds 20 --workers 8
 ```
+
+## 人間と対戦する
+
+ブラウザ上でAIと対戦できる（対局は `runs/human/games.jsonl` に記録される）。手順と評価方法は
+[docs/HUMAN_EVAL.md](docs/HUMAN_EVAL.md)。
+
+```bash
+.venv\Scripts\python scripts/play_human.py
+.venv\Scripts\python scripts/summarize_human.py
+```

@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>カルカソンヌ 人間 vs AI</title>
+<style>
+  :root { --bg:#f4f1ea; --panel:#fff; --ink:#2b2b2b; --muted:#777; --line:#ddd6c7; --p0:#d64541; --p1:#2f6fd6; --accent:#2e7d32; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#1d1f1c; --panel:#2a2d29; --ink:#e8e6df; --muted:#9a9a90; --line:#43463f; --accent:#6fbf73; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.5 system-ui, "Hiragino Sans", "Yu Gothic UI", sans-serif; background:var(--bg); color:var(--ink); height:100vh; display:flex; }
+  #stage { flex:1; position:relative; min-width:0; }
+  canvas#board { width:100%; height:100%; display:block; cursor:grab; }
+  #hint { position:absolute; left:12px; top:12px; background:var(--panel); border:1px solid var(--line); padding:6px 10px; border-radius:8px; max-width:70%; }
+  aside { width:330px; background:var(--panel); border-left:1px solid var(--line); padding:12px; overflow-y:auto; display:flex; flex-direction:column; gap:12px; }
+  h2 { font-size:13px; margin:0 0 6px; color:var(--muted); font-weight:600; }
+  .score { display:flex; gap:8px; }
+  .score > div { flex:1; border:1px solid var(--line); border-radius:8px; padding:6px 8px; }
+  .score .me { border-left:5px solid var(--p0); } .score .ai { border-left:5px solid var(--p1); }
+  .score b { font-size:22px; }
+  .score small { color:var(--muted); display:block; }
+  .turn { outline:2px solid var(--accent); }
+  button { font:inherit; padding:6px 12px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--ink); cursor:pointer; }
+  button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  button:disabled { opacity:.45; cursor:default; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  #tilebox { display:flex; gap:12px; align-items:center; }
+  #log { height:150px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:6px 8px; font-size:12.5px; }
+  #log div.p0 { color:var(--p0); } #log div.p1 { color:var(--p1); }
+  #remain { display:flex; flex-wrap:wrap; gap:4px; }
+  #remain div { text-align:center; font-size:11px; color:var(--muted); width:38px; }
+  #remain div.zero { opacity:.3; }
+  #remain canvas { width:34px; height:34px; display:block; }
+  label { display:block; margin:6px 0 2px; color:var(--muted); font-size:12px; }
+  input, select { width:100%; font:inherit; padding:5px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--ink); }
+  dialog { border:1px solid var(--line); border-radius:12px; background:var(--panel); color:var(--ink); max-width:420px; }
+  dialog::backdrop { background:rgba(0,0,0,.4); }
+  details { font-size:12.5px; color:var(--muted); }
+  #result { font-size:15px; font-weight:600; padding:8px; border:2px solid var(--accent); border-radius:8px; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="board"></canvas>
+  <div id="hint">読み込み中…</div>
+</div>
+<aside>
+  <div class="row">
+    <button class="primary" id="btnNew">新しい対局</button>
+    <button id="btnRematch" hidden>同じ山札で席替え再戦</button>
+  </div>
+  <div id="result" hidden></div>
+  <div>
+    <h2>得点（括弧は今終局した場合の予測）</h2>
+    <div class="score">
+      <div class="me" id="boxMe"><small id="nameMe">あなた</small><b id="scMe">0</b> <span id="prMe"></span><small id="spMe"></small></div>
+      <div class="ai" id="boxAi"><small>AI</small><b id="scAi">0</b> <span id="prAi"></span><small id="spAi"></small></div>
+    </div>
+  </div>
+  <div>
+    <h2>引いたタイル（残り山札 <span id="deckLeft">-</span> 枚）</h2>
+    <div id="tilebox">
+      <canvas id="cur" width="110" height="110" style="width:110px;height:110px"></canvas>
+      <div>
+        <div class="row"><button id="btnRot">回転 (R)</button></div>
+        <div style="margin-top:6px" class="row"><button id="btnNone" disabled>ミープルを置かない</button></div>
+        <div style="color:var(--muted);font-size:12px;margin-top:4px" id="posCount"></div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <h2>棋譜ログ</h2>
+    <div id="log"></div>
+  </div>
+  <div>
+    <h2>山札に残るタイル（公開情報）</h2>
+    <div id="remain"></div>
+  </div>
+  <details>
+    <summary>このエンジンのルール（版差に注意）</summary>
+    <ul style="padding-left:18px;margin:6px 0">
+      <li>基本セット72枚・2人対戦。ミープルは各7個。</li>
+      <li>完成: 都市=タイル数×2＋盾×2、道=タイル数、修道院=9点。</li>
+      <li>終局時: 未完成の都市・道は1タイル1点（都市の盾も1点）、修道院は1＋周囲の埋まった数、農民は隣接する完成都市1つにつき3点。</li>
+      <li>最多ミープルの側が得点（同数なら両者満点）。</li>
+      <li>置けないタイルは捨てて引き直し（手番は変わらない）。</li>
+      <li>操作: ホイールで拡大縮小、ドラッグで移動、R/Spaceで回転、Esc/右クリックで取り消し。</li>
+    </ul>
+  </details>
+</aside>
+
+<dialog id="dlg">
+  <form method="dialog" id="newForm">
+    <h3 style="margin-top:0">新しい対局</h3>
+    <label>お名前（記録用）</label><input id="fName" placeholder="例: 山田">
+    <label>山札のシード（同じ数なら同じ山札。ペア対戦では先後を入れ替えて2局）</label>
+    <div class="row"><input id="fSeed" type="number" min="0" style="flex:1"><button type="button" id="btnRand">乱数</button></div>
+    <label>席</label>
+    <select id="fSeat"><option value="0">先手（赤）</option><option value="1">後手（青）</option></select>
+    <label>AIの強さ</label><select id="fLevel"></select>
+    <div class="row" style="margin-top:14px;justify-content:flex-end">
+      <button type="button" id="btnCancel">キャンセル</button>
+      <button class="primary" value="ok">開始</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const KIND_JA = {C:"都市", R:"道", F:"草原", M:"修道院"};
+const PCOL = ["#d64541", "#2f6fd6"];
+let LIB = [], LEVELS = {}, G = null;
+let view = {ox: 0, oy: 0, s: 72};
+let selV = 0, pending = null, hover = null, busy = false, lastForm = null;
+const cache = new Map();
+
+// ---------- タイル描画 ----------
+const EM = [[.5,0],[1,.5],[.5,1],[0,.5]];            // 辺の中点 N,E,S,W（画面座標 0..1）
+const HP = [[.25,0],[.75,0],[1,.25],[1,.75],[.75,1],[.25,1],[0,.75],[0,.25]]; // 半辺
+const D = 0.28;
+function cityShapes(sides) {
+  const trap = {
+    0: [[0,0],[1,0],[.8,D],[.2,D]],
+    1: [[1,0],[1,1],[1-D,.8],[1-D,.2]],
+    2: [[0,1],[1,1],[.8,1-D],[.2,1-D]],
+    3: [[0,0],[0,1],[D,.8],[D,.2]],
+  };
+  const inner = {0:[[.2,D],[.8,D]], 1:[[1-D,.2],[1-D,.8]], 2:[[.2,1-D],[.8,1-D]], 3:[[D,.2],[D,.8]]};
+  const shapes = sides.map(s => trap[s]);
+  if (sides.length > 1) shapes.push(hull(sides.flatMap(s => inner[s])));
+  return shapes;
+}
+function hull(pts) {
+  pts = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cr = (o, a, b) => (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0]);
+  const lo = [], up = [];
+  for (const p of pts) { while (lo.length >= 2 && cr(lo[lo.length-2], lo[lo.length-1], p) <= 0) lo.pop(); lo.push(p); }
+  for (const p of pts.slice().reverse()) { while (up.length >= 2 && cr(up[up.length-2], up[up.length-1], p) <= 0) up.pop(); up.push(p); }
+  return lo.slice(0, -1).concat(up.slice(0, -1));
+}
+function anchorOf(p, variant) {
+  if (p.kind === "M") return [.5, .5];
+  if (p.kind === "C") {
+    const inner = {0:[.5,D*.7], 1:[1-D*.7,.5], 2:[.5,1-D*.7], 3:[D*.7,.5]};
+    const pts = p.sides.map(s => inner[s]);
+    return [pts.reduce((a,q)=>a+q[0],0)/pts.length, pts.reduce((a,q)=>a+q[1],0)/pts.length];
+  }
+  if (p.kind === "R") {
+    if (p.sides.length >= 2) {
+      const pts = p.sides.map(s => EM[s]);
+      const m = [pts.reduce((a,q)=>a+q[0],0)/pts.length, pts.reduce((a,q)=>a+q[1],0)/pts.length];
+      return [m[0]*.5 + .25, m[1]*.5 + .25];
+    }
+    const e = EM[p.sides[0]]; return [e[0] + (.5-e[0])*.6, e[1] + (.5-e[1])*.6];
+  }
+  const pts = p.halves.map(h => HP[h]);
+  const c = [pts.reduce((a,q)=>a+q[0],0)/pts.length, pts.reduce((a,q)=>a+q[1],0)/pts.length];
+  return [c[0] + (.5-c[0])*.3, c[1] + (.5-c[1])*.3];
+}
+const anchorCache = new Map();
+// 各断片のミープル位置。草原が他の断片と重なる場合は、草原の辺上の点に退避させる
+function anchors(t, v) {
+  const key = t + ":" + v;
+  if (anchorCache.has(key)) return anchorCache.get(key);
+  const vr = LIB[t].variants[v], res = vr.pieces.map(p => anchorOf(p, vr));
+  const dist = (a, b) => Math.hypot(a[0]-b[0], a[1]-b[1]);
+  vr.pieces.forEach((p, i) => {
+    if (p.kind !== "F") return;
+    const others = res.filter((_, j) => j !== i);
+    if (others.every(o => dist(o, res[i]) > .2)) return;
+    let best = res[i], bs = -1;
+    for (const h of p.halves) {
+      const c = [HP[h][0] + (.5-HP[h][0])*.2, HP[h][1] + (.5-HP[h][1])*.2];
+      const sc = Math.min(...others.map(o => dist(o, c)));
+      if (sc > bs) { bs = sc; best = c; }
+    }
+    res[i] = best;
+  });
+  anchorCache.set(key, res); return res;
+}
+function tileCanvas(t, v) {
+  const key = t + ":" + v;
+  if (cache.has(key)) return cache.get(key);
+  const S = 128, c = document.createElement("canvas"); c.width = c.height = S;
+  const g = c.getContext("2d"), vr = LIB[t].variants[v];
+  g.fillStyle = "#86b96a"; g.fillRect(0, 0, S, S);
+  const pt = q => [q[0]*S, q[1]*S];
+  const path = pts => { g.beginPath(); pts.forEach((q, i) => { const [x, y] = pt(q); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.closePath(); };
+  const roads = vr.pieces.filter(p => p.kind === "R");
+  // 2辺以上の道は 端→中心→端 の折れ線にする
+  const fixedRoads = (w, col) => {
+    g.strokeStyle = col; g.lineWidth = w; g.lineCap = "butt"; g.lineJoin = "round";
+    for (const r of roads) {
+      g.beginPath();
+      if (r.sides.length >= 2) {
+        const a = pt(EM[r.sides[0]]), b = pt(EM[r.sides[1]]), m = pt([.5, .5]);
+        g.moveTo(a[0], a[1]); g.lineTo(m[0], m[1]); g.lineTo(b[0], b[1]);
+      } else {
+        const a = pt(EM[r.sides[0]]), f = roads.length >= 3 ? .78 : 1;
+        g.moveTo(a[0], a[1]); g.lineTo(a[0] + (S/2 - a[0])*f, a[1] + (S/2 - a[1])*f);
+      }
+      g.stroke();
+    }
+  };
+  fixedRoads(S*.17, "#7a6a45"); fixedRoads(S*.11, "#f3e7c3");
+  if (roads.length >= 3) { g.fillStyle = "#7a6a45"; g.beginPath(); g.arc(S/2, S/2, S*.06, 0, 7); g.fill(); }
+  const cities = vr.pieces.filter(p => p.kind === "C");
+  g.lineJoin = "round";
+  for (const ct of cities) for (const sh of cityShapes(ct.sides)) { path(sh); g.strokeStyle = "#5e3f26"; g.lineWidth = 6; g.stroke(); }
+  for (const ct of cities) for (const sh of cityShapes(ct.sides)) { path(sh); g.fillStyle = "#c08a5a"; g.fill(); }
+  for (const ct of cities) if (ct.pennant) {
+    const [ax, ay] = anchorOf(ct, vr).map(x => x * S);
+    g.fillStyle = "#2f5fb5"; g.strokeStyle = "#fff"; g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(ax-8, ay-10); g.lineTo(ax+8, ay-10); g.lineTo(ax+8, ay+3); g.lineTo(ax, ay+11); g.lineTo(ax-8, ay+3); g.closePath(); g.fill(); g.stroke();
+  }
+  if (vr.pieces.some(p => p.kind === "M")) {
+    g.fillStyle = "#e9e1d0"; g.fillRect(S*.36, S*.46, S*.28, S*.2);
+    g.fillStyle = "#b8403a"; g.beginPath(); g.moveTo(S*.32, S*.46); g.lineTo(S*.5, S*.3); g.lineTo(S*.68, S*.46); g.closePath(); g.fill();
+    g.strokeStyle = "#5a3a2a"; g.lineWidth = 1.5; g.strokeRect(S*.36, S*.46, S*.28, S*.2);
+  }
+  g.strokeStyle = "rgba(0,0,0,.45)"; g.lineWidth = 1.5; g.strokeRect(.75, .75, S-1.5, S-1.5);
+  cache.set(key, c); return c;
+}
+
+// ---------- 盤面描画 ----------
+const cv = $("board"), ctx = cv.getContext("2d");
+const cellLeft = x => view.ox + x*view.s, cellTop = y => view.oy - y*view.s;
+function resize() { const r = cv.getBoundingClientRect(); cv.width = r.width * devicePixelRatio; cv.height = r.height * devicePixelRatio; draw(); }
+function cellAt(px, py) { return [Math.floor((px - view.ox)/view.s), -Math.floor((py - view.oy)/view.s)]; }
+function myTurn() { return G && !G.over && G.player === G.human_seat && !busy; }
+function placementsFor(v) { return G.placements.filter(p => p.v === v); }
+function curVariants() { return G && G.current !== null ? LIB[G.current].variants.length : 0; }
+
+function draw() {
+  const W = cv.width / devicePixelRatio, H = cv.height / devicePixelRatio;
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  ctx.fillStyle = getComputedStyle(document.body).backgroundColor; ctx.fillRect(0, 0, W, H);
+  if (!G) return;
+  const s = view.s;
+  for (const b of G.board) ctx.drawImage(tileCanvas(b.t, b.v), cellLeft(b.x), cellTop(b.y), s, s);
+  if (G.last_ai) { ctx.strokeStyle = "#f5b400"; ctx.lineWidth = 4; ctx.strokeRect(cellLeft(G.last_ai.x)+2, cellTop(G.last_ai.y)+2, s-4, s-4); }
+  for (const m of G.meeples) drawMeeple(cellLeft(m.x), cellTop(m.y), m.piece, m.player, G.board.find(b => b.x === m.x && b.y === m.y));
+  if (myTurn() && G.current !== null) {
+    if (!pending) {
+      ctx.fillStyle = "rgba(46,125,50,.28)"; ctx.strokeStyle = "rgba(46,125,50,.9)"; ctx.lineWidth = 2;
+      for (const p of placementsFor(selV)) { ctx.fillRect(cellLeft(p.x), cellTop(p.y), s, s); ctx.strokeRect(cellLeft(p.x)+1, cellTop(p.y)+1, s-2, s-2); }
+      if (hover && placementsFor(selV).some(p => p.x === hover[0] && p.y === hover[1])) {
+        ctx.globalAlpha = .8; ctx.drawImage(tileCanvas(G.current, selV), cellLeft(hover[0]), cellTop(hover[1]), s, s); ctx.globalAlpha = 1;
+      }
+    } else {
+      ctx.drawImage(tileCanvas(G.current, pending.v), cellLeft(pending.x), cellTop(pending.y), s, s);
+      ctx.strokeStyle = "#2e7d32"; ctx.lineWidth = 3; ctx.strokeRect(cellLeft(pending.x)+1.5, cellTop(pending.y)+1.5, s-3, s-3);
+      const an = anchors(G.current, pending.v);
+      for (const pi of pending.pieces) {
+        const [ax, ay] = an[pi];
+        const x = cellLeft(pending.x) + ax*s, y = cellTop(pending.y) + ay*s;
+        ctx.beginPath(); ctx.arc(x, y, s*.13, 0, 7); ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.fill();
+        ctx.strokeStyle = PCOL[G.human_seat]; ctx.lineWidth = 2.5; ctx.setLineDash([4, 3]); ctx.stroke(); ctx.setLineDash([]);
+      }
+    }
+  }
+}
+function drawMeeple(left, top, pi, player, b) {
+  const [ax, ay] = anchors(b.t, b.v)[pi], s = view.s;
+  const x = left + ax*s, y = top + ay*s, r = s*.1;
+  ctx.fillStyle = PCOL[player]; ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(x, y - r*.9, r*.75, 0, 7); ctx.fill(); ctx.stroke();       // 頭
+  ctx.beginPath(); ctx.moveTo(x - r*1.15, y + r*1.2); ctx.lineTo(x, y - r*.2); ctx.lineTo(x + r*1.15, y + r*1.2); ctx.closePath(); ctx.fill(); ctx.stroke(); // 胴
+}
+
+// ---------- 操作 ----------
+let drag = null;
+cv.addEventListener("mousedown", e => { drag = {x: e.clientX, y: e.clientY, ox: view.ox, oy: view.oy, moved: false}; cv.style.cursor = "grabbing"; });
+window.addEventListener("mouseup", e => {
+  cv.style.cursor = "grab";
+  if (drag && !drag.moved && e.target === cv && e.button === 0) onClick(e);
+  drag = null;
+});
+window.addEventListener("mousemove", e => {
+  if (drag) {
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 5) drag.moved = true;
+    if (drag.moved) { view.ox = drag.ox + dx; view.oy = drag.oy + dy; draw(); }
+  } else if (e.target === cv) {
+    const r = cv.getBoundingClientRect(); hover = cellAt(e.clientX - r.left, e.clientY - r.top); draw();
+  }
+});
+cv.addEventListener("contextmenu", e => { e.preventDefault(); cancelPending(); });
+cv.addEventListener("wheel", e => {
+  e.preventDefault();
+  const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+  const k = e.deltaY < 0 ? 1.12 : 1/1.12, ns = Math.max(24, Math.min(160, view.s * k)), f = ns / view.s;
+  view.ox = px - (px - view.ox)*f; view.oy = py - (py - view.oy)*f; view.s = ns; draw();
+}, {passive: false});
+window.addEventListener("keydown", e => {
+  if ($("dlg").open) return;
+  if (e.key === "r" || e.key === "R" || e.key === " ") { e.preventDefault(); rotate(); }
+  if (e.key === "Escape") cancelPending();
+});
+function onClick(e) {
+  if (!myTurn() || G.current === null) return;
+  const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+  const [cx, cy] = cellAt(px, py);
+  if (!pending) {
+    const p = placementsFor(selV).find(q => q.x === cx && q.y === cy);
+    if (!p) return;
+    if (p.pieces.length === 0) return sendMove(p.x, p.y, p.v, null);
+    pending = {x: p.x, y: p.y, v: p.v, pieces: p.pieces}; refresh();
+  } else {
+    const an = anchors(G.current, pending.v);
+    let best = null, bd = 1e9;
+    for (const pi of pending.pieces) {
+      const [ax, ay] = an[pi];
+      const d = Math.hypot(cellLeft(pending.x) + ax*view.s - px, cellTop(pending.y) + ay*view.s - py);
+      if (d < bd) { bd = d; best = pi; }
+    }
+    if (best !== null && bd < view.s*.2) sendMove(pending.x, pending.y, pending.v, best);
+    else if (cx !== pending.x || cy !== pending.y) cancelPending();
+  }
+}
+function cancelPending() { if (pending) { pending = null; refresh(); } }
+function rotate() {
+  if (!G || G.current === null) return;
+  pending = null; selV = (selV + 1) % curVariants(); refresh();
+}
+$("btnRot").onclick = rotate;
+$("btnNone").onclick = () => { if (pending) sendMove(pending.x, pending.y, pending.v, null); };
+
+async function api(path, body) {
+  const r = await fetch(path, body ? {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)} : undefined);
+  const j = await r.json(); if (j && j.error) throw new Error(j.error); return j;
+}
+async function sendMove(x, y, v, piece) {
+  busy = true; pending = null; refresh(); setHint("AIが考えています…");
+  try { G = await api("/api/move", {x, y, variant: v, piece}); }
+  catch (err) { alert(err.message); }
+  busy = false; onNewState();
+}
+function onNewState() {
+  selV = 0;
+  if (G && G.current !== null && G.placements.length) { const vs = new Set(G.placements.map(p => p.v)); selV = [...vs][0] ?? 0; }
+  pending = null; refresh();
+}
+
+// ---------- パネル ----------
+function setHint(t) { $("hint").textContent = t; }
+function refresh() {
+  if (!G) return draw();
+  const h = G.human_seat, a = 1 - h;
+  $("scMe").textContent = G.scores[h]; $("scAi").textContent = G.scores[a];
+  $("prMe").textContent = `(${G.projected[h]})`; $("prAi").textContent = `(${G.projected[a]})`;
+  $("spMe").textContent = `手持ちミープル ${G.supply[h]}`; $("spAi").textContent = `手持ちミープル ${G.supply[a]}`;
+  $("nameMe").textContent = `${G.name || "あなた"}（${h === 0 ? "先手・赤" : "後手・青"}）`;
+  $("boxMe").style.borderLeftColor = PCOL[h]; $("boxAi").style.borderLeftColor = PCOL[a];
+  $("boxMe").classList.toggle("turn", !G.over && G.player === h); $("boxAi").classList.toggle("turn", !G.over && G.player === a);
+  $("deckLeft").textContent = G.deck_left;
+  const log = $("log"); log.innerHTML = "";
+  for (const ev of G.events) { const d = document.createElement("div"); d.className = ev.player === h ? "p" + h : "p" + a; d.textContent = ev.text; log.appendChild(d); }
+  log.scrollTop = log.scrollHeight;
+  // 引いたタイル
+  const cc = $("cur").getContext("2d"); cc.clearRect(0, 0, 110, 110);
+  if (G.current !== null) cc.drawImage(tileCanvas(G.current, pending ? pending.v : selV), 0, 0, 110, 110);
+  const mine = myTurn();
+  $("btnRot").disabled = !mine || curVariants() <= 1;
+  $("btnNone").disabled = !(mine && pending);
+  const n = G.current !== null ? placementsFor(selV).length : 0;
+  $("posCount").textContent = mine && !pending ? `この向きで置ける場所: ${n}` : "";
+  // 残りタイル
+  const rem = $("remain"); rem.innerHTML = "";
+  LIB.forEach((t, i) => {
+    const d = document.createElement("div"); if (!G.remaining[i]) d.className = "zero";
+    const c = document.createElement("canvas"); c.width = c.height = 68; c.getContext("2d").drawImage(tileCanvas(i, 0), 0, 0, 68, 68);
+    d.appendChild(c); d.appendChild(document.createTextNode("×" + G.remaining[i])); rem.appendChild(d);
+  });
+  // ヒント・結果
+  const res = $("result");
+  if (G.over) {
+    const d = G.scores[h] - G.scores[a];
+    res.hidden = false; res.textContent = `終局: ${G.scores[h]} − ${G.scores[a]}（${d > 0 ? "あなたの勝ち" : d < 0 ? "AIの勝ち" : "引き分け"}）。記録を保存しました。`;
+    setHint("対局終了");
+  } else { res.hidden = true;
+    if (busy) setHint("AIが考えています…");
+    else if (G.player !== h) setHint("AIの手番です");
+    else if (pending) setHint("ミープルを置く場所（点線の円）をクリック。置かない場合は右のボタン。Escで取り消し");
+    else setHint(n ? "緑のマスをクリックしてタイルを置く（R: 回転）" : "この向きでは置ける場所がありません。Rで回転");
+  }
+  $("btnRematch").hidden = !G.over;
+  draw();
+}
+function fitView() {
+  if (!G || !G.board.length) return;
+  const r = cv.getBoundingClientRect();
+  const xs = G.board.map(b => b.x), ys = G.board.map(b => b.y);
+  view.ox = r.width/2 - ((Math.min(...xs) + Math.max(...xs) + 1)/2) * view.s;
+  view.oy = r.height/2 + ((Math.min(...ys) + Math.max(...ys))/2) * view.s - view.s/2;
+}
+
+// ---------- 新規対局 ----------
+const dlg = $("dlg");
+$("btnNew").onclick = () => { $("fSeed").value ||= Math.floor(Math.random()*1e6); dlg.showModal(); };
+$("btnRand").onclick = () => $("fSeed").value = Math.floor(Math.random()*1e6);
+$("btnCancel").onclick = () => dlg.close();
+$("newForm").addEventListener("submit", () => {
+  lastForm = {name: $("fName").value, seed: +$("fSeed").value, human_seat: +$("fSeat").value, level: $("fLevel").value};
+  localStorage.setItem("cc_name", lastForm.name);
+  start(lastForm);
+});
+$("btnRematch").onclick = () => start({...lastForm, human_seat: 1 - lastForm.human_seat});
+async function start(form) {
+  lastForm = form; busy = true; setHint("対局を準備中…（AI先手の場合は初手を考えます）");
+  try { G = await api("/api/new", form); fitView(); }
+  catch (err) { alert(err.message); }
+  busy = false; onNewState();
+  $("fSeat").value = String(lastForm.human_seat);
+}
+async function init() {
+  const lib = await api("/api/tiles"); LIB = lib.tiles; LEVELS = lib.levels;
+  for (const [k, v] of Object.entries(LEVELS)) { const o = document.createElement("option"); o.value = k; o.textContent = v; $("fLevel").appendChild(o); }
+  $("fName").value = localStorage.getItem("cc_name") || "";
+  G = await api("/api/state");
+  if (G) { lastForm = {name: G.name, seed: G.seed, human_seat: G.human_seat, level: G.level}; fitView(); onNewState(); }
+  else { setHint("「新しい対局」を押してください"); $("btnNew").click(); }
+}
+window.addEventListener("resize", resize);
+resize(); init();
+</script>
+</body>
+</html>
