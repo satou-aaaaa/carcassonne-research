@@ -29,7 +29,7 @@ FACTORIES = {
     "fmcts": FastMCTSAgent,
 }
 INT_KEYS = {"sims": "n_sims", "det": "n_det", "depth": "rollout_depth"}
-BOOL_KEYS = {"fact": "factored"}
+BOOL_KEYS = {"fact": "factored", "chance": "chance"}
 FLOAT_KEYS = {
     "c": "c",
     "scale": "reward_scale",

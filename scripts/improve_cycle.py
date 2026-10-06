@@ -2,11 +2,11 @@
 
 1. 現行ベスト評価関数（models/best.json）の評価関数版MCTS自己対戦でデータを収集する。
 2. 過去の蓄積データ（runs/data_*.npz のうち特徴量数が一致するもの）と合わせて線形評価関数を再学習する。
-3. 候補をベストと同じ探索予算で対戦させ（先後入替・新しいシード）、勝率が閾値以上なら昇格する
-   （AlphaZero型のゲーティング。閾値は既定0.55）。
+3. 候補をベストと同じ探索予算で対戦させ（先後入替・新しいシード）、SPRT（逐次確率比検定）で
+   勝率>=p1 が受容されたら昇格する（AlphaZero型のゲーティング）。
 4. 結果を docs/EXPERIMENTS.md に追記し、models/best.json を更新する。コミット/pushは呼び出し側で行う。
 
-    py scripts/improve_cycle.py --games 440 --eval-seeds 30 --workers 11
+    py scripts/improve_cycle.py --games 440 --eval-seeds 60 --workers 11
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from carcassonne import ridge_stats
-from carcassonne.arena import run_match
+from carcassonne.arena import merge_summaries, run_match, sprt_decision, sprt_llr
 from carcassonne.fast_eval import NF, LinearEval
 from carcassonne.fast_mcts import FastMCTSAgent
 from carcassonne.selfplay import generate
@@ -46,8 +46,11 @@ def main() -> None:
     ap.add_argument("--games", type=int, default=440, help="データ収集の自己対戦局数")
     ap.add_argument("--gen-sims", type=int, default=4000)
     ap.add_argument("--eval-sims", type=int, default=12000, help="対戦評価の探索回数/手")
-    ap.add_argument("--eval-seeds", type=int, default=30, help="シード数（先後入替で2倍）")
-    ap.add_argument("--threshold", type=float, default=0.55, help="昇格に必要な勝率")
+    ap.add_argument(
+        "--eval-seeds", type=int, default=60, help="ゲーティングの最大シード数（先後入替で2倍）"
+    )
+    ap.add_argument("--batch-seeds", type=int, default=10, help="SPRTの判定間隔（シード数）")
+    ap.add_argument("--p1", type=float, default=0.58, help="SPRTのH1（昇格に値する勝率）")
     ap.add_argument("--lam", type=float, default=10.0)
     ap.add_argument(
         "--max-files", type=int, default=8, help="学習に使うデータファイルの最大数（新しい順）"
@@ -97,15 +100,27 @@ def main() -> None:
     if not args.dry_run:
         ridge_stats.save(stats, STATS_PATH)
 
-    # 3. ゲーティング対戦（候補A vs ベストB、同じ探索予算）
-    seeds = range(50_000 + cycle * 1000, 50_000 + cycle * 1000 + args.eval_seeds)
-    summary = run_match(
-        partial(FastMCTSAgent, args.eval_sims, eval_path=str(cand)),
-        partial(FastMCTSAgent, args.eval_sims, eval_path=best_path),
-        seeds,
-        workers=args.workers,
-    )
-    promoted = summary.win_rate >= args.threshold
+    # 3. ゲーティング対戦（候補A vs ベストB、同じ探索予算）。SPRTでバッチごとに判定し、
+    #    H1（勝率>=p1）が受容されたときだけ昇格する。最大シード数まで決着しなければ据え置き。
+    base = 50_000 + cycle * 1000
+    parts, wins, n, decision = [], 0.0, 0, "continue"
+    for lo in range(0, args.eval_seeds, args.batch_seeds):
+        hi = min(lo + args.batch_seeds, args.eval_seeds)
+        part = run_match(
+            partial(FastMCTSAgent, args.eval_sims, eval_path=str(cand)),
+            partial(FastMCTSAgent, args.eval_sims, eval_path=best_path),
+            range(base + lo, base + hi),
+            workers=args.workers,
+        )
+        parts.append(part)
+        wins += part.wins_a
+        n += part.games
+        decision = sprt_decision(wins, n, 0.5, args.p1)
+        if decision != "continue":
+            break
+    summary = merge_summaries(parts)
+    promoted = decision == "accept"
+    llr = sprt_llr(wins, n, 0.5, args.p1)
     elapsed = (time.time() - t0) / 60
 
     # 4. 記録
@@ -115,7 +130,8 @@ def main() -> None:
         f"- データ: 新規{len(y)}局面（有効累計{int(stats['n'])}）、線形R²={r2:.3f}、所要{elapsed:.0f}分\n"
         f"- 候補 `{cand.name}` vs 現ベスト `{Path(best_path).name}`"
         f"（各{args.eval_sims}回/手、{summary}）\n"
-        f"- 判定: {'**昇格**' if promoted else '据え置き'}（閾値 勝率{args.threshold:.2f}）\n"
+        f"- 判定: {'**昇格**' if promoted else '据え置き'}"
+        f"（SPRT H0=0.50 / H1={args.p1:.2f}、結果={decision}、LLR={llr:+.2f}）\n"
     )
     print(line)
     if args.dry_run:

@@ -90,3 +90,28 @@ def test_summarize_perspective():
     win_second = GameResult(0, "b", "a", [0, 10], 1, 0)  # Aは後手で勝ち
     s = summarize([win_first], [win_second])
     assert s.win_rate == 1.0 and s.mean_diff_a == 10
+
+
+def test_sprt_decisions():
+    from carcassonne.arena import sprt_decision
+
+    assert sprt_decision(0, 0) == "continue"
+    assert sprt_decision(40, 60) == "accept"
+    assert sprt_decision(20, 60) == "reject"
+    assert sprt_decision(31, 60) == "continue"
+
+
+def test_merge_summaries_matches_pooled_summary():
+    from carcassonne.arena import GameResult, merge_summaries
+
+    def res(d):
+        return GameResult(0, "a", "b", [d, 0], 0, 0)
+
+    xs = [3, -2, 5, 0, 7, -4, 1, 2]
+    whole = summarize([res(d) for d in xs], [])
+    parts = [summarize([res(d) for d in xs[:3]], []), summarize([res(d) for d in xs[3:]], [])]
+    merged = merge_summaries(parts)
+    assert merged.games == whole.games
+    assert abs(merged.mean_diff_a - whole.mean_diff_a) < 1e-9
+    assert abs(merged.se_diff - whole.se_diff) < 1e-9
+    assert abs(merged.win_rate - whole.win_rate) < 1e-9

@@ -48,6 +48,26 @@ def test_truncated_rollouts_work():
     assert m in st.legal_moves()
 
 
+@pytest.mark.parametrize("chance", [True, False])
+def test_chance_nodes_toggle_gives_legal_moves(chance):
+    st = State.new_game(26)
+    rng = random.Random(6)
+    for _ in range(10):
+        st.apply(rng.choice(st.legal_moves()))
+    m = FastMCTSAgent(n_sims=150, chance=chance).act(st, random.Random(7))
+    assert m in st.legal_moves()
+
+
+def test_chance_search_plays_full_game_to_the_end():
+    agent = FastMCTSAgent(n_sims=40, chance=True)
+    st = State.new_game(27)
+    rng = random.Random(8)
+    while not st.over:
+        st.apply(agent.act(st, rng))
+    assert st.over
+
+
+@pytest.mark.slow
 def test_beats_greedy_with_modest_budget():
     from functools import partial
 
