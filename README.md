@@ -39,3 +39,16 @@ py -m venv .venv && .venv\Scripts\pip install pytest hypothesis ruff numpy numba
 .venv\Scripts\python scripts/play_human.py
 .venv\Scripts\python scripts/summarize_human.py
 ```
+
+## 練習問題「次の一手」
+
+AIの自己対戦から「この局面ならどこに置く？」形式の初心者向け問題を作り、AIの評価と解説つきの
+1ファイルのページ `web/quiz.html` にまとめている（ブラウザで直接開ける）。
+
+```bash
+.venv\Scripts\python scripts/make_puzzles.py --seeds 0-23 --workers 4   # 候補局面を runs/puzzles/ に集める
+.venv\Scripts\python scripts/build_puzzles.py                            # data/puzzles.json から web/quiz.html を作る
+```
+
+採用する局面と解説は `data/puzzles.json` に手で書く。AIの評価は、根の候補手ごとの平均報酬を予想最終点差に
+換算したもの（`src/carcassonne/puzzles.py`）。

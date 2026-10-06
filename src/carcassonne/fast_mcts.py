@@ -86,6 +86,8 @@ def run_tree(
     W,
     agg1,
     agg2,
+    aggw1,
+    aggw2,
     rp_cell,
     rp_g,
     nrp,
@@ -94,7 +96,7 @@ def run_tree(
     fbuf,
     late,
 ):
-    """1本の木を `sims` 回反復し、根の訪問数を agg1/agg2 に加算する。"""
+    """1本の木を `sims` 回反復し、根の訪問数を agg1/agg2 に、報酬和を aggw1/aggw2 に加算する。"""
     N = sims + 2
     POOL = N * 160
     par = np.full(N, -1, np.int32)
@@ -232,13 +234,72 @@ def run_tree(
         for k in range(nrp):
             if rp_cell[k] == kcell[ch] and rp_g[k] == kg[ch]:
                 agg1[k] += vis[ch]
+                aggw1[k] += wsum[ch]
                 gc = fch[ch]
                 while gc >= 0:
                     agg2[k, kpiece[gc] + 1] += vis[gc]
+                    aggw2[k, kpiece[gc] + 1] += wsum[gc]
                     gc = nxt[gc]
                 break
         ch = nxt[ch]
     return 0
+
+
+@njit(cache=True)
+def search_stats(
+    S,
+    T,
+    P,
+    n_sims,
+    n_det,
+    c,
+    scale,
+    meeple_prob,
+    depth,
+    stamp,
+    stamp_box,
+    out_cell,
+    out_g,
+    free,
+    rec,
+    eval_w,
+    eval_mode,
+    fbuf,
+    late,
+):
+    """根局面 S から決定化MCTSを行い、根の候補ごとの訪問数と報酬和を返す。
+
+    戻り値は (マス, 向きID, 配置の訪問数, 配置の報酬和, 断片別の訪問数, 断片別の報酬和)。
+    断片別の配列の列 q は断片 q-1（列0はミープルなし）。報酬は手番側視点。
+    """
+    sc = S[10]
+    stamp_box[0] += 1
+    k = gen_placements(S, T, sc[SC_CUR], stamp, stamp_box[0], out_cell, out_g, False)
+    rp_cell = out_cell[:k].copy()
+    rp_g = out_g[:k].copy()
+    agg1 = np.zeros(k, np.int64)
+    agg2 = np.zeros((k, P + 1), np.int64)
+    aggw1 = np.zeros(k, np.float64)
+    aggw2 = np.zeros((k, P + 1), np.float64)
+    sims = max(1, n_sims // n_det)
+    W = copy_state(S)
+    D = copy_state(S)
+    for _ in range(n_det):
+        copy_into(D, S)
+        # 山札の未公開部分（引き済みの手元タイルを除く残り）をシャッフル
+        deck = D[11]
+        lo = D[10][SC_DRAW]
+        for i in range(NT - 2, lo, -1):
+            j = np.random.randint(lo, i + 1)
+            tmp = deck[i]
+            deck[i] = deck[j]
+            deck[j] = tmp
+        run_tree(
+            D, T, P, sims, c, scale, meeple_prob, depth, stamp, stamp_box,
+            out_cell, out_g, free, rec, W, agg1, agg2, aggw1, aggw2, rp_cell, rp_g, k,
+            eval_w, eval_mode, fbuf, late,
+        )  # fmt: skip
+    return rp_cell, rp_g, agg1, aggw1, agg2, aggw2
 
 
 @njit(cache=True)
@@ -264,31 +325,10 @@ def search(
     late,
 ):
     """根局面 S から決定化MCTSを行い、(マス, 向きID, 断片) を返す。"""
-    sc = S[10]
-    stamp_box[0] += 1
-    k = gen_placements(S, T, sc[SC_CUR], stamp, stamp_box[0], out_cell, out_g, False)
-    rp_cell = out_cell[:k].copy()
-    rp_g = out_g[:k].copy()
-    agg1 = np.zeros(k, np.int64)
-    agg2 = np.zeros((k, P + 1), np.int64)
-    sims = max(1, n_sims // n_det)
-    W = copy_state(S)
-    D = copy_state(S)
-    for _ in range(n_det):
-        copy_into(D, S)
-        # 山札の未公開部分（引き済みの手元タイルを除く残り）をシャッフル
-        deck = D[11]
-        lo = D[10][SC_DRAW]
-        for i in range(NT - 2, lo, -1):
-            j = np.random.randint(lo, i + 1)
-            tmp = deck[i]
-            deck[i] = deck[j]
-            deck[j] = tmp
-        run_tree(
-            D, T, P, sims, c, scale, meeple_prob, depth, stamp, stamp_box,
-            out_cell, out_g, free, rec, W, agg1, agg2, rp_cell, rp_g, k,
-            eval_w, eval_mode, fbuf, late,
-        )  # fmt: skip
+    rp_cell, rp_g, agg1, _, agg2, _ = search_stats(
+        S, T, P, n_sims, n_det, c, scale, meeple_prob, depth, stamp, stamp_box,
+        out_cell, out_g, free, rec, eval_w, eval_mode, fbuf, late,
+    )  # fmt: skip
     top = agg1.max()
     cands = np.where(agg1 == top)[0]
     bk = cands[np.random.randint(0, len(cands))]
