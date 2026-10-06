@@ -22,7 +22,7 @@ from .tiles import load_tileset
 ROOT = Path(__file__).resolve().parents[2]
 KIND_JA = {"C": "都市", "R": "道", "F": "草原", "M": "修道院"}
 LEVELS = {
-    "strong": "最強（MCTS 12000回＋短いロールアウト6手＋評価関数）",
+    "strong": "最強（MCTS 12000回＋短いロールアウト10手＋評価関数）",
     "standard": "標準（MCTS 2000回＋評価関数）",
     "greedy": "貪欲法（練習用）",
 }
@@ -42,8 +42,8 @@ def make_agent(level: str):
     from .fast_mcts import FastMCTSAgent
 
     sims = {"strong": 12000, "standard": 2000}[level]
-    # 最強は評価前に6手のロールアウトを挟む（docs/EXPERIMENTS.md「探索の構造」。標準は従来どおり）
-    depth = 6 if level == "strong" else None
+    # 最強は評価前に10手のロールアウトを挟む（docs/EXPERIMENTS.md「探索の構造」。標準は従来どおり）
+    depth = 10 if level == "strong" else None
     return FastMCTSAgent(n_sims=sims, rollout_depth=depth, eval_path=best_eval_path())
 
 
