@@ -26,7 +26,8 @@ from .fast import (
     random_move,
 )
 
-NF = 22
+NF = 29
+NF_V6 = 22  # v6 までの特徴量数（旧形式の重み・MLPの読み込み用）
 FEATURE_NAMES = (
     "score_diff",
     "proj_diff",
@@ -50,6 +51,13 @@ FEATURE_NAMES = (
     "n_features_theirs",
     "remaining_sq",
     "supply_mine",
+    "city_bonus",
+    "supply_x_remaining",
+    "stuck_mine",
+    "stuck_theirs",
+    "proj_field_x_remaining",
+    "proj_city_x_remaining",
+    "monastery_room_x_remaining",
 )
 
 
@@ -95,6 +103,23 @@ def features(S, T, P, me, out):
                 out[18] += 1.0
             if theirs == top:
                 out[19] += 1.0
+            if k == 0 and S[5][r] > 0:
+                # 完成すれば都市は2倍になる。開放端が少ないほど完成しやすいので、上乗せ分を開放端数で割る
+                b = v / S[5][r]
+                if mine == top:
+                    out[22] += b
+                if theirs == top:
+                    out[22] -= b
+            if k != 2:
+                # 未完成の都市・道・修道院に置いたミープル（終盤ほど戻ってこない）
+                out[24] += mine
+                out[25] += theirs
+            if k == 3:
+                room = 9.0 - v  # 修道院の周囲の空きマス（これから増える得点の上限）
+                if mine == top:
+                    out[28] += room
+                if theirs == top:
+                    out[28] -= room
     mysup = sc[SC_SUP0 + me]
     thsup = sc[SC_SUP0 + 1 - me]
     out[10] = mysup - thsup
@@ -105,6 +130,13 @@ def features(S, T, P, me, out):
     out[21] = mysup / 7.0
     out[1] += out[0]  # 予測得点差は確定得点も含める
     out[12] = out[1] * rem
+    # 残りタイル数との交互作用（線形モデルでも「序盤と終盤で価値が違う」を表せるようにする）
+    out[23] = out[10] * rem
+    out[24] *= 1.0 - rem
+    out[25] *= 1.0 - rem
+    out[26] = out[4] * rem
+    out[27] = out[2] * rem
+    out[28] *= rem
 
 
 @njit(cache=True)
@@ -135,9 +167,22 @@ def load_eval(path: str) -> tuple[np.ndarray, int]:
     w = np.load(path).astype(np.float64)
     if len(w) <= NF:
         return np.concatenate([w, np.zeros(NF - len(w))]), 1
-    H = (len(w) - 2 * NF - 1) // (NF + 2)
-    assert 2 * NF + NF * H + 2 * H + 1 == len(w), "MLPパラメータ長が不正"
-    return w, H
+    for nf in (NF, NF_V6):
+        H = (len(w) - 2 * nf - 1) // (nf + 2)
+        if H > 0 and 2 * nf + nf * H + 2 * H + 1 == len(w):
+            break
+    else:
+        raise AssertionError("MLPパラメータ長が不正")
+    if nf == NF:
+        return w, H
+    # 旧形式（特徴量 nf 個）のMLP: 追加特徴量は 平均0・標準偏差1・重み0 として埋める
+    pad = NF - nf
+    mean = np.concatenate([w[:nf], np.zeros(pad)])
+    std = np.concatenate([w[nf : 2 * nf], np.ones(pad)])
+    off = 2 * nf
+    W1 = np.vstack([w[off : off + nf * H].reshape(nf, H), np.zeros((pad, H))])
+    rest = w[off + nf * H :]
+    return np.concatenate([mean, std, W1.reshape(-1), rest]), H
 
 
 def fit_mlp(
