@@ -18,6 +18,13 @@
       "mean_diff": -4.1,
       "promoted": false,
       "date": "2026-10-05"
+    },
+    {
+      "version": "c3_lin",
+      "win_rate_vs_best": 0.5,
+      "mean_diff": -2.6,
+      "promoted": false,
+      "date": "2026-10-06"
     }
   ]
 }
