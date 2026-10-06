@@ -23,8 +23,23 @@
 - 最強設定（線形評価関数v6＋MCTS 12000回/手）は貪欲法に勝率79%（+16点）、ロールアウト版MCTSと同等の強さを
   約1/2.5の時間で達成。詳細は [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md)。
 
+## セットアップと実行
+
 ```bash
-py -m venv .venv && .venv\Scripts\pip install pytest hypothesis ruff numpy numba pypdf
-.venv\Scripts\python -m pytest -q
-.venv\Scripts\python scripts/run_match.py "fmcts:sims=12000,eval=models/eval_v6_lin.npy" greedy --seeds 20 --workers 8
+# Linux / macOS
+python -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
+python -m pytest -q                      # 約2.5分（初回はNumbaのコンパイル込み）
+python -m pytest -q -m "not slow"        # 高速版
+
+# Windows（PowerShell）
+py -m venv .venv; .venv\Scripts\pip install -e ".[dev]"; .venv\Scripts\python -m pytest -q
 ```
+
+```bash
+python scripts/run_match.py "fmcts:sims=12000,eval=models/eval_v6_lin.npy" greedy --seeds 20 --workers 8
+python scripts/first_player.py fmcts:sims=2000 --games 400 --workers 4   # 先手有利の検定
+```
+
+- 対戦ログ（JSONL）は `--log docs/results/<name>.jsonl` でリポジトリに残す（`runs/` はgit管理外の作業用）。
+- 探索の既定は従来の固定山札版。`chance=1` でタイル引きを確率節点としてモデル化できる（同回数では優位を示せていない。`docs/EXPERIMENTS.md`）。
+- 自動改善サイクル（`scripts/improve_cycle.py`）の昇格判定はSPRT（逐次確率比検定）。

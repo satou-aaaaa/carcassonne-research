@@ -72,6 +72,26 @@ def wilson(wins: float, n: int, z: float = 1.96) -> tuple[float, float]:
     return (c - h) / d, (c + h) / d
 
 
+def sprt_llr(wins: float, n: int, p0: float, p1: float) -> float:
+    """勝率 p0 (H0) に対する p1 (H1) の対数尤度比。引き分けは0.5勝として扱う。
+
+    先後入替の2局は厳密には独立でないため、近似的な検定として使う。
+    """
+    return wins * math.log(p1 / p0) + (n - wins) * math.log((1 - p1) / (1 - p0))
+
+
+def sprt_decision(
+    wins: float, n: int, p0: float = 0.5, p1: float = 0.58, alpha: float = 0.1, beta: float = 0.1
+) -> str:
+    """ "accept"（H1: 勝率>=p1）/ "reject"（H0: 勝率<=p0）/ "continue" を返す。"""
+    llr = sprt_llr(wins, n, p0, p1)
+    if llr >= math.log((1 - beta) / alpha):
+        return "accept"
+    if llr <= math.log(beta / (1 - alpha)):
+        return "reject"
+    return "continue"
+
+
 def summarize(results_a_first: list[GameResult], results_b_first: list[GameResult]) -> MatchSummary:
     """A先手の結果と B先手の結果（同一シード）から、Aの視点で集計する。"""
     diffs = [r.diff for r in results_a_first] + [-r.diff for r in results_b_first]
@@ -79,6 +99,21 @@ def summarize(results_a_first: list[GameResult], results_b_first: list[GameResul
     n = len(diffs)
     mean = sum(diffs) / n
     var = sum((d - mean) ** 2 for d in diffs) / max(n - 1, 1)
+    lo, hi = wilson(wins, n)
+    return MatchSummary(n, wins, mean, math.sqrt(var / n), wins / n, lo, hi)
+
+
+def merge_summaries(parts: list[MatchSummary]) -> MatchSummary:
+    """バッチごとの結果を合算する（平均得点差の分散は各バッチの分散から復元）。"""
+    n = sum(p.games for p in parts)
+    wins = sum(p.wins_a for p in parts)
+    mean = sum(p.mean_diff_a * p.games for p in parts) / n
+    # 総平方和 = Σ[(n_i-1)·var_i + n_i·(mean_i - mean)^2]、var_i = se_i^2 · n_i
+    ss = sum(
+        (p.games - 1) * p.se_diff**2 * p.games + p.games * (p.mean_diff_a - mean) ** 2
+        for p in parts
+    )
+    var = ss / max(n - 1, 1)
     lo, hi = wilson(wins, n)
     return MatchSummary(n, wins, mean, math.sqrt(var / n), wins / n, lo, hi)
 
