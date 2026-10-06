@@ -41,5 +41,5 @@ python scripts/first_player.py fmcts:sims=2000 --games 400 --workers 4   # 先�
 ```
 
 - 対戦ログ（JSONL）は `--log docs/results/<name>.jsonl` でリポジトリに残す（`runs/` はgit管理外の作業用）。
-- 探索は既定でタイル引きを確率節点としてモデル化する（`chance=0` で従来の固定山札版）。
+- 探索の既定は従来の固定山札版。`chance=1` でタイル引きを確率節点としてモデル化できる（同回数では優位を示せていない。`docs/EXPERIMENTS.md`）。
 - 自動改善サイクル（`scripts/improve_cycle.py`）の昇格判定はSPRT（逐次確率比検定）。

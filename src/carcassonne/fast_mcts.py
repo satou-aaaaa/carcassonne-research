@@ -354,12 +354,13 @@ class FastMCTSAgent:
         meeple_prob: float = 0.3,
         rollout_depth: int | None = None,
         eval_path: str | None = None,
-        chance: bool = True,
+        chance: bool = False,
     ) -> None:
         """eval_path に線形評価関数の重み(.npy)を渡すと、葉をその評価関数で評価する。
 
         その場合 rollout_depth は評価前に進めるランダム手数（未指定は0=評価のみ）。
-        chance=True で、タイル引きを確率節点としてモデル化する（False は従来の固定山札）。
+        chance=True で、タイル引きを確率節点としてモデル化する。既定の False は従来の固定山札で、
+        EXPERIMENTS.md の既存の結果はすべてこの条件。確率節点版は同回数で優位を示せていないため既定にしない。
         """
         self.chance = chance
         self.n_sims = n_sims
@@ -375,7 +376,7 @@ class FastMCTSAgent:
         tag = f",eval={eval_path.replace(chr(92), '/').split('/')[-1]}" if eval_path else ""
         self.name = (
             f"fastmcts(sims={n_sims},det={n_det},c={c:g},scale={reward_scale},"
-            f"mp={meeple_prob:g},depth={rollout_depth}{tag}{'' if chance else ',nochance'})"
+            f"mp={meeple_prob:g},depth={rollout_depth}{tag}{',chance' if chance else ''})"
         )
 
     def to_fast(self, state: State):

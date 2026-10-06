@@ -95,7 +95,8 @@ def main() -> None:
     model = LinearEval(w)
     r2 = ridge_stats.r2(stats, w)
     version = f"c{cycle}_lin"
-    cand = ROOT / "models" / f"eval_{version}.npy"
+    # dry-run では models/ を汚さないよう、作業用の runs/ に候補を置く
+    cand = (ROOT / ("runs" if args.dry_run else "models")) / f"eval_{version}.npy"
     model.save(str(cand))
     if not args.dry_run:
         ridge_stats.save(stats, STATS_PATH)
