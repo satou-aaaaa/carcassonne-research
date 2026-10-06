@@ -140,7 +140,7 @@ Nintendo Switch（2017）、BrettspielWelt、Board Game Arena など。オンラ
 | 2017 | Tomasz Preuss | ポーランド |
 | 2018 | Genro Fujimoto（藤本 玄朗） | 日本 |
 | 2019 | Marian Curcan（※下記の注意参照） | ルーマニア |
-| 2020 | 開催なし（COVID-19） | — |
+| 2020 | 開催なし（COVID-19で決勝中止。各国の代表枠を2人に増やして翌年へ繰り延べ） | — |
 | 2021 | Maciej Polak | ポーランド |
 | 2022 | Arpad Gere | ルーマニア |
 | 2023 | Matt Tucker | 英国 |
@@ -148,6 +148,41 @@ Nintendo Switch（2017）、BrettspielWelt、Board Game Arena など。オンラ
 | 2025 | Xiangyu Qin | 中国 |
 
 出典: 公式サイトの歴代結果（2006〜2023）、MSO（2024）、公式2025決勝ページ。日本人王者の漢字表記は筆者の推定で、要確認。
+
+#### 決勝の詳細（公式の結果PDF〜2016年、各年の決勝ページ）
+決勝は2人対戦で、スコアは**得点（点数）**。2006〜2016年は6回戦のスイス式予選（勝数→ブッフホルツ）の上位4人が準決勝・決勝へ進んだ。
+注: 2006年は準決勝がなく、予選上位4人で決勝（1位×2位）と3位決定戦のみ。
+
+| 年 | 決勝（勝者 vs 敗者、得点） | 3位 | 参加者 |
+|---|---|---|---|
+| 2006 | Ralph Querfurth 89 – 78 Michael Wischounig（墺。予選は Wischounig が1位） | David Korejtko（チェコ） | 16 |
+| 2007 | Sebastian Trunz 99 – 88 Wei-Chi Chen（台湾） | Janne Jaula（フィンランド） | 未確認 |
+| 2008 | Ralph Querfurth 109 – 71 Martin Mojzis（チェコ） | Sebastian Trunz | 未確認 |
+| 2009 | Ralph Querfurth 95 – 63 Daniel Geromboux（豪） | Matej Tabak（スロバキア） | 未確認 |
+| 2010 | Ralph Querfurth 81 – 55 Martin Mojzis | Matej Tabak | 22 |
+| 2011 | Els Bulten 75 – 59 Shinnosuke Komukai（日本） | Robert Mützner（独） | 24 |
+| 2012 | Martin Mojzis 79 – 76 Stefan Leopoldseder（墺） | Matej Tabak | 26 |
+| 2013 | Pantelis Litsardopoulos 107 – 60 Martin Mojzis | Aleksejs Pegusevs（ラトビア） | 36 |
+| 2014 | Takafumi Mochiduki（日）が Litsardopoulos に勝利（スコアは未取得） | Matej Tabak | 未確認 |
+| 2015 | Pantelis Litsardopoulos 101 – 97 Takafumi Mochizuki | Els Bulten | 32 |
+| 2016 | Vladimir Kovalev 114 – 79 Pantelis Litsardopoulos | Wannes Vansina（ベルギー） | 未確認 |
+| 2017・2018 | 決勝ページ未取得 | — | — |
+| 2019 | Marian Curcan 102 点（同点で予選順位により1位）／2位 Ying Chien（台湾）102 点 | Timofei Gretsenko（エストニア） | 36 |
+| 2021 | Maciej Polak（ポ）／2位 Melvin Gavinho Quaresma（ブラジル） | Tomasz Preuss（ポ） | 42 |
+| 2022 | Arpad Gere 103 点／2位 Min-Wei Chen（台湾） | Martin Mojzis（※スコア上は3位が100点で2位の98点を上回る。タイブレーク計算のソフト不具合を主催者が認めた旨の記載あり） | 34 |
+| 2023 | Matt Tucker（準優勝者は未取得） | — | — |
+| 2024 | Dani Angelats 勝利 vs Josef Tihon（ハンガリー） | — | 46（40か国） |
+| 2025 | Xiangyu Qin／2位 Horacio Mastandrea（ウルグアイ） | Raf Mesotten（ベルギー） | 52（45か国） |
+
+2025年の上位8位: 1 Qin（中）、2 Mastandrea（ウルグアイ）、3 Raf Mesotten（ベルギー）、4 Aleksejs Pegusevs（ラトビア）、
+5 Borislav Aymaliev（ブルガリア）、6 Kyrylo Manakhov（ウクライナ）、7 George Kyriazides（ギリシャ）、8 Vladimir Kovalev（元王者）。
+2025年の優勝者は準決勝・決勝を含め全勝（予選の記載は「4.0」）。決勝の得点は結果ページに記載があるが、取得した要約からは読み取れない。
+
+読み取れる傾向:
+- 決勝の得点は概ね**60〜140点台**、勝敗差は数点〜40点と幅がある。接戦の決勝（2012年3点差、2015年4点差）も多い。
+- **Martin Mojzis**（チェコ）は決勝に4回進出（2008、2010、2012、2013）して優勝1回、2022年も3位。Pantelis Litsardopoulos は2013〜2016年に3連続で決勝進出（優勝2回）。
+- Matej Tabak（スロバキア）は2009〜2014年に何度も3位以内（準決勝・3位決定戦の常連）。
+- 初期（2006〜2010年）はドイツ勢、その後アジア・東欧・南米と優勝国が拡散している。
 
 ### 3.3 著名プレイヤー
 
@@ -179,7 +214,9 @@ Nintendo Switch（2017）、BrettspielWelt、Board Game Arena など。オンラ
 
 1. **評価対象の妥当性**: 世界選手権は基本セット・2人戦。本プロジェクトの設定（基本セット・2人・先後入替）は競技の実態と合致する。
 2. **人間との比較**: 世界王者クラス（例: Ralph Querfurth）はオンライン大会（BrettspielWelt、BGA）にも参加している。
-   [HUMAN_EVAL.md](HUMAN_EVAL.md) の人間 vs AI 対局の目標水準を定める際、「競技者の公開棋譜・Elo相当の指標」が使えるか調べる価値がある（未調査）。
+   ただし**公開棋譜は見つからなかった**（§5参照）。BGAは「APIなし・スクレイピングはサイト規約違反」とモデレーターが明言しており、
+   BGAの棋譜を機械学習に使うのは避ける。[HUMAN_EVAL.md](HUMAN_EVAL.md) の人間対局は、自前のブラウザUIで集めた記録を使うのが現実的。
+   なお世界選手権の決勝得点は概ね60〜140点台（§3.2）。AIの平均得点や得点差をこの水準と見比べれば、強さの粗い目安になる。
 3. **ルールの版差**: 農夫の得点規則は版（2001年版／2002年第3版以降／英語版の2008年更新）で異なる。
    実装は現行版に揃えているが、古い棋譜・資料と比較する際は注意。
 4. **歴史的背景の活用先**: 公式の棋譜が公開されている大会があれば、教師あり事前学習やベンチマークに使える可能性がある（未調査）。
@@ -191,10 +228,17 @@ Nintendo Switch（2017）、BrettspielWelt、Board Game Arena など。オンラ
 - **売上**: 1,000万部超（伊報道・古い資料）と1,200万部超（Meeple Mountain）が併存。
 - **Querfurth の優勝回数**: 公式歴代表と Wikipedia は4回。取得時の要約に「5回」と書かれたものがあったが、年は4つしか挙がっておらず4回が妥当。
 - **2019年王者の表記**: 歴代表は「Marian Curcan」、MSO側は「Bogdan Curcan」。別人か表記ゆれか不明。
-- **2020年**: 公式表に記載なし（COVID-19で中止とされる）。オンライン開催の有無は未確認。
-- **日本人王者の漢字表記**・各年の準優勝者・参加人数は未取得（公式の結果PDF `CC-WMErgebnissebis2016engl.pdf` と各年の決勝ページを参照）。
+- **2021年王者**: 検索の要約には「Martin Mojzis 優勝」とあったが、公式の2021決勝ページは Maciej Polak 優勝・Quaresma 準優勝・Preuss 3位。公式を採用（Mojzisは別の年の記述を取り違えた可能性）。
+- **2020年**: 公式ページで「決勝中止」を確認済み。オンライン開催の記載はなし。
+- **日本人王者の漢字表記**は未確認。準優勝・参加人数は2006〜2016年（一部）、2019・2021・2022・2025年を反映済み。
+  2017・2018・2023・2024年の公式決勝ページはURLが見つからず（404）、準優勝・3位・参加人数は未取得。2014年の決勝スコアも未取得。
+- **2019・2022年の順位**: 点数ではなく別のタイブレークで決まっている（2022年は3位の点が2位より高い）。形式が2016年以前と異なる可能性があるが、詳細は未確認。
+- **2007〜2009年の参加人数、2014・2016年の参加人数**: PDFの表が崩れて読み取れず未確認。
 - **年表のうち**: 「川」の初出年、2026年（25周年）関連の詳細、各拡張の英語版発売年は二次資料のみ。
-- 2022年（Arpad Gere）以降の決勝参加人数・形式、MSO 2023〜2025の詳細は未調査。
+- MSO 2023〜2025の詳細は未調査。
+- **公開棋譜（調査結果）**: 世界選手権の棋譜・Elo相当の公開データは見つからなかった。BGA の「Carcassonne Reviewer」という
+  GitHub プロジェクト（個人のレビュー補助）の存在は確認したが、データセットではない。BGA公式は棋譜取得（スクレイピング）を禁止。
+  BrettspielWelt の棋譜公開方針は未確認。→ 人間の強さの基準は自前の人間対AI対局（HUMAN_EVAL）で作るのが妥当。
 - ヴレーデ本人のインタビュー（Z-Man Games 2021年4月）は取得に失敗（URL不達）。一次資料として別途確認したい。
 
 ## 6. 出典
@@ -212,3 +256,5 @@ Nintendo Switch（2017）、BrettspielWelt、Board Game Arena など。オンラ
 - [Cité de Carcassonne — Wikipedia](https://en.wikipedia.org/wiki/Cit%C3%A9_de_Carcassonne)
 - [Carcassonne 20周年 — AGI（2026-03-12）](https://www.agi.it/cronaca/news/2026-03-12/carcassonne-gioco-tavolo-36071148/)
 - [WikiCarpedia: Tournaments and World Championships](https://wikicarpedia.com/car/Tournaments_and_World_Championships)（取得不可。検索結果の存在のみ確認）
+- [公式選手権: 2019決勝](https://carcassonne-meisterschaft.de/en/final-2019.htm)・[2021決勝](https://carcassonne-meisterschaft.de/en/final-2019-kopie.htm)・[2022決勝](https://carcassonne-meisterschaft.de/en/final-2022.htm)・[2025結果](https://carcassonne-meisterschaft.de/en/final-results-2025.htm)・[2020中止告知](https://carcassonne-meisterschaft.de/en/final-2020.htm)
+- [BGA フォーラム: Accessing Database Carcasonne for Machine Learning](https://forum.boardgamearena.com/viewtopic.php?p=177197)（棋譜取得不可の根拠）
