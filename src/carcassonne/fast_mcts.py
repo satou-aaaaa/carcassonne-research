@@ -92,6 +92,7 @@ def run_tree(
     eval_w,
     eval_mode,
     fbuf,
+    late,
 ):
     """1本の木を `sims` 回反復し、根の訪問数を agg1/agg2 に加算する。"""
     N = sims + 2
@@ -195,7 +196,8 @@ def run_tree(
         if ntype[node] == 1:  # ミープル節点が葉: ミープルなしで置いた後を評価
             apply_move(W, T, P, kcell[node], kg[node], -1, stamp, stamp_box, out_cell, out_g)
         v0 = 0.0
-        if eval_mode >= 1 and wsc[SC_OVER] == 0:
+        use_eval = eval_mode >= 1 and (NT - 1 - wsc[SC_DRAW]) > late
+        if use_eval and wsc[SC_OVER] == 0:
             # 学習型評価関数: depth手のロールアウトで進めた後の局面を線形モデルで評価する
             if depth > 0:
                 rollout(W, T, P, meeple_prob, depth, stamp, stamp_box, out_cell, out_g, free, rec)
@@ -212,8 +214,10 @@ def run_tree(
                 s0 = wsc[SC_S0]
                 s1 = wsc[SC_S1]
             else:
+                # 評価関数を使わない葉（終盤の late 枚以下、または評価関数なし）は終局までロールアウト
+                rd = -1 if eval_mode >= 1 else depth
                 s0, s1 = rollout(
-                    W, T, P, meeple_prob, depth, stamp, stamp_box, out_cell, out_g, free, rec
+                    W, T, P, meeple_prob, rd, stamp, stamp_box, out_cell, out_g, free, rec
                 )
             v0 = float(s0 - s1)
             v1m = -v0
@@ -257,6 +261,7 @@ def search(
     eval_w,
     eval_mode,
     fbuf,
+    late,
 ):
     """根局面 S から決定化MCTSを行い、(マス, 向きID, 断片) を返す。"""
     sc = S[10]
@@ -282,7 +287,7 @@ def search(
         run_tree(
             D, T, P, sims, c, scale, meeple_prob, depth, stamp, stamp_box,
             out_cell, out_g, free, rec, W, agg1, agg2, rp_cell, rp_g, k,
-            eval_w, eval_mode, fbuf,
+            eval_w, eval_mode, fbuf, late,
         )  # fmt: skip
     top = agg1.max()
     cands = np.where(agg1 == top)[0]
@@ -308,6 +313,7 @@ class FastMCTSAgent:
         meeple_prob: float = 0.3,
         rollout_depth: int | None = None,
         eval_path: str | None = None,
+        late: int = 0,
     ) -> None:
         """eval_path に線形評価関数の重み(.npy)を渡すと、葉をその評価関数で評価する。
 
@@ -320,13 +326,16 @@ class FastMCTSAgent:
         self.meeple_prob = meeple_prob
         self.rollout_depth = rollout_depth
         self.eval_path = eval_path
+        self.late = late  # 残りタイルがこの枚数以下の局面は、評価関数でなく終局までのロールアウトで評価する
         self.eval_w, self.eval_mode = load_eval(eval_path) if eval_path else (np.zeros(NF), 0)
         self.fbuf = np.zeros(NF)
         self.fast = Fast()
         tag = f",eval={eval_path.replace(chr(92), '/').split('/')[-1]}" if eval_path else ""
         self.name = (
             f"fastmcts(sims={n_sims},det={n_det},c={c:g},scale={reward_scale},"
-            f"mp={meeple_prob:g},depth={rollout_depth}{tag})"
+            f"mp={meeple_prob:g},depth={rollout_depth}{tag}"
+            + (f",late={late}" if late else "")
+            + ")"
         )
 
     def to_fast(self, state: State):
@@ -361,6 +370,7 @@ class FastMCTSAgent:
             self.eval_w,
             self.eval_mode,
             self.fbuf,
+            self.late,
         )
         return int(cell), int(g), int(piece)
 

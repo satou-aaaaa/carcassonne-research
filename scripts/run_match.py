@@ -28,7 +28,7 @@ FACTORIES = {
     "mcts": MCTSAgent,
     "fmcts": FastMCTSAgent,
 }
-INT_KEYS = {"sims": "n_sims", "det": "n_det", "depth": "rollout_depth"}
+INT_KEYS = {"sims": "n_sims", "det": "n_det", "depth": "rollout_depth", "late": "late"}
 BOOL_KEYS = {"fact": "factored"}
 FLOAT_KEYS = {
     "c": "c",
