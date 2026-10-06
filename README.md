@@ -16,6 +16,7 @@
 
 ロードマップは [docs/ROADMAP.md](docs/ROADMAP.md) を参照。
 ゲームの歴史・競技シーン・著名プレイヤーは [docs/BACKGROUND.md](docs/BACKGROUND.md) を参照。
+強いAIの指し方から初心者向けのコツをまとめたページは [docs/ai_tips.html](docs/ai_tips.html)（作り方はページ末尾）。
 
 ## 現状（2026-10-05）
 

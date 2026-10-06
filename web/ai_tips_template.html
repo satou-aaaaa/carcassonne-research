@@ -1,0 +1,278 @@
+<meta charset="utf-8">
+<title>強いAIに学ぶカルカソンヌ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* 構成: 1段組の読み物。各コツ = 見出し＋本文＋「強いAI／目先の点だけのAI」の数値ペア＋盤面図。
+   色はタイルの絵（草原の緑・都市の土色）と、2人のミープル色（赤・青）から取る。 */
+:root {
+  --bg: #f1f3ee;
+  --paper: #ffffff;
+  --ink: #1d2620;
+  --muted: #5c6a60;
+  --line: #d5dccf;
+  --field: #2f6b3a;
+  --city: #9a6436;
+  --strong: #2f6b3a;
+  --greedy: #a9b3a6;
+  --red: #d64541;
+  --blue: #2f6fd6;
+  --board-bg: #e6e2d6;
+  --font-display: "Dela Gothic One", "Zen Kaku Gothic New", "Hiragino Sans", sans-serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+  --font-num: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141a16; --paper: #1c241f; --ink: #e6ece6; --muted: #9aa89d; --line: #2e3a32;
+    --field: #7cc48a; --city: #d9a571; --strong: #6fbf7e; --greedy: #56635a;
+    --red: #f06a62; --blue: #6c9cf0; --board-bg: #2a312c; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141a16; --paper: #1c241f; --ink: #e6ece6; --muted: #9aa89d; --line: #2e3a32;
+  --field: #7cc48a; --city: #d9a571; --strong: #6fbf7e; --greedy: #56635a;
+  --red: #f06a62; --blue: #6c9cf0; --board-bg: #2a312c; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.85;
+  padding-inline: 16px; padding-block: 0 64px;
+}
+.wrap { max-width: 760px; margin: 0 auto; }
+header.hero { padding-block: 48px 28px; display: grid; gap: 14px; }
+.eyebrow { font-size: 13px; letter-spacing: .12em; color: var(--muted); font-weight: 700; }
+h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 6vw, 46px); line-height: 1.25; margin: 0; text-wrap: balance; }
+h1 .accent { color: var(--field); }
+.lede { margin: 0; max-width: 36em; color: var(--ink); }
+.method { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 14px; color: var(--muted); margin: 0; padding: 0; list-style: none; }
+.method b { font-family: var(--font-num); color: var(--ink); font-weight: 500; }
+
+nav.toc { border-block: 1px solid var(--line); padding-block: 14px; margin-block: 8px 8px; }
+nav.toc ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px 20px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); font-size: 15px; }
+nav.toc a { color: var(--ink); text-decoration: none; border-bottom: 1px solid transparent; }
+nav.toc a:hover, nav.toc a:focus-visible { border-bottom-color: var(--field); outline: none; }
+nav.toc .grp { font-size: 12px; letter-spacing: .1em; color: var(--muted); font-weight: 700; }
+
+section.group { padding-block: 40px 8px; }
+section.group > h2 {
+  font-family: var(--font-display); font-weight: 400; font-size: 22px; margin: 0 0 6px;
+  display: flex; align-items: baseline; gap: 12px;
+}
+section.group > h2 .tag { font-family: var(--font-body); font-weight: 700; font-size: 12px; letter-spacing: .12em; color: var(--paper); background: var(--field); padding: 2px 8px; border-radius: 3px; }
+section.group > p.intro { color: var(--muted); margin: 0 0 8px; }
+
+article.tip { padding-block: 26px; border-top: 1px solid var(--line); display: grid; gap: 14px; }
+article.tip h3 { font-size: 21px; line-height: 1.45; margin: 0; font-weight: 700; text-wrap: balance; }
+article.tip p { margin: 0; max-width: 38em; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 520px; }
+.pair > div { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; min-width: 0; }
+.pair .who { font-size: 12px; color: var(--muted); letter-spacing: .06em; display: block; }
+.pair .n { font-family: var(--font-num); font-size: 26px; font-variant-numeric: tabular-nums; line-height: 1.3; }
+.pair .n small { font-family: var(--font-body); font-size: 13px; color: var(--muted); margin-left: 3px; }
+.pair .s .n { color: var(--strong); }
+.pair .what { font-size: 13px; color: var(--muted); grid-column: 1 / -1; margin-top: -2px; }
+
+figure { margin: 0; display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); gap: 18px; align-items: start; }
+figure .board { border-radius: 6px; overflow: hidden; border: 1px solid var(--line); background: var(--board-bg); }
+figure .board svg { display: block; width: 100%; height: auto; }
+figcaption { font-size: 14.5px; line-height: 1.75; color: var(--ink); min-width: 0; }
+figcaption .k { display: block; font-size: 12px; letter-spacing: .1em; color: var(--muted); font-weight: 700; margin-bottom: 2px; }
+.red { color: var(--red); font-weight: 700; }
+.blue { color: var(--blue); font-weight: 700; }
+@media (max-width: 560px) { figure { grid-template-columns: 1fr; } figure .board { max-width: 300px; } }
+
+.chartbox { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 14px 14px 6px; overflow-x: auto; }
+.chartbox .cap { font-size: 13px; color: var(--muted); margin: 0 0 6px; }
+svg.chart { width: 100%; min-width: 420px; height: auto; display: block; }
+svg.chart .grid { stroke: var(--line); stroke-width: 1; }
+svg.chart .tick { fill: var(--muted); font-size: 12px; font-family: var(--font-num); }
+svg.chart .axis { fill: var(--muted); font-size: 12px; }
+svg.chart .s-strong { stroke: var(--strong); stroke-width: 3; stroke-linejoin: round; }
+svg.chart .s-greedy { stroke: var(--greedy); stroke-width: 3; stroke-dasharray: 6 5; stroke-linejoin: round; }
+svg.chart .lbl { font-size: 13px; font-weight: 700; }
+svg.chart .lbl-strong { fill: var(--strong); }
+svg.chart .lbl-greedy { fill: var(--muted); }
+svg.chart .rowlbl { fill: var(--ink); font-size: 14px; font-weight: 700; }
+svg.chart .b-strong { fill: var(--strong); }
+svg.chart .b-greedy { fill: var(--greedy); }
+svg.chart .val { fill: var(--ink); font-size: 12.5px; font-family: var(--font-num); }
+svg.chart .valname { fill: var(--muted); font-family: var(--font-body); font-size: 11.5px; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13.5px; color: var(--muted); align-items: center; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; margin-right: 5px; }
+.legend .sq { border-radius: 2px; border: 3px solid #f5b400; background: transparent; }
+
+aside.note { margin-top: 48px; padding: 18px 20px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; font-size: 14.5px; }
+aside.note h2 { font-size: 16px; margin: 0 0 6px; }
+aside.note ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+aside.note code { font-family: var(--font-num); font-size: 13px; }
+.summary { margin-top: 40px; display: grid; gap: 10px; }
+.summary h2 { font-family: var(--font-display); font-weight: 400; font-size: 22px; margin: 0; }
+.summary ol { margin: 0; padding-left: 1.4em; display: grid; gap: 6px; }
+a { color: var(--field); }
+:focus-visible { outline: 2px solid var(--field); outline-offset: 2px; }
+</style>
+
+<div class="wrap">
+<header class="hero">
+  <span class="eyebrow">カルカソンヌ ・ 基本ルール ・ 2人対戦</span>
+  <h1>強いAIは、<span class="accent">どこに置いているか</span></h1>
+  <p class="lede">このプロジェクトで作った一番強いAI同士を{{games_strong}}局戦わせ、全部の手を記録しました。比べる相手は「その手番で一番点が増える手を選ぶだけのAI」（以下、目先の点だけのAI）です。強いAIがこのAIと同じ手を選んだのは{{same_as_greedy}}%だけでした。残りの{{differ_from_greedy}}%の手に、初心者がまねできるコツが詰まっています。</p>
+  <ul class="method">
+    <li>強いAI同士 <b>{{games_strong}}</b>局</li>
+    <li>目先の点だけのAI同士 <b>{{games_greedy}}</b>局</li>
+    <li>1人あたり平均得点 <b>{{avg_score_strong}}</b>点（目先の点だけのAIは<b>{{avg_score_greedy}}</b>点）</li>
+  </ul>
+</header>
+
+<nav class="toc" aria-label="目次">
+  <ol>
+    <li><span class="grp">ミープル</span><br><a href="#keep">全部使い切らずに手元に残す</a><br><a href="#road">道には「すぐ終わる道」だけ</a><br><a href="#city">都市は自分で新しく始める</a><br><a href="#farm">農民は1人3〜4個、早めに1つ</a></li>
+    <li><span class="grp">タイル</span><br><a href="#merge">相手の都市に合流して分け合う</a><br><a href="#block">相手の都市を「完成しない形」にする</a><br><a href="#monastery">修道院は周りを自分で埋める</a></li>
+    <li><span class="grp">得点</span><br><a href="#citywins">勝ち負けを分けるのは都市</a><br><a href="#recap">まとめ</a></li>
+  </ol>
+</nav>
+
+<p class="legend" style="margin-top:18px">
+  <span>盤面図の見方：</span>
+  <span><i style="background:var(--red)"></i>先手（赤）</span>
+  <span><i style="background:var(--blue)"></i>後手（青）</span>
+  <span><i class="sq"></i>AIが今置いたタイル</span>
+  <span>× どのタイルでも埋まらないマス</span>
+</p>
+
+<section class="group" id="meeple">
+  <h2><span class="tag">ミープル</span>7個をどう使うか</h2>
+  <p class="intro">ミープルは7個しかありません。強いAIの差がいちばん大きく出たのは、この使い方でした。</p>
+
+  <article class="tip" id="keep">
+    <h3>全部使い切らずに、1〜2個は手元に残す</h3>
+    <p>置ける場所があるとつい置きたくなりますが、強いAIは置けるのに置かない手が目先の点だけのAIより多く、序盤の終わりでも手持ちが残っています。手元に1個あれば、相手の都市への合流や、終盤の大きな草原など「ここぞ」という場面に使えます。</p>
+    <div class="pair">
+      <div class="s"><span class="who">強いAI</span><span class="n">{{skip_strong}}<small>%</small></span></div>
+      <div><span class="who">目先の点だけのAI</span><span class="n">{{skip_greedy}}<small>%</small></span></div>
+      <span class="what">手持ちがあるのに、あえてミープルを置かなかった手番の割合</span>
+    </div>
+    <div class="chartbox">
+      <p class="cap">手持ちミープル数の平均（手番を迎えたとき）。山札の残りが48枚の時点で、強いAIは平均{{supply48_strong}}個、目先の点だけのAIは{{supply48_greedy}}個。</p>
+      {{chart_supply}}
+    </div>
+    <figure>
+      <div class="board">{{svg_skip}}</div>
+      <figcaption><span class="k">実戦の例（序盤・残り58枚）</span><span class="red">赤</span>は交差点のタイルを置きましたが、ミープルは置きませんでした。目先の点だけのAIなら同じ場所に置いて道にミープルを乗せる場面です。行き先の決まっていない短い道に乗せると、しばらく戻ってきません。</figcaption>
+    </figure>
+  </article>
+
+  <article class="tip" id="road">
+    <h3>道に乗せるのは「すぐ終わる道」だけ</h3>
+    <p>道は1タイル1点と安く、端が決まらないといつまでも完成しません。強いAIが道にミープルを置くのは、ほとんどが既にある道を延ばす場面で、置いたミープルはすぐに戻ってきます。新しい道を自分から始めることはまずありません。</p>
+    <div class="pair">
+      <div class="s"><span class="who">強いAI</span><span class="n">{{road_life_strong}}<small>手番</small></span></div>
+      <div><span class="who">目先の点だけのAI</span><span class="n">{{road_life_greedy}}<small>手番</small></span></div>
+      <span class="what">道に置いたミープルが戻ってくるまでの平均（強いAIの道ミープルの{{road_join}}%は既存の道に乗せたもの）</span>
+    </div>
+    <div class="chartbox">
+      <p class="cap">ミープルを置いてから戻るまでの平均手番数（自分の手番で数える）。農民は終局まで戻りません。</p>
+      {{chart_life}}
+    </div>
+  </article>
+
+  <article class="tip" id="city">
+    <h3>都市は、自分で新しく始めて育てる</h3>
+    <p>強いAIは置いたミープルの{{city_share_strong}}%が都市でした（目先の点だけのAIは{{city_share_greedy}}%）。しかも半分以上は、まだ誰のものでもない新しい都市の1枚目に乗せています。完成した都市は1タイル2点、盾はさらに2点と高く、自分だけの都市なら他人に邪魔されにくいからです。</p>
+    <div class="pair">
+      <div class="s"><span class="who">強いAI</span><span class="n">{{city_new_strong}}<small>%</small></span></div>
+      <div><span class="who">目先の点だけのAI</span><span class="n">{{city_new_greedy}}<small>%</small></span></div>
+      <span class="what">都市に置いたミープルのうち、新しい都市（どこにもつながっていない都市）に置いた割合</span>
+    </div>
+  </article>
+
+  <article class="tip" id="farm">
+    <h3>農民は1人3〜4個。序盤から1つ確保し、最後の1個も農民へ</h3>
+    <p>農民（草原のミープル）は終局まで戻ってきませんが、1個あたり平均{{farm_points}}点と、どの置き方より多く稼ぎます。強いAIはだいたい最初の数手で1つ目の農民を置き、終盤に残った最後のミープルも、完成した都市にたくさん接する草原へ置きます。農民の点は1人あたり平均{{farm_total}}点で、全体の{{farm_share}}%を占めます。</p>
+    <div class="pair">
+      <div class="s"><span class="who">農民1個の平均得点</span><span class="n">{{farm_points}}<small>点</small></span></div>
+      <div><span class="who">0点に終わった農民</span><span class="n">{{farm_zero}}<small>%</small></span></div>
+      <span class="what">強いAIの農民（1人1局あたり平均{{farm_per_player}}個、平均{{farm_turns}}手番のあいだ盤上に残る）</span>
+    </div>
+    <figure>
+      <div class="board">{{svg_farm}}</div>
+      <figcaption><span class="k">実戦の例（終盤・残り10枚）</span><span class="red">赤</span>は最後の1個を草原に置きました。この草原は完成済みの都市3つに接していて、置いた時点で9点が見込めます。未完成の都市も4つ接しているので、完成すればさらに3点ずつ増えます。</figcaption>
+    </figure>
+  </article>
+</section>
+
+<section class="group" id="tiles">
+  <h2><span class="tag">タイル</span>どこに置くか</h2>
+  <p class="intro">強いAIは、自分の特徴を伸ばすだけでなく、相手の特徴にも手を出します。相手の特徴に接するタイルを置いた手番は強いAIが{{touch_opp_strong}}%、目先の点だけのAIが{{touch_opp_greedy}}%でした。</p>
+
+  <article class="tip" id="merge">
+    <h3>相手の大きな都市には、合流して分け合う</h3>
+    <p>相手の都市にミープルがいると直接は置けませんが、隣に自分の小さな都市を作ってミープルを置き、あとでタイルでつなげれば合流できます。ミープルの数が同じなら両方が満点をもらえます。強いAIの対局では、全得点の{{shared_share}}%がこうした「分け合い」でした。</p>
+    <figure>
+      <div class="board">{{svg_merge}}</div>
+      <figcaption><span class="k">実戦の例（序盤・残り46枚）</span><span class="red">赤</span>は自分の都市と<span class="blue">青</span>の都市を1枚でつなぎ、10タイルの大きな都市にしました。赤と青のミープルは1個ずつなので、完成すればどちらも満点です。青に独り占めさせない一手です。</figcaption>
+    </figure>
+  </article>
+
+  <article class="tip" id="block">
+    <h3>相手の都市を「完成しない形」にする</h3>
+    <p>都市の隣に、残りのタイルでは埋められない穴を作ると、その都市はもう完成しません。完成すれば1タイル2点の都市が、終局時には1タイル1点に下がります。強いAIはこの手を目先の点だけのAIの2倍以上指していました。</p>
+    <div class="pair">
+      <div class="s"><span class="who">強いAI</span><span class="n">{{block_strong}}<small>回</small></span></div>
+      <div><span class="who">目先の点だけのAI</span><span class="n">{{block_greedy}}<small>回</small></span></div>
+      <span class="what">1人1局あたり、相手の都市を完成不能にした回数</span>
+    </div>
+    <figure>
+      <div class="board">{{svg_block}}</div>
+      <figcaption><span class="k">実戦の例（中盤・残り20枚）</span><span class="red">赤</span>が置いたタイルで、×のマスは「上が都市・下が道・左右が草原」のタイルでないと埋まらなくなりました。残りの山札にそのタイルはないので、上の<span class="blue">青</span>の都市はもう完成しません。赤自身の修道院も1つ完成しなくなりますが、相手の都市を止める方が得と判断しています。</figcaption>
+    </figure>
+  </article>
+
+  <article class="tip" id="monastery">
+    <h3>修道院は、周りを自分で埋めて9点を取りに行く</h3>
+    <p>修道院のミープルは平均{{mon_points}}点を取りますが、{{mon_stuck}}%は終局まで完成しません。強いAIは修道院の周りが空いていると、自分のタイルで埋めにいきます。</p>
+    <figure>
+      <div class="board">{{svg_monastery}}</div>
+      <figcaption><span class="k">実戦の例（中盤・残り30枚）</span><span class="red">赤</span>はまっすぐな道のタイルで、すぐ下にある自分の修道院の周りの最後の1マスを埋め、9点を取りました。ミープルは手元に戻り、次の手番でまた使えます。</figcaption>
+    </figure>
+  </article>
+</section>
+
+<section class="group" id="score">
+  <h2><span class="tag">得点</span>何で差がつくか</h2>
+  <article class="tip" id="citywins">
+    <h3>勝ち負けを分けるのは都市</h3>
+    <p>勝った側と負けた側の点を得点源ごとに比べると、差のほとんどは都市から生まれていました。都市は勝った側が平均{{lead_C}}点多く、道は{{lead_R}}点、修道院は{{lead_M}}点、草原は{{lead_F}}点の差でした。迷ったら、自分の都市を完成させる手を優先しましょう。</p>
+    <div class="chartbox">
+      <p class="cap">強いAI同士の対局で、勝った側と負けた側が得点源ごとに取った平均点</p>
+      {{chart_winner}}
+    </div>
+  </article>
+</section>
+
+<section class="summary" id="recap">
+  <h2>まとめ</h2>
+  <ol>
+    <li>ミープルは全部使い切らず、1〜2個は手元に残す。</li>
+    <li>道に乗せるのは、すぐ終わりそうな道だけ。</li>
+    <li>都市は自分で新しく始めて育てる。勝敗の差はほとんど都市で生まれる。</li>
+    <li>農民は早めに1つ。最後の1個は、完成した都市にたくさん接する草原へ。</li>
+    <li>相手の大きな都市には合流して分け合い、必要なら完成しない形にする。</li>
+    <li>修道院の周りは自分で埋めて、ミープルを早く取り戻す。</li>
+  </ol>
+</section>
+
+<aside class="note">
+  <h2>このページの数字について</h2>
+  <ul>
+    <li>強いAIは、対人用の「最強」と同じ設定（モンテカルロ木探索12000回＋10手の先読み＋学習した評価関数）です。人間の上級者の打ち方とは違う癖もあり得ます。</li>
+    <li>強いAIは{{games_strong}}局と少なめなので、数%の差は誤差の範囲です。このページでは差の大きい傾向だけを取り上げました。</li>
+    <li>ルールは基本セット・2人対戦、農民は完成した都市1つにつき3点（第3版）です。</li>
+    <li>再現方法: <code>scripts/record_habits.py</code> で記録、<code>scripts/summarize_habits.py</code> で集計、<code>scripts/pick_examples.py</code> と <code>scripts/build_tips_page.py</code> でこのページを作成。</li>
+  </ul>
+</aside>
+</div>
