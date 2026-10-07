@@ -4,6 +4,9 @@
 ブラウザへ渡す表示用データ（盤面・ミープル位置・合法手・得点）を `view()` で作る。
 終局時に対局記録を JSONL（1局1行）で追記する。集計は scripts/summarize_human.py。
 
+初心者向けの「ヒント」を有効にすると、人間の着手のたびにAIがその局面を解析し、最善手と比べて
+何点損したか（AIの見積もり）を返す（`make_coach`）。ヒントありの対局は記録に `coach: true` が付く。
+
 AIは `FastMCTSAgent`。山札の未公開部分は探索の度にシャッフルされるため、AIは山札の順序を
 覗かない（公平性）。ミープルの盤上位置は `State` が持たないので、ここで追跡する。
 """
@@ -47,6 +50,49 @@ def make_agent(level: str):
     return FastMCTSAgent(n_sims=sims, rollout_depth=depth, eval_path=best_eval_path())
 
 
+def make_coach(agent):
+    """人間の着手を採点する関数を返す。agent は FastMCTSAgent（puzzles.analyze で根を解析する）。
+
+    戻り値の関数は (着手前の局面, 人間の手, 乱数シード) を受け取り、表示用の dict を返す。
+    損失は「AIの最善手の予想最終点差 − 人間の手の予想最終点差」。人間の手が探索でほとんど
+    調べられなかった（訪問0）場合は損失を出さず、その旨だけ返す。
+    """
+    from .puzzles import analyze
+
+    def coach(st: State, move: Move, seed: int) -> dict:
+        opts = analyze(agent, st, seed)
+        best = opts[0]  # 訪問数最大の手（AIが実際に指す手）
+        v = st.ts.types[st.current].variants[best.move.variant]
+        kind = KIND_JA[v.pieces[best.move.piece].kind] if best.move.piece is not None else None
+        out = {
+            "best": {
+                "x": best.move.x,
+                "y": best.move.y,
+                "v": best.move.variant,
+                "piece": best.move.piece,
+                "kind": kind,
+            },
+            "loss": None,
+        }
+        mine = next((o for o in opts if o.move == move), None)
+        if mine is not None:
+            out["loss"] = round(max(0.0, best.diff - mine.diff), 1)
+        return out
+
+    return coach
+
+
+def coach_text(c: dict) -> str:
+    """ヒントの1行説明。"""
+    b = c["best"]
+    ai = f"AIなら黄色い点線のマスに置き、{b['kind'] + 'にミープル' if b['kind'] else 'ミープルは置かない'}"
+    if c["loss"] is None:
+        return f"ヒント: AIがほとんど考えなかった手です。{ai}。"
+    if c["loss"] < 1:
+        return "ヒント: AIの最善手とほぼ同じ、いい手です。"
+    return f"ヒント: AIの見積もりでは最善より約{c['loss']:.0f}点の損。{ai}。"
+
+
 def tile_library() -> list[dict]:
     """ブラウザ描画用のタイル定義（種別ごとの全向き）。"""
     ts = load_tileset()
@@ -72,6 +118,7 @@ class HumanGame:
         agent,
         name: str = "",
         log_path: str | Path | None = None,
+        coach=None,
     ) -> None:
         self.seed = seed
         self.human_seat = human_seat
@@ -85,6 +132,8 @@ class HumanGame:
         self.events: list[dict] = []
         self.moves: list[list] = []  # [player, x, y, 種別index, 向き, 断片]
         self.last_ai: dict | None = None
+        self.coach = coach
+        self.last_coach: dict | None = None
         self.saved = False
         self._mid = 0
         self._advance_ai()
@@ -99,7 +148,12 @@ class HumanGame:
         if move not in st.legal_moves():
             raise ValueError("不正な手です")
         self.last_ai = None
+        self.last_coach = None
+        if self.coach is not None:
+            self.last_coach = self.coach(st, move, self.seed * 1000 + len(st.history))
         self._play(move)
+        if self.last_coach is not None:
+            self.events.append({"player": self.human_seat, "text": coach_text(self.last_coach)})
         self._advance_ai()
 
     def _advance_ai(self) -> None:
@@ -155,6 +209,7 @@ class HumanGame:
             "seed": self.seed,
             "human_seat": h,
             "level": self.level,
+            "coach": self.coach is not None,
             "ai": getattr(self.agent, "name", str(self.agent)),
             "scores": list(s),
             "human_score": s[h],
@@ -197,6 +252,8 @@ class HumanGame:
             "board": [{"x": x, "y": y, "t": t, "v": v} for (x, y), (t, v) in st.board.items()],
             "meeples": self.meeples,
             "last_ai": self.last_ai,
+            "coach": self.coach is not None,
+            "last_coach": self.last_coach,
             "events": self.events[-40:],
             "placements": placements,
             "discarded": len(st.discarded),

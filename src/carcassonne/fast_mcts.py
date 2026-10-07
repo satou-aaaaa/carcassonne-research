@@ -366,7 +366,9 @@ class FastMCTSAgent:
         self.meeple_prob = meeple_prob
         self.rollout_depth = rollout_depth
         self.eval_path = eval_path
-        self.late = late  # 残りタイルがこの枚数以下の局面は、評価関数でなく終局までのロールアウトで評価する
+        self.late = (
+            late  # 残りタイルがこの枚数以下の局面は、評価関数でなく終局までのロールアウトで評価する
+        )
         self.eval_w, self.eval_mode = load_eval(eval_path) if eval_path else (np.zeros(NF), 0)
         self.fbuf = np.zeros(NF)
         self.fast = Fast()

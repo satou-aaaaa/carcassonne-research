@@ -77,13 +77,19 @@ details summary { cursor: pointer; }
 .final .big { font-family: var(--display); font-size: 44px; }
 footer { margin-top: 22px; font-size: 12.5px; color: var(--muted); max-width: 70ch; }
 @media (prefers-reduced-motion: no-preference) { .opt { transition: border-color .15s; } }
+.lvl { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .08em; padding: 0 7px; border-radius: 3px; margin-right: 6px; background: var(--line); color: var(--ink); }
+.lvl.easy { background: var(--accent); color: var(--accent-ink); }
+.progress button.easy { border-style: dashed; }
+nav.site { --paper: var(--surface); --field: var(--accent); }
+__SITE_NAV_CSS__
 </style>
 
 <div class="wrap">
+__SITE_NAV__
   <header>
     <div>
       <h1>カルカソンヌ 次の一手</h1>
-      <div class="sub">強いAIが選んだ手を当てる練習問題。基本セット・2人対戦。</div>
+      <div class="sub">強いAIが選んだ手を当てる練習問題。基本セット・2人対戦。<span id="levels"></span></div>
     </div>
     <nav class="progress" id="progress" aria-label="問題の一覧"></nav>
   </header>
@@ -323,7 +329,7 @@ function render() {
   document.documentElement.style.setProperty("--op", seatColor(op));
   const colorJa = p => p === 0 ? "赤" : "青";
   card.innerHTML = `
-    <div class="eyebrow">問題 ${idx + 1} / ${PUZ.length} ・ 第${P.turn}手 ・ 山札の残り ${P.deck_left}枚</div>
+    <div class="eyebrow">${P.level === "入門" ? '<span class="lvl easy">入門</span>' : '<span class="lvl">実戦</span>'}問題 ${idx + 1} / ${PUZ.length} ・ 第${P.turn}手 ・ 山札の残り ${P.deck_left}枚</div>
     <h2>${P.title}</h2>
     <p class="prompt">${P.prompt} <b>AIならどの手を選ぶでしょう？</b></p>
     <div class="situ">
@@ -392,6 +398,7 @@ function renderProgress() {
     b.setAttribute("aria-label", `問題${i + 1}`);
     const a = answers[p.id];
     if (a !== undefined) b.className = a === p.best ? "ok" : "ng";
+    if (p.level === "入門") b.classList.add("easy");
     if (i === idx) b.classList.add("cur");
     b.onclick = () => go(i); nav.appendChild(b);
   });
@@ -403,5 +410,7 @@ function go(i) {
   window.scrollTo({top: 0, behavior: "smooth"});
 }
 window.addEventListener("resize", draw);
+{ const ne = PUZ.filter(p => p.level === "入門").length;
+  if (ne) $("levels").textContent = ` 1〜${ne}問目は入門編（点線の番号）、そのあとは実戦編です。`; }
 go(Math.max(0, PUZ.findIndex(p => answers[p.id] === undefined)));
 </script>

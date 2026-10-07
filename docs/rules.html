@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>カルカソンヌ ルール入門</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+:root {
+  --bg: #f1f3ee; --paper: #ffffff; --ink: #1d2620; --muted: #5c6a60; --line: #d5dccf;
+  --field: #2f6b3a; --city: #9a6436; --red: #d64541; --blue: #2f6fd6; --board-bg: #e6e2d6;
+  --font-display: "Dela Gothic One", "Zen Kaku Gothic New", "Hiragino Sans", sans-serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141a16; --paper: #1c241f; --ink: #e6ece6; --muted: #9aa89d; --line: #2e3a32;
+    --field: #7cc48a; --city: #d9a571; --red: #f06a62; --blue: #6c9cf0; --board-bg: #2a312c; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141a16; --paper: #1c241f; --ink: #e6ece6; --muted: #9aa89d; --line: #2e3a32;
+  --field: #7cc48a; --city: #d9a571; --red: #f06a62; --blue: #6c9cf0; --board-bg: #2a312c; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.85; padding-inline: 16px; padding-block: 0 64px; }
+.wrap { max-width: 760px; margin: 0 auto; }
+header.hero { padding-block: 40px 20px; display: grid; gap: 12px; }
+.eyebrow { font-size: 13px; letter-spacing: .12em; color: var(--muted); font-weight: 700; }
+h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 6vw, 44px); line-height: 1.25; margin: 0; }
+h1 .accent { color: var(--field); }
+.lede { margin: 0; max-width: 36em; }
+section { padding-block: 28px 4px; border-top: 1px solid var(--line); margin-top: 20px; display: grid; gap: 14px; }
+h2 { font-family: var(--font-display); font-weight: 400; font-size: 22px; margin: 0; display: flex; gap: 12px; align-items: baseline; }
+h2 .no { font-family: var(--font-body); font-weight: 700; font-size: 12px; letter-spacing: .1em; color: var(--paper); background: var(--field); padding: 2px 8px; border-radius: 3px; }
+h3 { font-size: 18px; margin: 6px 0 0; }
+p { margin: 0; max-width: 38em; }
+ol.steps { margin: 0; padding-left: 1.4em; display: grid; gap: 6px; }
+figure { margin: 0; display: grid; grid-template-columns: minmax(0, 240px) minmax(0, 1fr); gap: 18px; align-items: start; }
+figure .board { border-radius: 6px; overflow: hidden; border: 1px solid var(--line); background: var(--board-bg); }
+figure .board svg { display: block; width: 100%; height: auto; }
+figcaption { font-size: 14.5px; line-height: 1.75; }
+figcaption .k { display: block; font-size: 12px; letter-spacing: .1em; color: var(--muted); font-weight: 700; }
+@media (max-width: 560px) { figure { grid-template-columns: 1fr; } figure .board { max-width: 280px; } }
+.red { color: var(--red); font-weight: 700; }
+.blue { color: var(--blue); font-weight: 700; }
+.gold { color: #b98500; font-weight: 700; }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 480px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; font-size: 15px; }
+th, td { padding: 8px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+th { font-size: 13px; color: var(--muted); font-weight: 700; }
+tbody th { color: var(--ink); font-size: 15px; white-space: nowrap; }
+tr:last-child td, tr:last-child th { border-bottom: 0; }
+.box { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 14px 18px; }
+.box ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+.next { display: flex; flex-wrap: wrap; gap: 10px; }
+.next a { display: inline-block; padding: 8px 16px; border-radius: 6px; background: var(--field); color: var(--paper); text-decoration: none; font-weight: 700; }
+.next a.sub { background: var(--paper); color: var(--ink); border: 1px solid var(--line); }
+a { color: var(--field); }
+:focus-visible { outline: 2px solid var(--field); outline-offset: 2px; }
+
+nav.site { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+nav.site .home { font-weight: 700; margin-right: 8px; color: var(--ink); text-decoration: none; }
+nav.site a.p { color: var(--muted); text-decoration: none; padding: 3px 10px; border-radius: 999px; }
+nav.site a.p:hover, nav.site a.p:focus-visible { color: var(--ink); background: var(--paper); outline: none; }
+nav.site a.p[aria-current="page"] { color: var(--paper); background: var(--field); }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="site" aria-label="サイト内のページ"><a class="home" href="index.html">カルカソンヌ入門</a><a class="p" href="rules.html" aria-current="page">ルール入門</a><a class="p" href="ai_tips.html">強いAIのコツ</a><a class="p" href="quiz.html">次の一手クイズ</a></nav>
+<header class="hero">
+  <span class="eyebrow">カルカソンヌ ・ 基本ルール ・ 2〜5人</span>
+  <h1>はじめての<span class="accent">カルカソンヌ</span></h1>
+  <p class="lede">タイルを1枚ずつつなげて地図を広げ、できあがった都市や道に置いた自分のコマ（ミープル）で点を取るゲームです。このページでは、遊ぶのに必要なルールを図つきで説明します。</p>
+</header>
+
+<section id="flow">
+  <h2><span class="no">1</span>手番にやること</h2>
+  <ol class="steps">
+    <li><b>タイルを1枚引いて置く。</b>すでにあるタイルの隣に、辺の絵がつながるように置きます。</li>
+    <li><b>ミープルを置いてもよい。</b>今置いたタイルの上の都市・道・修道院・草原のどれか1か所に、自分のミープルを1個置けます。置かなくてもかまいません。</li>
+    <li><b>完成したら得点。</b>都市・道・修道院が完成したら、そこにミープルを置いている人が点をもらい、ミープルは手元に戻ります。</li>
+  </ol>
+  <p>山札がなくなったらゲーム終了です。最後に、完成していないものと草原の点を数え、合計点の多い人が勝ちです。</p>
+</section>
+
+<section id="place">
+  <h2><span class="no">2</span>タイルの置き方</h2>
+  <figure>
+    <div class="board"><svg viewBox="0 0 128 64" xmlns="http://www.w3.org/2000/svg" role="img"><rect width="128" height="64" fill="var(--board-bg, #efe9dc)"/><rect x="0" y="0" width="64" height="64" fill="#86b96a"/><path d="M64.0,32.0 L32.0,32.0 L0.0,32.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M64.0,32.0 L32.0,32.0 L0.0,32.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><polygon points="0.0,0.0 64.0,0.0 51.2,17.9 12.8,17.9" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="0.0,0.0 64.0,0.0 51.2,17.9 12.8,17.9" fill="#c08a5a"/><rect x="0.5" y="0.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><g opacity="0.9"><rect x="64" y="0" width="64" height="64" fill="#86b96a"/><path d="M128.0,32.0 L96.0,32.0 L64.0,32.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M128.0,32.0 L96.0,32.0 L64.0,32.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><rect x="64.5" y="0.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/></g><rect x="66" y="2" width="60" height="60" fill="none" stroke="#f5b400" stroke-width="3.5" rx="3"/></svg></div>
+    <figcaption><span class="k">例</span>最初のタイルの右に、<span class="gold">黄色の枠</span>のタイルを置きました。道は道に、草原は草原につながっています。都市の辺の隣には都市、道の隣には道しか置けません。向きは自由に回せます。</figcaption>
+  </figure>
+  <p>どこにも置けないタイルを引いたら、そのタイルは使わずに箱へ戻し、もう1枚引きます。</p>
+</section>
+
+<section id="meeple">
+  <h2><span class="no">3</span>ミープルの置き方</h2>
+  <div class="box"><ul>
+    <li>ミープルは1人7個。置けるのは<b>今置いたタイルの上だけ</b>です。</li>
+    <li>つながった都市や道に<b>すでに誰かのミープルがいたら、そこには置けません</b>（自分のものでも）。</li>
+    <li>別々に置いた都市があとでつながって、1つの都市に複数のミープルがいることになるのはかまいません。そのときは<b>ミープルが多い人が点をもらい、同じ数なら全員が満点</b>をもらいます。</li>
+    <li>置いたミープルは、その場所が完成するまで戻ってきません。草原のミープル（農民）は最後まで戻りません。</li>
+  </ul></div>
+</section>
+
+<section id="score">
+  <h2><span class="no">4</span>点の数え方</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>場所</th><th>完成したとき（すぐ）</th><th>終了時に未完成なら</th></tr></thead>
+    <tbody>
+      <tr><th>都市</th><td>1タイル2点＋盾1つにつき2点</td><td>1タイル1点＋盾1つにつき1点</td></tr>
+      <tr><th>道</th><td>1タイル1点</td><td>1タイル1点</td></tr>
+      <tr><th>修道院</th><td>周りの8マスが全部埋まったら9点</td><td>1点＋周りの埋まったマス1つにつき1点</td></tr>
+      <tr><th>草原（農民）</th><td>途中では数えない</td><td>接している<b>完成した</b>都市1つにつき3点</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>都市</h3>
+  <figure>
+    <div class="board"><svg viewBox="0 0 192 128" xmlns="http://www.w3.org/2000/svg" role="img"><rect width="192" height="128" fill="var(--board-bg, #efe9dc)"/><rect x="64" y="64" width="64" height="64" fill="#86b96a"/><path d="M128.0,96.0 L96.0,96.0 L64.0,96.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M128.0,96.0 L96.0,96.0 L64.0,96.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><polygon points="64.0,64.0 128.0,64.0 115.2,81.9 76.8,81.9" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="64.0,64.0 128.0,64.0 115.2,81.9 76.8,81.9" fill="#c08a5a"/><rect x="64.5" y="64.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><rect x="64" y="0" width="64" height="64" fill="#86b96a"/><polygon points="128.0,0.0 128.0,64.0 110.1,51.2 110.1,12.8" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="64.0,64.0 128.0,64.0 115.2,46.1 76.8,46.1" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="76.8,46.1 110.1,12.8 115.2,46.1 110.1,51.2" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="128.0,0.0 128.0,64.0 110.1,51.2 110.1,12.8" fill="#c08a5a"/><polygon points="64.0,64.0 128.0,64.0 115.2,46.1 76.8,46.1" fill="#c08a5a"/><polygon points="76.8,46.1 110.1,12.8 115.2,46.1 110.1,51.2" fill="#c08a5a"/><polygon points="101.7,36.7 109.7,36.7 109.7,43.2 105.7,47.2 101.7,43.2" fill="#2f5fb5" stroke="#fff" stroke-width="1"/><rect x="64.5" y="0.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><rect x="0" y="64" width="64" height="64" fill="#86b96a"/><path d="M64.0,96.0 L32.0,96.0 L0.0,96.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M64.0,96.0 L32.0,96.0 L0.0,96.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><rect x="0.5" y="64.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><g opacity="0.9"><rect x="128" y="0" width="64" height="64" fill="#86b96a"/><polygon points="128.0,0.0 128.0,64.0 145.9,51.2 145.9,12.8" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="128.0,0.0 128.0,64.0 145.9,51.2 145.9,12.8" fill="#c08a5a"/><rect x="128.5" y="0.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/></g><circle cx="105.7" cy="36.0" r="4.8" fill="#d64541" stroke="#fff" stroke-width="1.5"/><polygon points="98.4,49.4 105.7,40.4 113.1,49.4" fill="#d64541" stroke="#fff" stroke-width="1.5"/><circle cx="32.0" cy="73.4" r="4.8" fill="#2f6fd6" stroke="#fff" stroke-width="1.5"/><polygon points="24.6,86.9 32.0,77.9 39.4,86.9" fill="#2f6fd6" stroke="#fff" stroke-width="1.5"/><rect x="130" y="2" width="60" height="60" fill="none" stroke="#f5b400" stroke-width="3.5" rx="3"/></svg></div>
+    <figcaption><span class="k">例</span><span class="red">赤</span>は盾のある都市にミープルを置いています。<span class="gold">黄色の枠</span>に都市のタイルを置くと、3枚の都市が閉じて完成します。3枚×2点＋盾1つ×2点で<b>8点</b>。ミープルは手元に戻ります。</figcaption>
+  </figure>
+
+  <h3>道</h3>
+  <figure>
+    <div class="board"><svg viewBox="0 0 192 128" xmlns="http://www.w3.org/2000/svg" role="img"><rect width="192" height="128" fill="var(--board-bg, #efe9dc)"/><rect x="64" y="0" width="64" height="64" fill="#86b96a"/><path d="M128.0,32.0 L96.0,32.0 L64.0,32.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M128.0,32.0 L96.0,32.0 L64.0,32.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><polygon points="64.0,0.0 128.0,0.0 115.2,17.9 76.8,17.9" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="64.0,0.0 128.0,0.0 115.2,17.9 76.8,17.9" fill="#c08a5a"/><rect x="64.5" y="0.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><rect x="0" y="0" width="64" height="64" fill="#86b96a"/><path d="M64.0,32.0 L39.0,32.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M32.0,64.0 L32.0,39.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M0.0,32.0 L25.0,32.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M64.0,32.0 L39.0,32.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><path d="M32.0,64.0 L32.0,39.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><path d="M0.0,32.0 L25.0,32.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><circle cx="32.0" cy="32.0" r="3.8" fill="#7a6a45"/><rect x="0.5" y="0.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><rect x="64" y="64" width="64" height="64" fill="#86b96a"/><path d="M128.0,96.0 L96.0,96.0 L64.0,96.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M128.0,96.0 L96.0,96.0 L64.0,96.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><rect x="64.5" y="64.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><g opacity="0.9"><rect x="128" y="0" width="64" height="64" fill="#86b96a"/><path d="M192.0,32.0 L167.0,32.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M160.0,64.0 L160.0,39.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M128.0,32.0 L153.0,32.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M192.0,32.0 L167.0,32.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><path d="M160.0,64.0 L160.0,39.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><path d="M128.0,32.0 L153.0,32.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><circle cx="160.0" cy="32.0" r="3.8" fill="#7a6a45"/><rect x="128.5" y="0.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/></g><circle cx="44.8" cy="26.2" r="4.8" fill="#d64541" stroke="#fff" stroke-width="1.5"/><polygon points="37.4,39.7 44.8,30.7 52.2,39.7" fill="#d64541" stroke="#fff" stroke-width="1.5"/><rect x="130" y="2" width="60" height="60" fill="none" stroke="#f5b400" stroke-width="3.5" rx="3"/></svg></div>
+    <figcaption><span class="k">例</span>道は、十字路・修道院・都市などで両端が止まると完成です。<span class="red">赤</span>の道は左端が十字路で止まっていて、<span class="gold">黄色の枠</span>にもう1つ十字路を置くと完成。3枚で<b>3点</b>です。</figcaption>
+  </figure>
+
+  <h3>修道院</h3>
+  <figure>
+    <div class="board"><svg viewBox="0 0 192 128" xmlns="http://www.w3.org/2000/svg" role="img"><rect width="192" height="128" fill="var(--board-bg, #efe9dc)"/><rect x="64" y="0" width="64" height="64" fill="#86b96a"/><path d="M128.0,32.0 L96.0,32.0 L64.0,32.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M128.0,32.0 L96.0,32.0 L64.0,32.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><polygon points="64.0,0.0 128.0,0.0 115.2,17.9 76.8,17.9" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="64.0,0.0 128.0,0.0 115.2,17.9 76.8,17.9" fill="#c08a5a"/><rect x="64.5" y="0.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><rect x="64" y="64" width="64" height="64" fill="#86b96a"/><rect x="87.0" y="93.4" width="17.9" height="12.8" fill="#e9e1d0" stroke="#5a3a2a" stroke-width="1"/><polygon points="84.5,93.4 96.0,83.2 107.5,93.4" fill="#b8403a"/><rect x="64.5" y="64.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><rect x="128" y="0" width="64" height="64" fill="#86b96a"/><path d="M192.0,32.0 L160.0,32.0 L128.0,32.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M192.0,32.0 L160.0,32.0 L128.0,32.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><rect x="128.5" y="0.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><rect x="128" y="64" width="64" height="64" fill="#86b96a"/><path d="M192.0,96.0 L160.0,96.0 L160.0,128.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M192.0,96.0 L160.0,96.0 L160.0,128.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><rect x="128.5" y="64.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><rect x="0" y="0" width="64" height="64" fill="#86b96a"/><path d="M32.0,0.0 L32.0,32.0 L64.0,32.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M32.0,0.0 L32.0,32.0 L64.0,32.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><rect x="0.5" y="0.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><rect x="0" y="64" width="64" height="64" fill="#86b96a"/><polygon points="0.0,128.0 64.0,128.0 51.2,110.1 12.8,110.1" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="0.0,64.0 0.0,128.0 17.9,115.2 17.9,76.8" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="12.8,110.1 17.9,76.8 51.2,110.1 17.9,115.2" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="0.0,128.0 64.0,128.0 51.2,110.1 12.8,110.1" fill="#c08a5a"/><polygon points="0.0,64.0 0.0,128.0 17.9,115.2 17.9,76.8" fill="#c08a5a"/><polygon points="12.8,110.1 17.9,76.8 51.2,110.1 17.9,115.2" fill="#c08a5a"/><rect x="0.5" y="64.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><circle cx="96.0" cy="90.2" r="4.8" fill="#d64541" stroke="#fff" stroke-width="1.5"/><polygon points="88.6,103.7 96.0,94.7 103.4,103.7" fill="#d64541" stroke="#fff" stroke-width="1.5"/><rect x="66" y="66" width="60" height="60" fill="none" stroke="#f5b400" stroke-width="3.5" rx="3"/></svg></div>
+    <figcaption><span class="k">例</span><span class="red">赤</span>の修道院（<span class="gold">黄色の枠</span>）の周りの8マスのうち、5マスが埋まっています。全部埋まれば9点ですが、このまま終わると修道院の1点＋5マスで<b>6点</b>です。</figcaption>
+  </figure>
+
+  <h3>草原（農民）</h3>
+  <figure>
+    <div class="board"><svg viewBox="0 0 192 128" xmlns="http://www.w3.org/2000/svg" role="img"><rect width="192" height="128" fill="var(--board-bg, #efe9dc)"/><rect x="64" y="64" width="64" height="64" fill="#86b96a"/><path d="M128.0,96.0 L96.0,96.0 L64.0,96.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M128.0,96.0 L96.0,96.0 L64.0,96.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><polygon points="64.0,64.0 128.0,64.0 115.2,81.9 76.8,81.9" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="64.0,64.0 128.0,64.0 115.2,81.9 76.8,81.9" fill="#c08a5a"/><rect x="64.5" y="64.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><rect x="64" y="0" width="64" height="64" fill="#86b96a"/><polygon points="128.0,0.0 128.0,64.0 110.1,51.2 110.1,12.8" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="64.0,64.0 128.0,64.0 115.2,46.1 76.8,46.1" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="76.8,46.1 110.1,12.8 115.2,46.1 110.1,51.2" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="128.0,0.0 128.0,64.0 110.1,51.2 110.1,12.8" fill="#c08a5a"/><polygon points="64.0,64.0 128.0,64.0 115.2,46.1 76.8,46.1" fill="#c08a5a"/><polygon points="76.8,46.1 110.1,12.8 115.2,46.1 110.1,51.2" fill="#c08a5a"/><polygon points="101.7,36.7 109.7,36.7 109.7,43.2 105.7,47.2 101.7,43.2" fill="#2f5fb5" stroke="#fff" stroke-width="1"/><rect x="64.5" y="0.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><rect x="0" y="64" width="64" height="64" fill="#86b96a"/><path d="M64.0,96.0 L32.0,96.0 L0.0,96.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M64.0,96.0 L32.0,96.0 L0.0,96.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><rect x="0.5" y="64.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><rect x="128" y="0" width="64" height="64" fill="#86b96a"/><polygon points="128.0,0.0 128.0,64.0 145.9,51.2 145.9,12.8" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="128.0,0.0 128.0,64.0 145.9,51.2 145.9,12.8" fill="#c08a5a"/><rect x="128.5" y="0.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><circle cx="32.0" cy="73.4" r="4.8" fill="#2f6fd6" stroke="#fff" stroke-width="1.5"/><polygon points="24.6,86.9 32.0,77.9 39.4,86.9" fill="#2f6fd6" stroke="#fff" stroke-width="1.5"/><rect x="2" y="66" width="60" height="60" fill="none" stroke="#f5b400" stroke-width="3.5" rx="3"/></svg></div>
+    <figcaption><span class="k">例</span><span class="blue">青</span>は<span class="gold">黄色の枠</span>のタイルの上側の草原にミープルを置いています（草原のミープルを農民と呼びます）。この草原は、さっき完成した都市に接しているので、終了時に<b>3点</b>入ります。都市が完成していなければ0点です。</figcaption>
+  </figure>
+</section>
+
+<section id="end">
+  <h2><span class="no">5</span>ゲームの終わり</h2>
+  <p>最後のタイルを置いて得点したら終了です。盤上に残っているミープルについて、上の表の「終了時」の点を数えて足します。合計点が多い人の勝ちです。</p>
+</section>
+
+<section id="first">
+  <h2><span class="no">6</span>はじめての人へのヒント</h2>
+  <div class="box"><ul>
+    <li>まずは<b>小さな都市を作って閉じる</b>のがいちばん確実に点になります。</li>
+    <li>ミープルは7個しかありません。<b>なかなか完成しない長い道</b>に置くと、しばらく戻ってきません。</li>
+    <li>迷ったら、<b>今すぐ完成させられるもの</b>がないか探しましょう。点が入り、ミープルも戻ります。</li>
+  </ul></div>
+  <div class="next">
+    <a href="ai_tips.html">次は：強いAIに学ぶコツ</a>
+    <a class="sub" href="quiz.html">次の一手クイズで練習する</a>
+  </div>
+</section>
+
+<section id="notes">
+  <h2>このページのルールについて</h2>
+  <p style="font-size:14.5px;color:var(--muted)">基本セット（72枚）の現行ルールです。農民は完成した都市1つにつき3点で数えます（古い版には別の数え方があります）。図はこのプロジェクトのルールエンジンで実際に手を進めた局面で、本文の点数もエンジンの得点計算で確かめています（<code>scripts/build_rules_page.py</code>）。2人対戦で説明していますが、2〜5人で同じルールで遊べます。</p>
+</section>
+</div>
+</body>
+</html>

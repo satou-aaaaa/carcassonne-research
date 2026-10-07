@@ -38,6 +38,8 @@
   dialog { border:1px solid var(--line); border-radius:12px; background:var(--panel); color:var(--ink); max-width:420px; }
   dialog::backdrop { background:rgba(0,0,0,.4); }
   details { font-size:12.5px; color:var(--muted); }
+  #coachBox { font-size:13.5px; padding:8px 10px; border:2px dashed #f5b400; border-radius:8px; }
+  label.chk { display:flex; gap:6px; align-items:center; margin-top:10px; }
   #result { font-size:15px; font-weight:600; padding:8px; border:2px solid var(--accent); border-radius:8px; }
 </style>
 </head>
@@ -52,6 +54,7 @@
     <button id="btnRematch" hidden>同じ山札で席替え再戦</button>
   </div>
   <div id="result" hidden></div>
+  <div id="coachBox" hidden></div>
   <div>
     <h2>得点（括弧は今終局した場合の予測）</h2>
     <div class="score">
@@ -100,6 +103,7 @@
     <label>席</label>
     <select id="fSeat"><option value="0">先手（赤）</option><option value="1">後手（青）</option></select>
     <label>AIの強さ</label><select id="fLevel"></select>
+    <label class="chk"><input type="checkbox" id="fCoach"> 初心者モード: 自分の手のあとにAIの評価（何点損したか）を表示する</label>
     <div class="row" style="margin-top:14px;justify-content:flex-end">
       <button type="button" id="btnCancel">キャンセル</button>
       <button class="primary" value="ok">開始</button>
@@ -262,6 +266,8 @@ function draw() {
       }
     }
   }
+  // 初心者モード: 直前の自分の手番でAIが選んだマス（点線）
+  if (G.last_coach && myTurn()) { const c = G.last_coach.best; ctx.strokeStyle = "#f5b400"; ctx.lineWidth = 4; ctx.setLineDash([7, 5]); ctx.strokeRect(cellLeft(c.x)+2, cellTop(c.y)+2, s-4, s-4); ctx.setLineDash([]); }
 }
 function drawMeeple(left, top, pi, player, b) {
   const [ax, ay] = anchors(b.t, b.v)[pi], s = view.s;
@@ -387,6 +393,9 @@ function refresh() {
     else if (pending) setHint("ミープルを置く場所（点線の円）をクリック。置かない場合は右のボタン。Escで取り消し");
     else setHint(n ? "緑のマスをクリックしてタイルを置く（R: 回転）" : "この向きでは置ける場所がありません。Rで回転");
   }
+  const cb = $("coachBox"), lc = G.last_coach;
+  cb.hidden = !lc;
+  if (lc) cb.textContent = G.events.filter(e => e.text.startsWith("ヒント")).slice(-1)[0]?.text ?? "";
   $("btnRematch").hidden = !G.over;
   draw();
 }
@@ -404,7 +413,7 @@ $("btnNew").onclick = () => { $("fSeed").value ||= Math.floor(Math.random()*1e6)
 $("btnRand").onclick = () => $("fSeed").value = Math.floor(Math.random()*1e6);
 $("btnCancel").onclick = () => dlg.close();
 $("newForm").addEventListener("submit", () => {
-  lastForm = {name: $("fName").value, seed: +$("fSeed").value, human_seat: +$("fSeat").value, level: $("fLevel").value};
+  lastForm = {name: $("fName").value, seed: +$("fSeed").value, human_seat: +$("fSeat").value, level: $("fLevel").value, coach: $("fCoach").checked};
   localStorage.setItem("cc_name", lastForm.name);
   start(lastForm);
 });
@@ -421,7 +430,7 @@ async function init() {
   for (const [k, v] of Object.entries(LEVELS)) { const o = document.createElement("option"); o.value = k; o.textContent = v; $("fLevel").appendChild(o); }
   $("fName").value = localStorage.getItem("cc_name") || "";
   G = await api("/api/state");
-  if (G) { lastForm = {name: G.name, seed: G.seed, human_seat: G.human_seat, level: G.level}; fitView(); onNewState(); }
+  if (G) { lastForm = {name: G.name, seed: G.seed, human_seat: G.human_seat, level: G.level, coach: G.coach}; fitView(); onNewState(); }
   else { setHint("「新しい対局」を押してください"); $("btnNew").click(); }
 }
 window.addEventListener("resize", resize);
