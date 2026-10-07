@@ -15,6 +15,7 @@
 - 実験は設定ファイルとシード付きで記録し、結果を再現できるようにする。
 
 ロードマップは [docs/ROADMAP.md](docs/ROADMAP.md) を参照。
+ゲームの歴史・競技シーン・著名プレイヤーは [docs/BACKGROUND.md](docs/BACKGROUND.md) を参照。
 
 ## 現状（2026-10-05）
 
