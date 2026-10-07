@@ -49,7 +49,7 @@ def analyze(agent: FastMCTSAgent, state: State, seed: int, min_visits: int = 1) 
         S, agent.fast.T, agent.fast.P, agent.n_sims, agent.n_det, agent.c, scale,
         agent.meeple_prob, depth, sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g, sc.free,
         sc.rec, agent.eval_w, agent.eval_mode, agent.fbuf, agent.late, agent.fpu,
-        agent.prior_visits,
+        agent.prior_visits, agent.root_allow(S),
     )  # fmt: skip
     base = int(agent.fast.T[11][state.current])
     out: list[Option] = []
