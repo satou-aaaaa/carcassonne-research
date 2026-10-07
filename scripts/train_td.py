@@ -24,9 +24,9 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from carcassonne import ridge_stats  # noqa: E402
-from carcassonne.fast_eval import NF_V6, load_eval  # noqa: E402
-from carcassonne.td import td_lambda_targets  # noqa: E402
+from carcassonne import ridge_stats
+from carcassonne.fast_eval import NF_V6, load_eval
+from carcassonne.td import td_lambda_targets
 
 V6 = "models/eval_v6_lin.npy"
 
