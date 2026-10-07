@@ -96,6 +96,7 @@ def run_tree(
     fbuf,
     late,
     fpu,
+    prior_visits,
 ):
     """1本の木を `sims` 回反復し、根の訪問数を agg1/agg2 に、報酬和を aggw1/aggw2 に加算する。
 
@@ -103,6 +104,10 @@ def run_tree(
     「既存の子の平均報酬−fpu を1回観測した子」とみなし、既存の子の UCT 値がそれ以上なら
     展開せずに既存の子へ進む（first-play urgency）。良い手が見つかった節点では、残りの手を
     すべて試す前にその手を深く読む。
+
+    prior_visits>0 なら、配置の節点の訪問数がこの値に達した時点で、残りの未展開の配置を
+    「ミープルなしで置いた直後の評価値」の高い順に並べ、以後は良さそうな手から展開する
+    （手の事前確率の代わり。評価関数があるときだけ）。fpu と組み合わせて使う。
     """
     N = sims + 2
     POOL = N * 160
@@ -120,6 +125,9 @@ def run_tree(
     ocnt = np.full(N, -1, np.int32)
     opt_a = np.zeros(POOL, np.int32)
     opt_b = np.zeros(POOL, np.int16)
+    opt_p = np.zeros(POOL, np.float64)
+    ranked = np.zeros(N, np.bool_)
+    X = copy_state(root)
     pool_used = 0
     n_nodes = 1
     path = np.zeros(NT * 2 + 4, np.int32)
@@ -167,18 +175,37 @@ def run_tree(
                     sw += wsum[ch]
                     sv += vis[ch]
                     v = wsum[ch] / vis[ch] + c * np.sqrt(ln / vis[ch])
-                    if v > bv:
-                        bv = v
+                    bv = max(bv, v)
                     ch = nxt[ch]
                 if bv >= sw / sv - fpu + c * np.sqrt(ln):
                     expand = False
             if expand:  # 展開
                 cnt = ocnt[node]
-                idx = np.random.randint(0, cnt)
-                a = opt_a[ostart[node] + idx]
-                b = opt_b[ostart[node] + idx]
-                opt_a[ostart[node] + idx] = opt_a[ostart[node] + cnt - 1]
-                opt_b[ostart[node] + idx] = opt_b[ostart[node] + cnt - 1]
+                o = ostart[node]
+                if t == 0 and not ranked[node] and 0 < prior_visits <= vis[node] and eval_mode >= 1:
+                    # 残りの配置を、ミープルなしで置いた直後の評価値（手番側視点）で採点する
+                    me = wsc[SC_PL]
+                    for j in range(cnt):
+                        copy_into(X, W)
+                        apply_move(
+                            X, T, P, opt_a[o + j], opt_b[o + j], -1, stamp, stamp_box,
+                            out_cell, out_g,
+                        )  # fmt: skip
+                        features(X, T, P, me, fbuf)
+                        opt_p[o + j] = eval_value(eval_w, eval_mode, fbuf)
+                    ranked[node] = True
+                if ranked[node]:
+                    idx = 0
+                    for j in range(1, cnt):
+                        if opt_p[o + j] > opt_p[o + idx]:
+                            idx = j
+                else:
+                    idx = np.random.randint(0, cnt)
+                a = opt_a[o + idx]
+                b = opt_b[o + idx]
+                opt_a[o + idx] = opt_a[o + cnt - 1]
+                opt_b[o + idx] = opt_b[o + cnt - 1]
+                opt_p[o + idx] = opt_p[o + cnt - 1]
                 ocnt[node] = cnt - 1
                 new = n_nodes
                 n_nodes += 1
@@ -291,6 +318,7 @@ def search_stats(
     fbuf,
     late,
     fpu,
+    prior_visits,
 ):
     """根局面 S から決定化MCTSを行い、根の候補ごとの訪問数と報酬和を返す。
 
@@ -322,7 +350,7 @@ def search_stats(
         run_tree(
             D, T, P, sims, c, scale, meeple_prob, depth, stamp, stamp_box,
             out_cell, out_g, free, rec, W, agg1, agg2, aggw1, aggw2, rp_cell, rp_g, k,
-            eval_w, eval_mode, fbuf, late, fpu,
+            eval_w, eval_mode, fbuf, late, fpu, prior_visits,
         )  # fmt: skip
     return rp_cell, rp_g, agg1, aggw1, agg2, aggw2
 
@@ -349,11 +377,12 @@ def search(
     fbuf,
     late,
     fpu,
+    prior_visits,
 ):
     """根局面 S から決定化MCTSを行い、(マス, 向きID, 断片) を返す。"""
     rp_cell, rp_g, agg1, _, agg2, _ = search_stats(
         S, T, P, n_sims, n_det, c, scale, meeple_prob, depth, stamp, stamp_box,
-        out_cell, out_g, free, rec, eval_w, eval_mode, fbuf, late, fpu,
+        out_cell, out_g, free, rec, eval_w, eval_mode, fbuf, late, fpu, prior_visits,
     )  # fmt: skip
     top = agg1.max()
     cands = np.where(agg1 == top)[0]
@@ -381,6 +410,7 @@ class FastMCTSAgent:
         eval_path: str | None = None,
         late: int = 0,
         fpu: float = -1.0,
+        prior_visits: int = 0,
     ) -> None:
         """eval_path に線形評価関数の重み(.npy)を渡すと、葉をその評価関数で評価する。
 
@@ -397,6 +427,8 @@ class FastMCTSAgent:
         self.late = late
         # 0以上で first-play urgency を使う（`run_tree` を参照）。負なら従来どおり全手を一度ずつ試す
         self.fpu = fpu
+        # 0より大きいと、訪問数がこの値に達した配置の節点で未展開の手を評価値順に並べる
+        self.prior_visits = prior_visits
         self.eval_w, self.eval_mode = load_eval(eval_path) if eval_path else (np.zeros(NF), 0)
         self.fbuf = np.zeros(NF)
         self.fast = Fast()
@@ -406,6 +438,7 @@ class FastMCTSAgent:
             f"mp={meeple_prob:g},depth={rollout_depth}{tag}"
             + (f",late={late}" if late else "")
             + (f",fpu={fpu:g}" if fpu >= 0 else "")
+            + (f",pv={prior_visits}" if prior_visits else "")
             + ")"
         )
 
@@ -443,6 +476,7 @@ class FastMCTSAgent:
             self.fbuf,
             self.late,
             self.fpu,
+            self.prior_visits,
         )
         return int(cell), int(g), int(piece)
 
