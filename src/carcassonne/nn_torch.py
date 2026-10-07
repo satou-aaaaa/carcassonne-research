@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from .nn_encode import NC, NG, R
+from .nn_encode import NC, NG
 from .nn_model import VALUE_SCALE
 
 
@@ -33,9 +33,7 @@ class Net(nn.Module):
         self.glob = nn.Linear(NG, c)
         self.blocks = nn.ModuleList(Block(c) for _ in range(blocks))
         self.pol = nn.Conv2d(c, 4, 1)
-        self.val = nn.Conv2d(c, 1, 1)
-        self.val_n = nn.BatchNorm2d(1)
-        self.fc1 = nn.Linear(R * R + NG, 64)
+        self.fc1 = nn.Linear(c + NG, 64)
         self.fc2 = nn.Linear(64, 1)
 
     def forward(self, x, g):
@@ -44,7 +42,7 @@ class Net(nn.Module):
             h = b(h)
         logits = self.pol(h).flatten(1)
         logits = logits.masked_fill(x[:, 25:29].flatten(1) <= 0, -1e9)
-        v = torch.relu(self.val_n(self.val(h))).flatten(1)
+        v = h.mean((2, 3))
         v = self.fc2(torch.relu(self.fc1(torch.cat([v, g], 1))))
         return logits, v[:, 0]
 
@@ -67,7 +65,6 @@ def export(net: Net, g_mean, g_std, path: str) -> None:
         out[f"b{i}_w2"], out[f"b{i}_b2"] = _fold(b.c2, b.n2)
     out["pol_w"] = net.pol.weight.detach().numpy()
     out["pol_b"] = net.pol.bias.detach().numpy()
-    out["val_w"], out["val_b"] = _fold(net.val, net.val_n)
     for k in ("fc1", "fc2"):
         out[f"{k}_w"] = getattr(net, k).weight.detach().numpy()
         out[f"{k}_b"] = getattr(net, k).bias.detach().numpy()
@@ -85,6 +82,14 @@ def train(d: dict, args) -> None:
     Gl = torch.from_numpy(((d["glob"] - g_mean) / g_std).astype(np.float32))
     Pt = torch.from_numpy(d["pol"].astype(np.float32))
     Y = torch.from_numpy((d["y"] / VALUE_SCALE).astype(np.float32))
+    # 参考: 線形評価関数 v6 を同じ検証局面に当てたときの決定係数
+    w6 = np.load("models/eval_v6_lin.npy")
+    v6 = d["glob"][va, : len(w6)] @ w6 / VALUE_SCALE
+    y = d["y"][va] / VALUE_SCALE
+    print(
+        f"参考: v6 の検証R2 {1 - ((y - v6) ** 2).sum() / ((y - y.mean()) ** 2).sum():.3f}",
+        flush=True,
+    )
     net = Net(args.channels, args.blocks)
     opt = torch.optim.AdamW(net.parameters(), lr=args.lr, weight_decay=1e-4)
     steps = args.epochs * (len(tr) // args.batch)

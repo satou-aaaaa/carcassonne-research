@@ -2,7 +2,7 @@
 
 構造: 3x3畳み込み（盤全体の情報を線形変換してチャンネルごとに足す）→ 残差ブロック×B
 → 方策ヘッド（1x1畳み込みで向きごとのロジット、合法手以外は除外）
-→ 価値ヘッド（1x1畳み込み→平坦化→盤全体の情報と連結→全結合2層、終局得点差/30 を予測）。
+→ 価値ヘッド（盤全体で平均→盤全体の情報と連結→全結合2層、終局得点差/30 を予測）。
 BatchNorm は学習後に畳み込みへ畳み込み済み。
 """
 
@@ -51,7 +51,7 @@ class PolicyValueNet:
         logits = conv(h, p["pol_w"], p["pol_b"]).reshape(len(x), -1)
         legal = x[:, 25:29].reshape(len(x), -1) > 0
         logits = np.where(legal, logits, -np.inf)
-        v = np.maximum(conv(h, p["val_w"], p["val_b"]), 0).reshape(len(x), -1)
+        v = h.mean(axis=(2, 3))
         v = np.maximum(np.concatenate([v, g], axis=1) @ p["fc1_w"].T + p["fc1_b"], 0)
         v = v @ p["fc2_w"].T + p["fc2_b"]
         return logits, v[:, 0] * VALUE_SCALE
