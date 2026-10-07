@@ -48,9 +48,13 @@ def save(stats: dict[str, np.ndarray], path: str | Path) -> None:
     np.savez_compressed(path, **stats)
 
 
-def load(path: str | Path) -> dict[str, np.ndarray] | None:
+def load(path: str | Path, nf: int | None = None) -> dict[str, np.ndarray] | None:
+    """統計を読む。無い場合、または nf を指定して特徴量数が合わない場合は None。"""
     p = Path(path)
     if not p.exists():
         return None
     with np.load(p) as d:
-        return {k: d[k] for k in d.files}
+        stats = {k: d[k] for k in d.files}
+    if nf is not None and stats["xtx"].shape[0] != nf:
+        return None  # 特徴量を変えた後は古い統計を捨てて、新しいデータから学び直す
+    return stats

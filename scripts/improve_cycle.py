@@ -76,7 +76,7 @@ def main() -> None:
     np.savez_compressed(data_path, X=X, y=y)
 
     # 2. 十分統計量を持ち越して再学習（ローカルに生データが残っていれば初回の土台に使う）
-    stats = ridge_stats.load(STATS_PATH)
+    stats = ridge_stats.load(STATS_PATH, NF)
     if stats is None:
         files = sorted(
             glob.glob(str(ROOT / "runs" / "data_*.npz")), key=lambda f: Path(f).stat().st_mtime
