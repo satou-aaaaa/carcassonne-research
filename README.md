@@ -29,7 +29,7 @@
 | [docs/quiz.html](docs/quiz.html) | 次の一手クイズ（入門編・実戦編） | `scripts/build_puzzles.py` |
 
 共通のナビゲーションは `scripts/site_nav.py`。データやテンプレート（`web/*_template.html`）を直したら
-3つの組み立てスクリプトを実行して `docs/` もコミットする（CI が作り直して差分がないか確かめる）。
+`scripts/build_pages.py` で作り直して `docs/` もコミットする（CI が作り直して差分がないか確かめる）。
 
 GitHub Pages で公開するには、リポジトリの Settings → Pages で「Deploy from a branch」、
 ブランチ `main`・フォルダ `/docs` を選ぶ。URL は `https://satou-aaaaa.github.io/carcassonne-research/`。
@@ -58,7 +58,16 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/python scripts/run_match.py "fmcts:sims=12000,depth=10,eval=models/eval_v6_lin.npy" greedy --seeds 20 --workers 8
 ```
 
-GitHub Actions（`.github/workflows/test.yml`）が push と PR のたびに ruff・pytest と、公開ページが最新かを確かめる。
+PRを出す前やマージの前の確認は1コマンドでできる（CI も同じものを実行する）。
+
+```bash
+python scripts/check.py --quick   # lint・整形・公開ページ・時間のかかるテスト以外（約20秒）
+python scripts/check.py           # 全テスト込み（約2分。CI はこちら）
+python scripts/check.py --fix     # ruff の自動修正と整形をかけてから確認
+python scripts/build_pages.py     # 公開ページ（docs/）をまとめて作り直す
+```
+
+PR の進め方（push 前の確認、ページの作り直し、マージの仕方）は `.claude/skills/steward/SKILL.md` にまとめている。
 
 ## 人間と対戦する
 

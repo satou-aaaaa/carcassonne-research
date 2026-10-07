@@ -48,6 +48,7 @@ def test_truncated_rollouts_work():
     assert m in st.legal_moves()
 
 
+@pytest.mark.slow  # 約100秒。scripts/check.py --quick では飛ばす（CIでは必ず実行）
 def test_beats_greedy_with_modest_budget():
     from functools import partial
 

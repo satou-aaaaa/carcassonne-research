@@ -12,6 +12,7 @@ analysis = ["numpy", "pandas", "matplotlib"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = ["slow: 時間のかかる強さの検証（scripts/check.py --quick では飛ばす）"]
 
 [tool.ruff]
 line-length = 100
