@@ -191,6 +191,7 @@ def board_svg(st: State, meeples, center, radius=2, S=64, highlight=None, ghost=
     inside = [p for p in st.board if abs(p[0] - cx) <= radius and abs(p[1] - cy) <= radius] + [
         center
     ]
+    inside += [(g[0], g[1]) for g in (ghost or []) + (highlight or [])]  # 候補タイルも窓に入れる
     x_lo, x_hi = min(p[0] for p in inside), max(p[0] for p in inside)
     y_lo, y_hi = min(p[1] for p in inside), max(p[1] for p in inside)
     xs = range(x_lo, x_hi + 1)

@@ -56,3 +56,27 @@ def test_rejects_illegal_move(tmp_path):
 def test_tile_library():
     lib = tile_library()
     assert len(lib) == 24 and sum(t["count"] for t in lib) == 72
+
+
+def test_coach_reports_loss_and_marks_record(tmp_path):
+    """ヒントありの対局: 人間の手ごとにAIの最善手と損失を返し、記録に coach が付く。"""
+    from carcassonne.fast_mcts import FastMCTSAgent
+    from carcassonne.webplay import coach_text, make_coach
+
+    coach = make_coach(FastMCTSAgent(n_sims=300))
+    g = HumanGame(4, 0, "test", RandomAgent(), "t", tmp_path / "g.jsonl", coach=coach)
+    rng = random.Random(4)
+    for _ in range(3):
+        v = g.view()
+        p = rng.choice(v["placements"])
+        g.human_move(p["x"], p["y"], p["v"], None)
+        c = g.view()["last_coach"]
+        assert c["loss"] is None or c["loss"] >= 0
+        assert {"x", "y", "v", "piece", "kind"} <= c["best"].keys()
+        assert coach_text(c).startswith("ヒント")
+    assert any(e["text"].startswith("ヒント") for e in g.events)
+    while not g.st.over:
+        p = rng.choice(g.view()["placements"])
+        g.human_move(p["x"], p["y"], p["v"], None)
+    rec = json.loads((tmp_path / "g.jsonl").read_text(encoding="utf-8"))
+    assert rec["coach"] is True

@@ -4,6 +4,7 @@
     py scripts/build_tips_page.py
 入力: runs/habits_summary.json（summarize_habits.py）、runs/habits_examples.json（pick_examples.py）、
       web/ai_tips_template.html。本文の数値はテンプレートの {{key}} を集計値で置き換える。
+      runs/ に無ければ、コミット済みの docs/results/ の同名ファイルを使う（再集計せずに文面だけ直せる）。
 """
 
 from __future__ import annotations
@@ -11,6 +12,8 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
+
+from site_nav import NAV_CSS, nav_html
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -80,9 +83,22 @@ def bar_pairs(rows, unit, maxv, aria) -> str:
     return "".join(out)
 
 
+def farms_in_phase(s: dict, phase: str) -> float:
+    """その局面区分で1人1局あたりに置いた農民の数。"""
+    ph = s["by_phase"][phase]
+    return ph["kind_rate"]["F"] * ph["moves"] / (s["games"] * 2)
+
+
+def _load(name: str) -> dict:
+    for d in (ROOT / "runs", ROOT / "docs" / "results"):
+        if (d / name).exists():
+            return json.loads((d / name).read_text(encoding="utf-8"))
+    raise SystemExit(f"{name} が runs/ にも docs/results/ にもありません")
+
+
 def main() -> None:
-    summ = json.loads((ROOT / "runs" / "habits_summary.json").read_text(encoding="utf-8"))
-    ex = json.loads((ROOT / "runs" / "habits_examples.json").read_text(encoding="utf-8"))
+    summ = _load("habits_summary.json")
+    ex = _load("habits_examples.json")
     s, g = summ["habits_strong"], summ["habits_greedy"]
     kinds = [("C", "都市"), ("R", "道"), ("M", "修道院"), ("F", "草原")]
     charts = {
@@ -144,6 +160,8 @@ def main() -> None:
         "farm_turns": f"{s['meeple_life']['F']['turns']:.0f}",
         "farm_zero": pct(s["meeple_life"]["F"]["zero_points"]),
         "farm_per_player": f"{s['farm_per_player_game']:.1f}",
+        "farm_per_player_greedy": f"{g['farm_per_player_game']:.1f}",
+        "farm_early_strong": f"{farms_in_phase(s, '序盤'):.1f}",
         "farm_total": f"{s['points_by_source']['F_end']:.0f}",
         "farm_share": pct(s["points_by_source"]["F_end"] / s["avg_score"]),
         "mon_points": f"{s['meeple_life']['M']['points']:.1f}",
@@ -152,6 +170,7 @@ def main() -> None:
         "touch_opp_greedy": pct(g["touches_opp"]),
         "block_strong": f"{s['blocks_per_game_player'].get('opp_C', 0):.2f}",
         "block_greedy": f"{g['blocks_per_game_player'].get('opp_C', 0):.2f}",
+        "block_count_strong": round(s["blocks_per_game_player"].get("opp_C", 0) * s["games"] * 2),
         "shared_share": pct(s["shared_points_share"]),
         "lead_C": f"{lead['C']:.0f}",
         "lead_R": f"{lead['R']:.0f}",
@@ -162,6 +181,8 @@ def main() -> None:
     for k, v in ex.items():
         nums[f"svg_{k}"] = v["svg"]
     nums.update(charts)
+    nums["site_nav"] = nav_html("ai_tips.html")
+    nums["site_nav_css"] = NAV_CSS
     tpl = (ROOT / "web" / "ai_tips_template.html").read_text(encoding="utf-8")
 
     def sub(m):
