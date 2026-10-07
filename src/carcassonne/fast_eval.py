@@ -318,9 +318,27 @@ def collect(fast: Fast, n_games: int, stride: int = 3, meeple_prob: float = 0.3,
     return np.array(xs), np.array(ys, np.float64)
 
 
-def fit_ridge(X: np.ndarray, y: np.ndarray, lam: float = 1.0) -> LinearEval:
-    """リッジ回帰（バイアス項は正則化しない）。"""
-    reg = lam * np.eye(X.shape[1])
-    reg[-1, -1] = 0.0  # bias
-    w = np.linalg.solve(X.T @ X + reg, X.T @ y)
-    return LinearEval(w)
+def bias_index(nf: int) -> int:
+    """バイアス特徴の位置。本物の特徴量（22個・29個）では13番目、それ以外（テスト用）は最後。"""
+    return FEATURE_NAMES.index("bias") if nf >= NF_V6 else nf - 1
+
+
+def ridge_solve(
+    xtx: np.ndarray, xty: np.ndarray, lam: float, prior: np.ndarray | None = None
+) -> np.ndarray:
+    """(XᵀX+λI)w = Xᵀy + λ·prior を解く（バイアス項は正則化しない）。
+
+    prior を与えると、0ではなく prior に向かって縮める（前の世代の重みを忘れにくくする）。
+    """
+    nf = xtx.shape[0]
+    reg = lam * np.eye(nf)
+    reg[bias_index(nf), bias_index(nf)] = 0.0
+    rhs = xty if prior is None else xty + reg @ np.asarray(prior, np.float64)
+    return np.linalg.solve(xtx + reg, rhs)
+
+
+def fit_ridge(
+    X: np.ndarray, y: np.ndarray, lam: float = 1.0, prior: np.ndarray | None = None
+) -> LinearEval:
+    """リッジ回帰（バイアス項は正則化しない）。prior は `ridge_solve` を参照。"""
+    return LinearEval(ridge_solve(X.T @ X, X.T @ y, lam, prior))
