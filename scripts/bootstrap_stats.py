@@ -22,5 +22,9 @@ for f in files:
         continue
     stats = ridge_stats.merge(stats, ridge_stats.stats_of(d["X"], d["y"]), 0.7)
     print("merged", Path(f).name, len(d["y"]))
+if stats is None:
+    sys.exit(
+        f"runs/data_*.npz に特徴量{NF}個のデータがありません（models/ridge_stats.npz は変更しません）"
+    )
 ridge_stats.save(stats, ROOT / "models" / "ridge_stats.npz")
 print("有効件数", stats["n"])

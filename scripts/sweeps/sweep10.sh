@@ -1,5 +1,6 @@
 # 探索の構造: 決定化の本数と、評価前の短いロールアウト（いずれも基準=v6線形・12000回・決定化1本）
-# 使い方: bash scripts/sweep10.sh   （PY=python, WORKERS=CPU数 を環境変数で上書き可）
+# 使い方: bash scripts/sweeps/sweep10.sh   （PY=python, WORKERS=CPU数 を環境変数で上書き可）
+cd "$(dirname "$0")/../.."  # どこから実行してもリポジトリ直下で動かす
 PY=${PY:-python}
 WORKERS=${WORKERS:-$(nproc 2>/dev/null || echo 4)}
 E=eval=models/eval_v6_lin.npy

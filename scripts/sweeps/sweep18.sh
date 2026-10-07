@@ -2,7 +2,8 @@
 # (1) 現在の最強（12000回・depth=10）vs 以前の最強（12000回・depth無し）
 # (2) 現在の最強 vs 貪欲法
 # 中断に備えて20シードずつ実行し、終わった塊は飛ばす（ログは runs/sweep18_{nodepth,greedy}.jsonl に追記）。
-# 使い方: bash scripts/sweep18.sh
+# 使い方: bash scripts/sweeps/sweep18.sh
+cd "$(dirname "$0")/../.."  # どこから実行してもリポジトリ直下で動かす
 PY=${PY:-python}
 WORKERS=${WORKERS:-$(nproc 2>/dev/null || echo 4)}
 E=eval=models/eval_v6_lin.npy
