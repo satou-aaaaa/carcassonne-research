@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from carcassonne.state import State
-from carcassonne.webplay import LEVELS, HumanGame, make_agent, tile_library
+from carcassonne.webplay import LEVELS, HumanGame, make_agent, make_coach, tile_library
 
 LOCK = threading.Lock()
 AGENTS: dict[str, object] = {}
@@ -85,6 +85,7 @@ class Handler(BaseHTTPRequestHandler):
                         level,
                         get_agent(level),
                         str(data.get("name", ""))[:40],
+                        coach=make_coach(get_agent("strong")) if data.get("coach") else None,
                     )
                     self._json(GAME.view())
                 elif self.path == "/api/move":

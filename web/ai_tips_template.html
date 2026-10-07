@@ -1,4 +1,8 @@
+<!doctype html>
+<html lang="ja">
+<head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>強いAIに学ぶカルカソンヌ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -114,9 +118,14 @@ aside.note code { font-family: var(--font-num); font-size: 13px; }
 .summary ol { margin: 0; padding-left: 1.4em; display: grid; gap: 6px; }
 a { color: var(--field); }
 :focus-visible { outline: 2px solid var(--field); outline-offset: 2px; }
+.adv { font-size: 11px; letter-spacing: .08em; color: var(--paper); background: var(--muted); padding: 1px 7px; border-radius: 3px; vertical-align: 3px; margin-left: 6px; font-weight: 700; }
+{{site_nav_css}}
 </style>
+</head>
+<body>
 
 <div class="wrap">
+{{site_nav}}
 <header class="hero">
   <span class="eyebrow">カルカソンヌ ・ 基本ルール ・ 2人対戦</span>
   <h1>強いAIは、<span class="accent">どこに置いているか</span></h1>
@@ -130,8 +139,8 @@ a { color: var(--field); }
 
 <nav class="toc" aria-label="目次">
   <ol>
-    <li><span class="grp">ミープル</span><br><a href="#keep">全部使い切らずに手元に残す</a><br><a href="#road">道には「すぐ終わる道」だけ</a><br><a href="#city">都市は自分で新しく始める</a><br><a href="#farm">農民は1人3〜4個、早めに1つ</a></li>
-    <li><span class="grp">タイル</span><br><a href="#merge">相手の都市に合流して分け合う</a><br><a href="#block">相手の都市を「完成しない形」にする</a><br><a href="#monastery">修道院は周りを自分で埋める</a></li>
+    <li><span class="grp">ミープル</span><br><a href="#keep">序盤に一気に使い切らない</a><br><a href="#road">道には「すぐ終わる道」だけ</a><br><a href="#city">都市は自分で新しく始める</a><br><a href="#farm">農民は序盤に1〜2個、残りは終盤に</a></li>
+    <li><span class="grp">タイル</span><br><a href="#merge">相手の都市に合流して分け合う</a><br><a href="#block">相手の都市を「完成しない形」にする（上級）</a><br><a href="#monastery">修道院は周りを自分で埋める</a></li>
     <li><span class="grp">得点</span><br><a href="#citywins">勝ち負けを分けるのは都市</a><br><a href="#recap">まとめ</a></li>
   </ol>
 </nav>
@@ -149,8 +158,8 @@ a { color: var(--field); }
   <p class="intro">ミープルは7個しかありません。強いAIの差がいちばん大きく出たのは、この使い方でした。</p>
 
   <article class="tip" id="keep">
-    <h3>全部使い切らずに、1〜2個は手元に残す</h3>
-    <p>置ける場所があるとつい置きたくなりますが、強いAIは置けるのに置かない手が目先の点だけのAIより多く、序盤の終わりでも手持ちが残っています。手元に1個あれば、相手の都市への合流や、終盤の大きな草原など「ここぞ」という場面に使えます。</p>
+    <h3>序盤に一気に使い切らない</h3>
+    <p>置ける場所があるとつい置きたくなりますが、強いAIは置けるのに置かない手が目先の点だけのAIより多く、使うペースがゆっくりです。序盤の終わり（山札の残り48枚）でも1〜2個が手元に残っています。手元に1個あれば、相手の都市への合流や、大きな草原など「ここぞ」という場面に使えます。中盤以降は強いAIもほぼ使い切るので、ずっと温存するのではなく「急いで全部置かない」と考えてください。</p>
     <div class="pair">
       <div class="s"><span class="who">強いAI</span><span class="n">{{skip_strong}}<small>%</small></span></div>
       <div><span class="who">目先の点だけのAI</span><span class="n">{{skip_greedy}}<small>%</small></span></div>
@@ -191,8 +200,9 @@ a { color: var(--field); }
   </article>
 
   <article class="tip" id="farm">
-    <h3>農民は1人3〜4個。序盤から1つ確保し、最後の1個も農民へ</h3>
-    <p>農民（草原のミープル）は終局まで戻ってきませんが、1個あたり平均{{farm_points}}点と、どの置き方より多く稼ぎます。強いAIはだいたい最初の数手で1つ目の農民を置き、終盤に残った最後のミープルも、完成した都市にたくさん接する草原へ置きます。農民の点は1人あたり平均{{farm_total}}点で、全体の{{farm_share}}%を占めます。</p>
+    <h3>農民は序盤に1〜2個、残りは終盤に</h3>
+    <p>農民（草原のミープル）は終局まで戻ってきませんが、1個あたり平均{{farm_points}}点と、どの置き方より多く稼ぎます。強いAIは序盤に1〜2個（平均{{farm_early_strong}}個）を農民にし、残りは終盤、手元に戻ってきたミープルを完成した都市にたくさん接する草原へ置きます。1局の合計は平均{{farm_per_player}}個ですが、そのうち序盤に置くのは半分ほどなので、上の「序盤に使い切らない」とは両立します。</p>
+    <p>ただし農民の数は目先の点だけのAI（平均{{farm_per_player_greedy}}個）とほとんど同じで、勝った側と負けた側の草原の点の差も{{lead_F}}点しかありません。農民で大きく差がつくわけではないので、序盤に農民を置きすぎて都市に使うミープルが足りなくならないようにしましょう。</p>
     <div class="pair">
       <div class="s"><span class="who">農民1個の平均得点</span><span class="n">{{farm_points}}<small>点</small></span></div>
       <div><span class="who">0点に終わった農民</span><span class="n">{{farm_zero}}<small>%</small></span></div>
@@ -219,8 +229,9 @@ a { color: var(--field); }
   </article>
 
   <article class="tip" id="block">
-    <h3>相手の都市を「完成しない形」にする</h3>
+    <h3>相手の都市を「完成しない形」にする<span class="adv">上級</span></h3>
     <p>都市の隣に、残りのタイルでは埋められない穴を作ると、その都市はもう完成しません。完成すれば1タイル2点の都市が、終局時には1タイル1点に下がります。強いAIはこの手を目先の点だけのAIの2倍以上指していました。</p>
+    <p>とはいえ強いAIでも1人あたり3局に1回ほど（{{games_strong}}局で{{block_count_strong}}回）しか出てこない手で、残りのタイルを数えないと狙えません。初心者のうちは、まず自分の都市を完成させることを優先し、「置き場所に迷ったら相手の都市の邪魔になる場所も考える」くらいで十分です。</p>
     <div class="pair">
       <div class="s"><span class="who">強いAI</span><span class="n">{{block_strong}}<small>回</small></span></div>
       <div><span class="who">目先の点だけのAI</span><span class="n">{{block_greedy}}<small>回</small></span></div>
@@ -257,11 +268,11 @@ a { color: var(--field); }
 <section class="summary" id="recap">
   <h2>まとめ</h2>
   <ol>
-    <li>ミープルは全部使い切らず、1〜2個は手元に残す。</li>
+    <li>ミープルは序盤に一気に使い切らない。序盤の終わりに1〜2個残っているくらいがよい。</li>
     <li>道に乗せるのは、すぐ終わりそうな道だけ。</li>
     <li>都市は自分で新しく始めて育てる。勝敗の差はほとんど都市で生まれる。</li>
-    <li>農民は早めに1つ。最後の1個は、完成した都市にたくさん接する草原へ。</li>
-    <li>相手の大きな都市には合流して分け合い、必要なら完成しない形にする。</li>
+    <li>農民は序盤に1〜2個。終盤に余ったミープルは、完成した都市にたくさん接する草原へ。</li>
+    <li>相手の大きな都市には合流して分け合う。慣れてきたら、完成しない形にする手も考える。</li>
     <li>修道院の周りは自分で埋めて、ミープルを早く取り戻す。</li>
   </ol>
 </section>
@@ -276,3 +287,5 @@ a { color: var(--field); }
   </ul>
 </aside>
 </div>
+</body>
+</html>

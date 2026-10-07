@@ -1,10 +1,10 @@
-"""練習問題のデータ data/puzzles.json から、1ファイルで動くクイズページ web/quiz.html を作る。
+"""練習問題のデータ data/puzzles.json から、1ファイルで動くクイズページ docs/quiz.html を作る。
 
     py scripts/build_puzzles.py
     py scripts/build_puzzles.py --src runs/puzzles/cands.jsonl --out runs/puzzles/preview.html  # 候補の下見
 
 data/puzzles.json は scripts/make_puzzles.py の候補から採用した局面に、題名・問題文・解説を
-書き足したもの。選択肢の並びは問題ごとに固定の乱数で入れ替える（正解がいつもAにならないように）。
+書き足したもの。"level": "入門" の問題は先頭にまとめて出す（無ければ実戦編）。選択肢の並びは問題ごとに固定の乱数で入れ替える（正解がいつもAにならないように）。
 """
 
 from __future__ import annotations
@@ -17,6 +17,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
+
+from site_nav import NAV_CSS, nav_html
 
 from carcassonne.webplay import tile_library
 
@@ -40,6 +42,7 @@ def load(src: Path) -> list[dict]:
 
 def to_page(p: dict) -> dict:
     out = {k: p[k] for k in KEEP}
+    out["level"] = p.get("level", "実戦")
     opts = [dict(o) for o in p["options"]]  # 先頭が最善手
     for o, note in zip(opts, p.get("notes", [])):
         o["note"] = note
@@ -55,13 +58,17 @@ def to_page(p: dict) -> dict:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--src", default=str(ROOT / "data" / "puzzles.json"))
-    ap.add_argument("--out", default=str(ROOT / "web" / "quiz.html"))
+    ap.add_argument("--out", default=str(ROOT / "docs" / "quiz.html"))
     ap.add_argument("--fragment", action="store_true", help="<html>等で包まない（Artifact公開用）")
     args = ap.parse_args()
-    data = {"tiles": tile_library(), "puzzles": [to_page(p) for p in load(Path(args.src))]}
+    puzzles = [to_page(p) for p in load(Path(args.src))]
+    puzzles.sort(key=lambda p: p["level"] != "入門")  # 安定ソート: 入門編を先に
+    data = {"tiles": tile_library(), "puzzles": puzzles}
     blob = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     body = (ROOT / "web" / "quiz_template.html").read_text(encoding="utf-8")
     body = body.replace("__QUIZ_DATA__", blob)
+    nav = "" if args.fragment else nav_html("quiz.html")
+    body = body.replace("__SITE_NAV_CSS__", NAV_CSS).replace("__SITE_NAV__", nav)
     if not args.fragment:
         body = (
             '<!doctype html>\n<html lang="ja">\n<head>\n<meta charset="utf-8">\n'

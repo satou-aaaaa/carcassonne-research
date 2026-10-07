@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>カルカソンヌ 次の一手</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* レイアウト: 左に盤面、右に問題カード（狭い画面では縦積み）。盤面が主役、カードは操作盤。 */
+:root {
+  --bg: #e9efe7; --surface: #ffffff; --ink: #1d2820; --muted: #5a6a5e; --line: #cfd9cd;
+  --accent: #2c6a3a; --accent-ink: #ffffff; --good: #23804a; --bad: #b8452c; --gold: #d99a1e;
+  --p0: #d64541; --p1: #2f6fd6; --board: #dfe7dc;
+  --display: "Dela Gothic One", "Hiragino Kaku Gothic StdN", "Yu Gothic", sans-serif;
+  --body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic UI", "Noto Sans JP", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121814; --surface: #1b231d; --ink: #e5ebe3; --muted: #9babA0; --line: #2d392f;
+  --accent: #79c58a; --accent-ink: #0f1a12; --good: #63c486; --bad: #ec8467; --gold: #f0b94a;
+  --p0: #ef6a62; --p1: #6c9bf0; --board: #18201a; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #121814; --surface: #1b231d; --ink: #e5ebe3; --muted: #9babA0; --line: #2d392f;
+  --accent: #79c58a; --accent-ink: #0f1a12; --good: #63c486; --bad: #ec8467; --gold: #f0b94a;
+  --p0: #ef6a62; --p1: #6c9bf0; --board: #18201a; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.7 var(--body); margin: 0; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 40px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; margin-bottom: 14px; }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(22px, 3.4vw, 30px); margin: 0; letter-spacing: .02em; text-wrap: balance; }
+.sub { color: var(--muted); font-size: 13px; }
+.progress { display: flex; gap: 6px; flex-wrap: wrap; }
+.progress button { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--line); background: var(--surface); color: var(--muted); font: 600 12px var(--body); cursor: pointer; font-variant-numeric: tabular-nums; padding: 0; }
+.progress button.cur { border-color: var(--ink); color: var(--ink); }
+.progress button.ok { background: var(--good); border-color: var(--good); color: var(--surface); }
+.progress button.ng { background: var(--bad); border-color: var(--bad); color: var(--surface); }
+main { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } }
+.boardbox { background: var(--board); border: 1px solid var(--line); border-radius: 14px; position: relative; overflow: hidden; }
+canvas#board { display: block; width: 100%; aspect-ratio: 1 / 1; max-width: 100%; touch-action: manipulation; }
+.legend { position: absolute; left: 10px; bottom: 8px; font-size: 12px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 2px 8px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.eyebrow { font-size: 12px; letter-spacing: .08em; color: var(--muted); }
+h2 { font-family: var(--display); font-weight: 400; font-size: 21px; margin: 0; line-height: 1.4; text-wrap: balance; }
+.prompt { margin: 0; }
+.situ { display: grid; grid-template-columns: auto 1fr 1fr; gap: 10px; align-items: center; }
+.situ canvas { width: 76px; height: 76px; border-radius: 6px; display: block; }
+.who { border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.who b { display: block; font-size: 22px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.who.me { border-left: 5px solid var(--me); } .who.op { border-left: 5px solid var(--op); }
+.opts { display: grid; gap: 8px; }
+.opt { display: grid; grid-template-columns: 34px 46px minmax(0, 1fr); gap: 10px; align-items: center; text-align: left; width: 100%; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 10px; padding: 8px 10px; font: inherit; cursor: pointer; }
+.opt:hover:not(:disabled), .opt.sel { border-color: var(--ink); }
+.opt:focus-visible, button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.opt:disabled { cursor: default; }
+.opt .k { font-family: var(--display); font-size: 20px; text-align: center; }
+.opt canvas { width: 46px; height: 46px; border-radius: 4px; display: block; }
+.opt .t { font-weight: 500; line-height: 1.45; }
+.opt .t small { display: block; color: var(--muted); font-weight: 400; font-size: 12.5px; }
+.opt.best { border-color: var(--good); }
+.opt.wrong { border-color: var(--bad); }
+.bar { height: 6px; border-radius: 3px; background: var(--line); margin-top: 6px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--muted); }
+.opt.best .bar i { background: var(--good); }
+.verdict { font-family: var(--display); font-size: 22px; }
+.verdict.ok { color: var(--good); } .verdict.ng { color: var(--bad); }
+.explain { display: flex; flex-direction: column; gap: 10px; }
+.explain p { margin: 0; }
+.lesson { border-left: 4px solid var(--gold); padding: 4px 0 4px 12px; font-weight: 500; }
+.note { font-size: 12.5px; color: var(--muted); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.btn { font: 700 14px var(--body); padding: 9px 18px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn:disabled { opacity: .45; cursor: default; }
+details { font-size: 13px; color: var(--muted); }
+details summary { cursor: pointer; }
+#remain { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+#remain div { text-align: center; font-size: 11px; width: 36px; font-variant-numeric: tabular-nums; }
+#remain div.zero { opacity: .3; }
+#remain canvas { width: 32px; height: 32px; display: block; }
+.final { text-align: center; padding: 30px 10px; }
+.final .big { font-family: var(--display); font-size: 44px; }
+footer { margin-top: 22px; font-size: 12.5px; color: var(--muted); max-width: 70ch; }
+@media (prefers-reduced-motion: no-preference) { .opt { transition: border-color .15s; } }
+.lvl { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .08em; padding: 0 7px; border-radius: 3px; margin-right: 6px; background: var(--line); color: var(--ink); }
+.lvl.easy { background: var(--accent); color: var(--accent-ink); }
+.progress button.easy { border-style: dashed; }
+nav.site { --paper: var(--surface); --field: var(--accent); }
+
+nav.site { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+nav.site .home { font-weight: 700; margin-right: 8px; color: var(--ink); text-decoration: none; }
+nav.site a.p { color: var(--muted); text-decoration: none; padding: 3px 10px; border-radius: 999px; }
+nav.site a.p:hover, nav.site a.p:focus-visible { color: var(--ink); background: var(--paper); outline: none; }
+nav.site a.p[aria-current="page"] { color: var(--paper); background: var(--field); }
+
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<nav class="site" aria-label="サイト内のページ"><a class="home" href="index.html">カルカソンヌ入門</a><a class="p" href="rules.html">ルール入門</a><a class="p" href="ai_tips.html">強いAIのコツ</a><a class="p" href="quiz.html" aria-current="page">次の一手クイズ</a></nav>
+  <header>
+    <div>
+      <h1>カルカソンヌ 次の一手</h1>
+      <div class="sub">強いAIが選んだ手を当てる練習問題。基本セット・2人対戦。<span id="levels"></span></div>
+    </div>
+    <nav class="progress" id="progress" aria-label="問題の一覧"></nav>
+  </header>
+  <main id="main">
+    <div class="boardbox">
+      <canvas id="board" aria-label="盤面"></canvas>
+      <div class="legend" id="legend"></div>
+    </div>
+    <section class="card" id="card"></section>
+  </main>
+  <footer>
+    AIの評価は、このプロジェクトの評価関数付きモンテカルロ木探索（1局面あたり約6万回の探索）が見積もった
+    「この手を選んだ場合の最終的な点差（あなた−相手）」です。山札の順番は分からない前提で計算しているので、
+    実際の対局ではAIの予想どおりにならないこともあります。数点の差は「どちらも悪くない」くらいに受け取ってください。
+  </footer>
+</div>
+
+<script id="quiz-data" type="application/json">{"tiles":[{"id":"bent_road","count":9,"variants":[{"edges":["F","F","R","R"],"pieces":[{"kind":"R","sides":[2,3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1,2,3,4,7],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[5,6],"pennant":false,"city_adj":[]}]},{"edges":["R","F","F","R"],"pieces":[{"kind":"R","sides":[0,3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,7],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[1,2,3,4,5,6],"pennant":false,"city_adj":[]}]},{"edges":["R","R","F","F"],"pieces":[{"kind":"R","sides":[0,1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,3,4,5,6,7],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[1,2],"pennant":false,"city_adj":[]}]},{"edges":["F","R","R","F"],"pieces":[{"kind":"R","sides":[1,2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1,2,5,6,7],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[3,4],"pennant":false,"city_adj":[]}]}]},{"id":"chapel","count":4,"variants":[{"edges":["F","F","F","F"],"pieces":[{"kind":"F","sides":[],"halves":[0,1,2,3,4,5,6,7],"pennant":false,"city_adj":[]},{"kind":"M","sides":[],"halves":[],"pennant":false,"city_adj":[]}]}]},{"id":"chapel_with_road","count":2,"variants":[{"edges":["R","F","F","F"],"pieces":[{"kind":"R","sides":[0],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1,2,3,4,5,6,7],"pennant":false,"city_adj":[]},{"kind":"M","sides":[],"halves":[],"pennant":false,"city_adj":[]}]},{"edges":["F","R","F","F"],"pieces":[{"kind":"R","sides":[1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1,2,3,4,5,6,7],"pennant":false,"city_adj":[]},{"kind":"M","sides":[],"halves":[],"pennant":false,"city_adj":[]}]},{"edges":["F","F","R","F"],"pieces":[{"kind":"R","sides":[2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1,2,3,4,5,6,7],"pennant":false,"city_adj":[]},{"kind":"M","sides":[],"halves":[],"pennant":false,"city_adj":[]}]},{"edges":["F","F","F","R"],"pieces":[{"kind":"R","sides":[3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1,2,3,4,5,6,7],"pennant":false,"city_adj":[]},{"kind":"M","sides":[],"halves":[],"pennant":false,"city_adj":[]}]}]},{"id":"city_bottom_grass","count":3,"variants":[{"edges":["C","C","C","F"],"pieces":[{"kind":"C","sides":[0,1,2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[6,7],"pennant":false,"city_adj":[0]}]},{"edges":["F","C","C","C"],"pieces":[{"kind":"C","sides":[1,2,3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1],"pennant":false,"city_adj":[0]}]},{"edges":["C","F","C","C"],"pieces":[{"kind":"C","sides":[0,2,3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[2,3],"pennant":false,"city_adj":[0]}]},{"edges":["C","C","F","C"],"pieces":[{"kind":"C","sides":[0,1,3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[4,5],"pennant":false,"city_adj":[0]}]}]},{"id":"city_bottom_grass_shield","count":1,"variants":[{"edges":["C","C","C","F"],"pieces":[{"kind":"C","sides":[0,1,2],"halves":[],"pennant":true,"city_adj":[]},{"kind":"F","sides":[],"halves":[6,7],"pennant":false,"city_adj":[0]}]},{"edges":["F","C","C","C"],"pieces":[{"kind":"C","sides":[1,2,3],"halves":[],"pennant":true,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1],"pennant":false,"city_adj":[0]}]},{"edges":["C","F","C","C"],"pieces":[{"kind":"C","sides":[0,2,3],"halves":[],"pennant":true,"city_adj":[]},{"kind":"F","sides":[],"halves":[2,3],"pennant":false,"city_adj":[0]}]},{"edges":["C","C","F","C"],"pieces":[{"kind":"C","sides":[0,1,3],"halves":[],"pennant":true,"city_adj":[]},{"kind":"F","sides":[],"halves":[4,5],"pennant":false,"city_adj":[0]}]}]},{"id":"city_bottom_road","count":1,"variants":[{"edges":["C","C","C","R"],"pieces":[{"kind":"C","sides":[0,1,2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[6],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[7],"pennant":false,"city_adj":[0]}]},{"edges":["R","C","C","C"],"pieces":[{"kind":"C","sides":[1,2,3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[0],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[1],"pennant":false,"city_adj":[0]}]},{"edges":["C","R","C","C"],"pieces":[{"kind":"C","sides":[0,2,3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[2],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[3],"pennant":false,"city_adj":[0]}]},{"edges":["C","C","R","C"],"pieces":[{"kind":"C","sides":[0,1,3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[4],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[5],"pennant":false,"city_adj":[0]}]}]},{"id":"city_bottom_road_shield","count":2,"variants":[{"edges":["C","C","C","R"],"pieces":[{"kind":"C","sides":[0,1,2],"halves":[],"pennant":true,"city_adj":[]},{"kind":"R","sides":[3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[6],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[7],"pennant":false,"city_adj":[0]}]},{"edges":["R","C","C","C"],"pieces":[{"kind":"C","sides":[1,2,3],"halves":[],"pennant":true,"city_adj":[]},{"kind":"R","sides":[0],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[1],"pennant":false,"city_adj":[0]}]},{"edges":["C","R","C","C"],"pieces":[{"kind":"C","sides":[0,2,3],"halves":[],"pennant":true,"city_adj":[]},{"kind":"R","sides":[1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[2],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[3],"pennant":false,"city_adj":[0]}]},{"edges":["C","C","R","C"],"pieces":[{"kind":"C","sides":[0,1,3],"halves":[],"pennant":true,"city_adj":[]},{"kind":"R","sides":[2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[4],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[5],"pennant":false,"city_adj":[0]}]}]},{"id":"city_diagonal_top_left_road","count":3,"variants":[{"edges":["C","C","R","R"],"pieces":[{"kind":"C","sides":[0,1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[2,3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[4,7],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[5,6],"pennant":false,"city_adj":[]}]},{"edges":["R","C","C","R"],"pieces":[{"kind":"C","sides":[1,2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[0,3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,7],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[1,6],"pennant":false,"city_adj":[0]}]},{"edges":["R","R","C","C"],"pieces":[{"kind":"C","sides":[2,3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[0,1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,3],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[1,2],"pennant":false,"city_adj":[]}]},{"edges":["C","R","R","C"],"pieces":[{"kind":"C","sides":[0,3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[1,2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[2,5],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[3,4],"pennant":false,"city_adj":[]}]}]},{"id":"city_diagonal_top_left_shield_road","count":2,"variants":[{"edges":["C","C","R","R"],"pieces":[{"kind":"C","sides":[0,1],"halves":[],"pennant":true,"city_adj":[]},{"kind":"R","sides":[2,3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[4,7],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[5,6],"pennant":false,"city_adj":[]}]},{"edges":["R","C","C","R"],"pieces":[{"kind":"C","sides":[1,2],"halves":[],"pennant":true,"city_adj":[]},{"kind":"R","sides":[0,3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,7],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[1,6],"pennant":false,"city_adj":[0]}]},{"edges":["R","R","C","C"],"pieces":[{"kind":"C","sides":[2,3],"halves":[],"pennant":true,"city_adj":[]},{"kind":"R","sides":[0,1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,3],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[1,2],"pennant":false,"city_adj":[]}]},{"edges":["C","R","R","C"],"pieces":[{"kind":"C","sides":[0,3],"halves":[],"pennant":true,"city_adj":[]},{"kind":"R","sides":[1,2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[2,5],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[3,4],"pennant":false,"city_adj":[]}]}]},{"id":"city_diagonal_top_right","count":3,"variants":[{"edges":["C","C","F","F"],"pieces":[{"kind":"C","sides":[0,1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[4,5,6,7],"pennant":false,"city_adj":[0]}]},{"edges":["F","C","C","F"],"pieces":[{"kind":"C","sides":[1,2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1,6,7],"pennant":false,"city_adj":[0]}]},{"edges":["F","F","C","C"],"pieces":[{"kind":"C","sides":[2,3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1,2,3],"pennant":false,"city_adj":[0]}]},{"edges":["C","F","F","C"],"pieces":[{"kind":"C","sides":[0,3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[2,3,4,5],"pennant":false,"city_adj":[0]}]}]},{"id":"city_diagonal_top_right_shield","count":2,"variants":[{"edges":["C","C","F","F"],"pieces":[{"kind":"C","sides":[0,1],"halves":[],"pennant":true,"city_adj":[]},{"kind":"F","sides":[],"halves":[4,5,6,7],"pennant":false,"city_adj":[0]}]},{"edges":["F","C","C","F"],"pieces":[{"kind":"C","sides":[1,2],"halves":[],"pennant":true,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1,6,7],"pennant":false,"city_adj":[0]}]},{"edges":["F","F","C","C"],"pieces":[{"kind":"C","sides":[2,3],"halves":[],"pennant":true,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1,2,3],"pennant":false,"city_adj":[0]}]},{"edges":["C","F","F","C"],"pieces":[{"kind":"C","sides":[0,3],"halves":[],"pennant":true,"city_adj":[]},{"kind":"F","sides":[],"halves":[2,3,4,5],"pennant":false,"city_adj":[0]}]}]},{"id":"city_left_right","count":3,"variants":[{"edges":["C","F","C","F"],"pieces":[{"kind":"C","sides":[0],"halves":[],"pennant":false,"city_adj":[]},{"kind":"C","sides":[2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[2,3,6,7],"pennant":false,"city_adj":[0,1]}]},{"edges":["F","C","F","C"],"pieces":[{"kind":"C","sides":[1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"C","sides":[3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1,4,5],"pennant":false,"city_adj":[0,1]}]}]},{"id":"city_narrow","count":1,"variants":[{"edges":["C","F","C","F"],"pieces":[{"kind":"C","sides":[0,2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[2,3],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[6,7],"pennant":false,"city_adj":[0]}]},{"edges":["F","C","F","C"],"pieces":[{"kind":"C","sides":[1,3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[4,5],"pennant":false,"city_adj":[0]}]}]},{"id":"city_narrow_shield","count":2,"variants":[{"edges":["C","F","C","F"],"pieces":[{"kind":"C","sides":[0,2],"halves":[],"pennant":true,"city_adj":[]},{"kind":"F","sides":[],"halves":[2,3],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[6,7],"pennant":false,"city_adj":[0]}]},{"edges":["F","C","F","C"],"pieces":[{"kind":"C","sides":[1,3],"halves":[],"pennant":true,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[4,5],"pennant":false,"city_adj":[0]}]}]},{"id":"city_top","count":5,"variants":[{"edges":["C","F","F","F"],"pieces":[{"kind":"C","sides":[0],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[2,3,4,5,6,7],"pennant":false,"city_adj":[0]}]},{"edges":["F","C","F","F"],"pieces":[{"kind":"C","sides":[1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1,4,5,6,7],"pennant":false,"city_adj":[0]}]},{"edges":["F","F","C","F"],"pieces":[{"kind":"C","sides":[2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1,2,3,6,7],"pennant":false,"city_adj":[0]}]},{"edges":["F","F","F","C"],"pieces":[{"kind":"C","sides":[3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1,2,3,4,5],"pennant":false,"city_adj":[0]}]}]},{"id":"city_top_crossroads","count":3,"variants":[{"edges":["C","R","R","R"],"pieces":[{"kind":"C","sides":[0],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[2,7],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[3,4],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[5,6],"pennant":false,"city_adj":[]}]},{"edges":["R","C","R","R"],"pieces":[{"kind":"C","sides":[1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[0],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,7],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[1,4],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[5,6],"pennant":false,"city_adj":[]}]},{"edges":["R","R","C","R"],"pieces":[{"kind":"C","sides":[2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[0],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,7],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[1,2],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[3,6],"pennant":false,"city_adj":[0]}]},{"edges":["R","R","R","C"],"pieces":[{"kind":"C","sides":[3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[0],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,5],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[1,2],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[3,4],"pennant":false,"city_adj":[]}]}]},{"id":"city_top_right","count":2,"variants":[{"edges":["C","C","F","F"],"pieces":[{"kind":"C","sides":[0],"halves":[],"pennant":false,"city_adj":[]},{"kind":"C","sides":[1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[4,5,6,7],"pennant":false,"city_adj":[0,1]}]},{"edges":["F","C","C","F"],"pieces":[{"kind":"C","sides":[1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"C","sides":[2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1,6,7],"pennant":false,"city_adj":[0,1]}]},{"edges":["F","F","C","C"],"pieces":[{"kind":"C","sides":[2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"C","sides":[3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1,2,3],"pennant":false,"city_adj":[0,1]}]},{"edges":["C","F","F","C"],"pieces":[{"kind":"C","sides":[0],"halves":[],"pennant":false,"city_adj":[]},{"kind":"C","sides":[3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[2,3,4,5],"pennant":false,"city_adj":[0,1]}]}]},{"id":"city_top_road_bend_left","count":3,"variants":[{"edges":["C","F","R","R"],"pieces":[{"kind":"C","sides":[0],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[2,3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[2,3,4,7],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[5,6],"pennant":false,"city_adj":[]}]},{"edges":["R","C","F","R"],"pieces":[{"kind":"C","sides":[1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[0,3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,7],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[1,4,5,6],"pennant":false,"city_adj":[0]}]},{"edges":["R","R","C","F"],"pieces":[{"kind":"C","sides":[2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[0,1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,3,6,7],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[1,2],"pennant":false,"city_adj":[]}]},{"edges":["F","R","R","C"],"pieces":[{"kind":"C","sides":[3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[1,2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1,2,5],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[3,4],"pennant":false,"city_adj":[]}]}]},{"id":"city_top_road_bend_right","count":3,"variants":[{"edges":["C","R","R","F"],"pieces":[{"kind":"C","sides":[0],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[1,2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[2,5,6,7],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[3,4],"pennant":false,"city_adj":[]}]},{"edges":["F","C","R","R"],"pieces":[{"kind":"C","sides":[1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[2,3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1,4,7],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[5,6],"pennant":false,"city_adj":[]}]},{"edges":["R","F","C","R"],"pieces":[{"kind":"C","sides":[2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[0,3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,7],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[1,2,3,6],"pennant":false,"city_adj":[0]}]},{"edges":["R","R","F","C"],"pieces":[{"kind":"C","sides":[3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[0,1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,3,4,5],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[1,2],"pennant":false,"city_adj":[]}]}]},{"id":"city_top_straight_road","count":4,"variants":[{"edges":["C","R","F","R"],"pieces":[{"kind":"C","sides":[0],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[1,3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[2,7],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[3,4,5,6],"pennant":false,"city_adj":[]}]},{"edges":["R","C","R","F"],"pieces":[{"kind":"C","sides":[1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[0,2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,5,6,7],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[1,4],"pennant":false,"city_adj":[0]}]},{"edges":["F","R","C","R"],"pieces":[{"kind":"C","sides":[2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[1,3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1,2,7],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[3,6],"pennant":false,"city_adj":[0]}]},{"edges":["R","F","R","C"],"pieces":[{"kind":"C","sides":[3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[0,2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,5],"pennant":false,"city_adj":[0]},{"kind":"F","sides":[],"halves":[1,2,3,4],"pennant":false,"city_adj":[]}]}]},{"id":"crossroads","count":1,"variants":[{"edges":["R","R","R","R"],"pieces":[{"kind":"R","sides":[0],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,7],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[1,2],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[3,4],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[5,6],"pennant":false,"city_adj":[]}]}]},{"id":"full_city_with_shield","count":1,"variants":[{"edges":["C","C","C","C"],"pieces":[{"kind":"C","sides":[0,1,2,3],"halves":[],"pennant":true,"city_adj":[]}]}]},{"id":"straight_road","count":8,"variants":[{"edges":["F","R","F","R"],"pieces":[{"kind":"R","sides":[1,3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1,2,7],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[3,4,5,6],"pennant":false,"city_adj":[]}]},{"edges":["R","F","R","F"],"pieces":[{"kind":"R","sides":[0,2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,5,6,7],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[1,2,3,4],"pennant":false,"city_adj":[]}]}]},{"id":"three_split_road","count":4,"variants":[{"edges":["F","R","R","R"],"pieces":[{"kind":"R","sides":[1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,1,2,7],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[3,4],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[5,6],"pennant":false,"city_adj":[]}]},{"edges":["R","F","R","R"],"pieces":[{"kind":"R","sides":[0],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,7],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[1,2,3,4],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[5,6],"pennant":false,"city_adj":[]}]},{"edges":["R","R","F","R"],"pieces":[{"kind":"R","sides":[0],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[3],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,7],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[1,2],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[3,4,5,6],"pennant":false,"city_adj":[]}]},{"edges":["R","R","R","F"],"pieces":[{"kind":"R","sides":[0],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[1],"halves":[],"pennant":false,"city_adj":[]},{"kind":"R","sides":[2],"halves":[],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[0,5,6,7],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[1,2],"pennant":false,"city_adj":[]},{"kind":"F","sides":[],"halves":[3,4],"pennant":false,"city_adj":[]}]}]}],"puzzles":[{"id":"s0t48","turn":48,"deck_left":23,"player":1,"scores":[40,34],"supply":[2,0],"current":15,"remaining":[3,0,1,1,1,0,0,1,0,0,1,3,0,1,2,0,0,2,2,1,1,0,3,0],"board":[{"x":0,"y":0,"t":19,"v":0},{"x":0,"y":1,"t":10,"v":1},{"x":1,"y":0,"t":7,"v":1},{"x":-1,"y":0,"t":23,"v":3},{"x":2,"y":0,"t":9,"v":2},{"x":-1,"y":1,"t":23,"v":1},{"x":2,"y":1,"t":14,"v":0},{"x":3,"y":0,"t":16,"v":1},{"x":2,"y":-1,"t":8,"v":3},{"x":1,"y":1,"t":19,"v":3},{"x":0,"y":2,"t":2,"v":0},{"x":4,"y":0,"t":16,"v":2},{"x":0,"y":3,"t":0,"v":0},{"x":1,"y":2,"t":23,"v":3},{"x":-1,"y":3,"t":18,"v":0},{"x":3,"y":1,"t":1,"v":0},{"x":-1,"y":4,"t":19,"v":2},{"x":0,"y":4,"t":0,"v":1},{"x":4,"y":1,"t":1,"v":0},{"x":0,"y":-1,"t":3,"v":1},{"x":2,"y":2,"t":15,"v":2},{"x":4,"y":-1,"t":13,"v":0},{"x":-1,"y":-1,"t":17,"v":1},{"x":4,"y":-2,"t":14,"v":0},{"x":-1,"y":2,"t":22,"v":1},{"x":3,"y":-2,"t":1,"v":0},{"x":0,"y":-2,"t":7,"v":0},{"x":2,"y":-2,"t":0,"v":1},{"x":1,"y":3,"t":0,"v":3},{"x":4,"y":-3,"t":3,"v":1},{"x":2,"y":3,"t":8,"v":0},{"x":3,"y":2,"t":0,"v":1},{"x":-2,"y":-1,"t":23,"v":3},{"x":4,"y":2,"t":9,"v":0},{"x":2,"y":4,"t":14,"v":2},{"x":4,"y":3,"t":21,"v":0},{"x":3,"y":3,"t":6,"v":3},{"x":2,"y":-3,"t":9,"v":2},{"x":5,"y":0,"t":22,"v":1},{"x":-2,"y":-2,"t":15,"v":2},{"x":5,"y":2,"t":12,"v":1},{"x":0,"y":5,"t":22,"v":1},{"x":1,"y":-1,"t":6,"v":3},{"x":0,"y":6,"t":0,"v":3},{"x":-1,"y":-2,"t":22,"v":0},{"x":-2,"y":1,"t":5,"v":2},{"x":1,"y":5,"t":1,"v":0},{"x":1,"y":6,"t":22,"v":0}],"meeples":[{"x":2,"y":0,"piece":0,"player":1},{"x":4,"y":0,"piece":2,"player":0},{"x":0,"y":3,"piece":2,"player":1},{"x":1,"y":2,"piece":5,"player":0},{"x":-1,"y":4,"piece":3,"player":1},{"x":4,"y":1,"piece":1,"player":1},{"x":-1,"y":-1,"piece":0,"player":1},{"x":4,"y":-2,"piece":1,"player":0},{"x":3,"y":-2,"piece":1,"player":0},{"x":2,"y":4,"piece":0,"player":1},{"x":0,"y":5,"piece":0,"player":0},{"x":-1,"y":-2,"piece":0,"player":1}],"title":"都市と道、どちらを閉じる？","prompt":"あなたは青。引いたのは、都市の辺と十字路がついたタイルです。あなたの都市も道も、このタイルで完成させられます。","explain":["正解は、あなたのミープルが2人いる都市を閉じる手です。置いたタイルを含めて8枚、盾が2つの都市になり、完成した瞬間に (8＋2)×2＝20点 が入ります。2人のミープルも手元に戻ります。","ほかの3つは同じマスに向きを変えて置く手で、どれも3枚の道を4枚にして閉じ、4点です。","都市が完成すると、その都市に接する草原の農民（ここでは赤）にも終局時に3点が入ります。それを差し引いても、都市を閉じるほうがずっと得です。"],"lesson":"完成させられるものが複数あるなら、まず点数を比べる。都市は完成すると1枚2点（盾も1つ2点）、道は1枚1点。","level":"入門","options":[{"move":[0,-3,1,null],"diff":11.12,"facts":{"gain_me":4,"gain_opp":0,"proj_me":1,"proj_opp":0,"meeple":null},"note":"道が完成して4点。大きな都市は未完成のまま。"},{"move":[1,-2,3,null],"diff":15.07,"facts":{"gain_me":20,"gain_opp":0,"proj_me":11,"proj_opp":3,"meeple":null},"note":"8枚の都市が完成して20点。ミープル2人も戻る。"},{"move":[0,-3,2,null],"diff":11.06,"facts":{"gain_me":4,"gain_opp":0,"proj_me":1,"proj_opp":0,"meeple":null},"note":"道が完成して4点。大きな都市は未完成のまま。"},{"move":[0,-3,3,null],"diff":11.09,"facts":{"gain_me":4,"gain_opp":0,"proj_me":1,"proj_opp":0,"meeple":null},"note":"道が完成して4点。大きな都市は未完成のまま。"}],"best":1},{"id":"s18t15","turn":15,"deck_left":56,"player":0,"scores":[12,4],"supply":[5,4],"current":18,"remaining":[5,4,2,3,1,1,2,2,2,2,2,3,0,2,2,3,1,2,1,3,1,1,7,4],"board":[{"x":0,"y":0,"t":19,"v":0},{"x":0,"y":1,"t":14,"v":2},{"x":-1,"y":1,"t":12,"v":0},{"x":1,"y":0,"t":22,"v":0},{"x":2,"y":0,"t":0,"v":1},{"x":-1,"y":0,"t":18,"v":0},{"x":-1,"y":-1,"t":7,"v":2},{"x":1,"y":1,"t":0,"v":2},{"x":2,"y":1,"t":0,"v":0},{"x":-1,"y":2,"t":9,"v":2},{"x":1,"y":2,"t":17,"v":3},{"x":-2,"y":0,"t":0,"v":0},{"x":0,"y":2,"t":14,"v":1},{"x":-2,"y":2,"t":14,"v":1},{"x":-1,"y":-2,"t":16,"v":3}],"meeples":[{"x":-1,"y":1,"piece":1,"player":1},{"x":1,"y":0,"piece":1,"player":0},{"x":-1,"y":-1,"piece":1,"player":1},{"x":-2,"y":2,"piece":1,"player":0},{"x":-1,"y":-2,"piece":0,"player":1}],"title":"誰のものでもない都市","prompt":"あなたは赤。盤面には、まだ誰もミープルを置いていない小さな都市の切れ端があります。","explain":["引いたタイルでその都市にふたをすると、2枚の都市が完成します。置いたタイルの都市部分にミープルを置けば、その場で4点が入ります。","完成した都市のミープルはすぐ手元に戻るので、ミープルを使った損はありません。同じ置き方で草原に農民を置く手もありますが、農民はゲームが終わるまで戻ってきません。","誰も置いていない都市が完成直前なら、自分のミープルを置いて点だけもらっておくのが基本です。"],"lesson":"完成する都市や道にミープルを置くと、点が入ってミープルはすぐ戻る。実質タダで点が取れる。","level":"入門","options":[{"move":[-2,-2,1,2],"diff":4.53,"facts":{"gain_me":0,"gain_opp":0,"proj_me":3,"proj_opp":0,"meeple":{"kind":"F","kind_ja":"草原","returned":false,"done_cities":1,"shared":false}},"note":"草原に農民。今は3点の見込みで、ミープルは最後まで戻らない。"},{"move":[-2,3,3,0],"diff":4.3,"facts":{"gain_me":0,"gain_opp":0,"proj_me":1,"proj_opp":0,"meeple":{"kind":"C","kind_ja":"都市","returned":false,"tiles":1,"shared":false}},"note":"新しい都市を始める手。完成までまだタイルが必要。"},{"move":[-2,3,3,null],"diff":4.07,"facts":{"gain_me":0,"gain_opp":0,"proj_me":0,"proj_opp":0,"meeple":null},"note":"タイルを置くだけ。点にはならない。"},{"move":[-2,-2,1,0],"diff":7.17,"facts":{"gain_me":4,"gain_opp":0,"proj_me":4,"proj_opp":0,"meeple":{"kind":"C","kind_ja":"都市","returned":true}},"note":"小さな都市が完成して4点。ミープルはすぐ戻る。"}],"best":3},{"id":"s29t30","turn":30,"deck_left":40,"player":1,"scores":[8,4],"supply":[2,0],"current":14,"remaining":[4,4,1,1,0,1,1,1,1,2,1,3,0,1,3,2,2,2,1,3,1,0,2,3],"board":[{"x":0,"y":0,"t":19,"v":0},{"x":-1,"y":0,"t":0,"v":3},{"x":0,"y":-1,"t":0,"v":3},{"x":0,"y":1,"t":15,"v":2},{"x":0,"y":2,"t":18,"v":0},{"x":-1,"y":-1,"t":22,"v":1},{"x":0,"y":3,"t":17,"v":2},{"x":-2,"y":0,"t":9,"v":3},{"x":-1,"y":1,"t":22,"v":0},{"x":-1,"y":3,"t":0,"v":1},{"x":-2,"y":3,"t":22,"v":0},{"x":1,"y":0,"t":18,"v":1},{"x":-2,"y":2,"t":10,"v":1},{"x":1,"y":2,"t":22,"v":0},{"x":-3,"y":2,"t":14,"v":3},{"x":1,"y":3,"t":22,"v":0},{"x":2,"y":3,"t":22,"v":0},{"x":1,"y":-1,"t":0,"v":1},{"x":2,"y":-1,"t":13,"v":0},{"x":-3,"y":0,"t":12,"v":1},{"x":3,"y":3,"t":6,"v":0},{"x":-4,"y":0,"t":4,"v":3},{"x":-4,"y":2,"t":7,"v":0},{"x":2,"y":2,"t":23,"v":0},{"x":3,"y":2,"t":7,"v":0},{"x":0,"y":-2,"t":0,"v":1},{"x":3,"y":4,"t":3,"v":0},{"x":-5,"y":0,"t":3,"v":0},{"x":-4,"y":3,"t":8,"v":2},{"x":1,"y":1,"t":2,"v":3}],"meeples":[{"x":-1,"y":0,"piece":0,"player":0},{"x":-1,"y":-1,"piece":1,"player":0},{"x":0,"y":3,"piece":2,"player":1},{"x":-2,"y":0,"piece":0,"player":0},{"x":-1,"y":1,"piece":1,"player":1},{"x":1,"y":0,"piece":0,"player":0},{"x":-2,"y":2,"piece":0,"player":1},{"x":-3,"y":2,"piece":0,"player":1},{"x":2,"y":3,"piece":0,"player":1},{"x":2,"y":-1,"piece":0,"player":1},{"x":3,"y":3,"piece":0,"player":1},{"x":1,"y":1,"piece":2,"player":0}],"title":"すぐ完成できる都市","prompt":"あなたは青。引いたのは、1辺だけが都市のタイルです。左のほうに、あなたのミープルがいる盾つきの都市があり、あと1枚で閉じられます。","explain":["正解は、左の都市を閉じる手です。置いたタイルを含めて4枚、盾が1つの都市が完成し、(4＋1)×2＝10点がすぐに入ります。","手持ちのミープルは0個でしたが、完成した都市のミープルが手元に戻るので、次の手番からまた置けます。","ほかの手は都市を1枚広げるだけで、この手番には1点も入りません。"],"lesson":"まず「今すぐ完成させられるもの」がないか探す。点が入るうえに、ミープルも戻ってくる。","level":"入門","options":[{"move":[4,2,3,null],"diff":-4.38,"facts":{"gain_me":0,"gain_opp":0,"proj_me":1,"proj_opp":0,"meeple":null},"note":"都市が1枚広がるだけ。この手番の点は0点。"},{"move":[-1,2,3,null],"diff":-3.87,"facts":{"gain_me":0,"gain_opp":0,"proj_me":1,"proj_opp":0,"meeple":null},"note":"都市が1枚広がるだけ。この手番の点は0点。"},{"move":[-5,3,1,null],"diff":0.24,"facts":{"gain_me":10,"gain_opp":0,"proj_me":9,"proj_opp":0,"meeple":null},"note":"4枚・盾1つの都市が完成して10点。ミープルも戻る。"},{"move":[3,5,2,null],"diff":-4.37,"facts":{"gain_me":0,"gain_opp":0,"proj_me":1,"proj_opp":0,"meeple":null},"note":"都市が1枚広がるだけ。この手番の点は0点。"}],"best":2},{"id":"s33t32","turn":32,"deck_left":39,"player":1,"scores":[19,14],"supply":[0,0],"current":15,"remaining":[3,0,1,2,1,1,2,1,1,3,1,1,1,0,5,2,1,1,1,1,1,0,7,2],"board":[{"x":0,"y":0,"t":19,"v":0},{"x":0,"y":1,"t":8,"v":2},{"x":-1,"y":0,"t":0,"v":2},{"x":-2,"y":0,"t":11,"v":0},{"x":-2,"y":1,"t":16,"v":2},{"x":-2,"y":-1,"t":17,"v":0},{"x":-3,"y":1,"t":7,"v":0},{"x":-1,"y":-1,"t":2,"v":1},{"x":-3,"y":2,"t":13,"v":0},{"x":0,"y":-1,"t":0,"v":0},{"x":-2,"y":2,"t":10,"v":0},{"x":0,"y":-2,"t":23,"v":3},{"x":-3,"y":3,"t":19,"v":2},{"x":-3,"y":4,"t":13,"v":1},{"x":-2,"y":3,"t":19,"v":2},{"x":-2,"y":4,"t":11,"v":1},{"x":-4,"y":3,"t":0,"v":2},{"x":-4,"y":4,"t":18,"v":1},{"x":0,"y":-3,"t":7,"v":1},{"x":-5,"y":4,"t":22,"v":0},{"x":-1,"y":3,"t":0,"v":0},{"x":1,"y":-3,"t":21,"v":0},{"x":-6,"y":4,"t":0,"v":2},{"x":-6,"y":5,"t":17,"v":0},{"x":-5,"y":5,"t":1,"v":0},{"x":-1,"y":4,"t":18,"v":3},{"x":-4,"y":5,"t":1,"v":0},{"x":-3,"y":0,"t":23,"v":1},{"x":-5,"y":6,"t":3,"v":3},{"x":-1,"y":-2,"t":1,"v":0},{"x":-4,"y":2,"t":0,"v":0},{"x":-7,"y":4,"t":1,"v":0}],"meeples":[{"x":0,"y":1,"piece":0,"player":0},{"x":-2,"y":-1,"piece":2,"player":0},{"x":-1,"y":-1,"piece":2,"player":0},{"x":-3,"y":2,"piece":1,"player":1},{"x":-2,"y":2,"piece":0,"player":1},{"x":-3,"y":3,"piece":3,"player":1},{"x":-4,"y":4,"piece":1,"player":0},{"x":0,"y":-3,"piece":0,"player":1},{"x":-5,"y":4,"piece":1,"player":0},{"x":-6,"y":5,"piece":0,"player":0},{"x":-5,"y":5,"piece":1,"player":1},{"x":-4,"y":5,"piece":1,"player":1},{"x":-3,"y":0,"piece":0,"player":0},{"x":-5,"y":6,"piece":0,"player":1}],"title":"ミープルが0個のときは","prompt":"あなたは青。引いたのは、都市の辺と三叉路のついたタイルです。あなたも相手も、手持ちのミープルは0個です。","explain":["正解は、あなたのミープルがいる盾つきの都市を閉じる手です。3枚・盾1つの都市が完成して (3＋1)×2＝8点。ミープルが1個戻ってきます。","ミープルが0個のままだと、新しい都市や道を始められません。完成させて取り戻すのが、いちばんの近道です。","相手の道の端に置く手は、相手（赤）の道を完成させてしまい、相手に3点が入ります。"],"lesson":"手持ちのミープルがないときは、自分のミープルがいる場所を完成させて取り戻す。","level":"入門","options":[{"move":[-4,1,2,null],"diff":-8.2,"facts":{"gain_me":0,"gain_opp":3,"proj_me":6,"proj_opp":1,"meeple":null},"note":"相手の道が完成して、相手に3点が入る。"},{"move":[1,-2,2,null],"diff":-8.11,"facts":{"gain_me":0,"gain_opp":0,"proj_me":1,"proj_opp":0,"meeple":null},"note":"誰のミープルもいない短い道が完成するだけ。点は0点。"},{"move":[2,-3,3,null],"diff":-8.61,"facts":{"gain_me":0,"gain_opp":0,"proj_me":1,"proj_opp":0,"meeple":null},"note":"どの特徴も完成しない。この手番の点は0点。"},{"move":[-1,2,3,null],"diff":-1.26,"facts":{"gain_me":8,"gain_opp":0,"proj_me":11,"proj_opp":1,"meeple":null},"note":"3枚・盾1つの都市が完成して8点。ミープルが1個戻る。"}],"best":3},{"id":"s44t24","turn":24,"deck_left":47,"player":1,"scores":[18,6],"supply":[3,0],"current":17,"remaining":[6,3,1,2,1,1,2,2,2,1,0,1,1,2,4,3,0,2,1,3,1,1,4,3],"board":[{"x":0,"y":0,"t":19,"v":0},{"x":0,"y":1,"t":7,"v":2},{"x":-1,"y":0,"t":22,"v":0},{"x":-1,"y":1,"t":16,"v":0},{"x":-1,"y":2,"t":9,"v":2},{"x":-2,"y":1,"t":22,"v":1},{"x":-1,"y":3,"t":9,"v":0},{"x":0,"y":3,"t":3,"v":1},{"x":1,"y":0,"t":0,"v":1},{"x":-1,"y":-1,"t":16,"v":2},{"x":0,"y":-1,"t":1,"v":0},{"x":2,"y":0,"t":22,"v":1},{"x":-2,"y":0,"t":23,"v":2},{"x":-1,"y":-2,"t":11,"v":0},{"x":-1,"y":4,"t":11,"v":0},{"x":-2,"y":-2,"t":0,"v":0},{"x":-2,"y":2,"t":18,"v":1},{"x":-1,"y":-3,"t":10,"v":0},{"x":0,"y":-2,"t":2,"v":1},{"x":2,"y":1,"t":18,"v":0},{"x":1,"y":-1,"t":10,"v":1},{"x":0,"y":-3,"t":14,"v":3},{"x":1,"y":1,"t":0,"v":0},{"x":3,"y":1,"t":22,"v":0}],"meeples":[{"x":-1,"y":0,"piece":0,"player":1},{"x":-1,"y":1,"piece":2,"player":0},{"x":-1,"y":3,"piece":0,"player":1},{"x":0,"y":-1,"piece":1,"player":1},{"x":-1,"y":-2,"piece":2,"player":0},{"x":-1,"y":4,"piece":0,"player":1},{"x":-2,"y":2,"piece":1,"player":1},{"x":0,"y":-2,"piece":2,"player":1},{"x":2,"y":1,"piece":0,"player":0},{"x":1,"y":-1,"piece":0,"player":1},{"x":3,"y":1,"piece":0,"player":0}],"title":"修道院と都市、どちらを完成させる？","prompt":"あなたは青。引いたのは、都市の辺と曲がった道のついたタイルです。あなたの修道院は周りの8マスのうち7マスが埋まっていて、あなたの小さな都市もあと1枚で閉じられます。","explain":["正解は、修道院の周りの最後の1マスを埋める手です。修道院が完成して9点、ミープルも戻ります。","小さな都市を閉じる手でも点は入りますが、2枚・盾なしの都市なので2×2＝4点です。修道院の9点のほうが多く入ります。","しかもこの手で、すぐ下にあるあなたのもう1つの修道院も、周りの空きが残り1マスになります。"],"lesson":"完成させられるものが2つあるなら、点数を比べる。修道院は完成すると9点。","level":"入門","options":[{"move":[1,3,3,null],"diff":2.86,"facts":{"gain_me":0,"gain_opp":0,"proj_me":1,"proj_opp":0,"meeple":null},"note":"都市が広がるだけ。この手番の点は0点。"},{"move":[1,-2,0,null],"diff":7.36,"facts":{"gain_me":9,"gain_opp":0,"proj_me":3,"proj_opp":0,"meeple":null},"note":"修道院が完成して9点。ミープルも戻る。"},{"move":[-3,2,2,null],"diff":2.53,"facts":{"gain_me":0,"gain_opp":0,"proj_me":1,"proj_opp":0,"meeple":null},"note":"道が広がるだけ。この手番の点は0点。"},{"move":[-1,5,2,null],"diff":4.02,"facts":{"gain_me":4,"gain_opp":0,"proj_me":3,"proj_opp":0,"meeple":null},"note":"2枚の都市が完成して4点。"}],"best":1},{"id":"s7t11","turn":11,"deck_left":60,"player":0,"scores":[6,4],"supply":[5,5],"current":14,"remaining":[8,4,2,2,1,1,2,3,2,3,2,3,1,2,3,2,2,3,2,1,1,1,6,3],"board":[{"x":0,"y":0,"t":19,"v":0},{"x":0,"y":1,"t":19,"v":2},{"x":-1,"y":1,"t":23,"v":3},{"x":-1,"y":0,"t":0,"v":2},{"x":0,"y":-1,"t":14,"v":3},{"x":0,"y":2,"t":3,"v":3},{"x":1,"y":1,"t":22,"v":0},{"x":1,"y":0,"t":19,"v":2},{"x":2,"y":1,"t":22,"v":0},{"x":-1,"y":2,"t":15,"v":1},{"x":-1,"y":-1,"t":18,"v":1}],"meeples":[{"x":-1,"y":1,"piece":5,"player":1},{"x":-1,"y":0,"piece":0,"player":0},{"x":1,"y":1,"piece":0,"player":1},{"x":1,"y":0,"piece":0,"player":0}],"title":"都市を閉じたあと、もう一工夫","prompt":"あなたは赤。序盤です。引いた都市タイルで、あなたの1枚だけの都市を閉じられます。","explain":["引いたタイルで、あなたの1枚の都市にふたができます。完成で4点、都市のミープルも戻ります。","正解は、さらに同じタイルの草原に農民を置く手です。その草原には完成した都市がもう1つ接していて、この手で閉じる都市と合わせて2つになります。終局時に完成都市1つにつき3点なので、この時点で6点の見込みです。","まだ序盤なので、この草原にはこれからも完成都市が増えていく可能性があります。新しい都市を始める手も悪くはありませんが、AIは農民の価値を高く見ています。"],"lesson":"完成した都市が2つ以上接する草原は、序盤から農民を置く価値がある。","level":"実戦","options":[{"move":[0,3,2,0],"diff":4.82,"facts":{"gain_me":0,"gain_opp":0,"proj_me":3,"proj_opp":0,"meeple":{"kind":"C","kind_ja":"都市","returned":false,"tiles":3,"shared":false}},"note":"誰もいない都市に入って3枚に伸ばす。完成はまだ先。"},{"move":[1,-1,0,null],"diff":5.11,"facts":{"gain_me":4,"gain_opp":0,"proj_me":3,"proj_opp":0,"meeple":null},"note":"都市が完成して4点。農民は置かない。"},{"move":[1,-1,0,1],"diff":8.36,"facts":{"gain_me":4,"gain_opp":0,"proj_me":9,"proj_opp":0,"meeple":{"kind":"F","kind_ja":"草原","returned":false,"done_cities":2,"shared":false}},"note":"都市が完成して4点。さらに農民で6点の見込み。"},{"move":[1,2,3,0],"diff":5.06,"facts":{"gain_me":0,"gain_opp":0,"proj_me":3,"proj_opp":0,"meeple":{"kind":"C","kind_ja":"都市","returned":false,"tiles":3,"shared":false}},"note":"誰もいない都市に入って3枚に伸ばす。完成はまだ先。"}],"best":2},{"id":"s0t58","turn":58,"deck_left":13,"player":1,"scores":[48,63],"supply":[0,2],"current":2,"remaining":[1,0,0,0,0,0,0,1,0,0,1,1,0,1,1,0,0,1,2,0,1,0,3,0],"board":[{"x":0,"y":0,"t":19,"v":0},{"x":0,"y":1,"t":10,"v":1},{"x":1,"y":0,"t":7,"v":1},{"x":-1,"y":0,"t":23,"v":3},{"x":2,"y":0,"t":9,"v":2},{"x":-1,"y":1,"t":23,"v":1},{"x":2,"y":1,"t":14,"v":0},{"x":3,"y":0,"t":16,"v":1},{"x":2,"y":-1,"t":8,"v":3},{"x":1,"y":1,"t":19,"v":3},{"x":0,"y":2,"t":2,"v":0},{"x":4,"y":0,"t":16,"v":2},{"x":0,"y":3,"t":0,"v":0},{"x":1,"y":2,"t":23,"v":3},{"x":-1,"y":3,"t":18,"v":0},{"x":3,"y":1,"t":1,"v":0},{"x":-1,"y":4,"t":19,"v":2},{"x":0,"y":4,"t":0,"v":1},{"x":4,"y":1,"t":1,"v":0},{"x":0,"y":-1,"t":3,"v":1},{"x":2,"y":2,"t":15,"v":2},{"x":4,"y":-1,"t":13,"v":0},{"x":-1,"y":-1,"t":17,"v":1},{"x":4,"y":-2,"t":14,"v":0},{"x":-1,"y":2,"t":22,"v":1},{"x":3,"y":-2,"t":1,"v":0},{"x":0,"y":-2,"t":7,"v":0},{"x":2,"y":-2,"t":0,"v":1},{"x":1,"y":3,"t":0,"v":3},{"x":4,"y":-3,"t":3,"v":1},{"x":2,"y":3,"t":8,"v":0},{"x":3,"y":2,"t":0,"v":1},{"x":-2,"y":-1,"t":23,"v":3},{"x":4,"y":2,"t":9,"v":0},{"x":2,"y":4,"t":14,"v":2},{"x":4,"y":3,"t":21,"v":0},{"x":3,"y":3,"t":6,"v":3},{"x":2,"y":-3,"t":9,"v":2},{"x":5,"y":0,"t":22,"v":1},{"x":-2,"y":-2,"t":15,"v":2},{"x":5,"y":2,"t":12,"v":1},{"x":0,"y":5,"t":22,"v":1},{"x":1,"y":-1,"t":6,"v":3},{"x":0,"y":6,"t":0,"v":3},{"x":-1,"y":-2,"t":22,"v":0},{"x":-2,"y":1,"t":5,"v":2},{"x":1,"y":5,"t":1,"v":0},{"x":1,"y":6,"t":22,"v":0},{"x":1,"y":-2,"t":15,"v":3},{"x":-2,"y":-3,"t":11,"v":0},{"x":5,"y":3,"t":3,"v":3},{"x":-2,"y":-4,"t":14,"v":0},{"x":5,"y":1,"t":0,"v":3},{"x":-3,"y":-3,"t":17,"v":0},{"x":0,"y":-3,"t":19,"v":1},{"x":-2,"y":2,"t":4,"v":2},{"x":0,"y":-4,"t":0,"v":1},{"x":-3,"y":2,"t":11,"v":1}],"meeples":[{"x":4,"y":0,"piece":2,"player":0},{"x":0,"y":3,"piece":2,"player":1},{"x":1,"y":2,"piece":5,"player":0},{"x":-1,"y":4,"piece":3,"player":1},{"x":4,"y":-2,"piece":1,"player":0},{"x":3,"y":-2,"piece":1,"player":0},{"x":2,"y":4,"piece":0,"player":1},{"x":0,"y":5,"piece":0,"player":0},{"x":-1,"y":-2,"piece":0,"player":1},{"x":-3,"y":-3,"piece":2,"player":0},{"x":0,"y":-3,"piece":2,"player":1},{"x":-2,"y":2,"piece":0,"player":0}],"title":"修道院をどこに建てる？","prompt":"あなたは青。終盤です。引いたのは道つきの修道院。手持ちのミープルは2人です。","explain":["修道院は、周りの8マスが埋まると完成して9点。終局時に未完成でも「1＋周りのタイル数」点になります。","正解の場所はすでに周りが7マス埋まっていて、修道士を置いた時点で8点の見込み、あと1枚で完成です。もう一方の候補地は周りが4マスしか埋まっておらず、終盤なので埋まりきらない可能性が高くなります。","さらにこの場所に置くと、あなたの農民がいる草原と赤の農民がいる草原がつながり、農民が1対1の同数になります。同数なら両者とも満点なので、6点の草原をあなたも得られます。"],"lesson":"修道院は、周りがもう埋まっている場所に建てる。修道士がほぼ確実に点になる。","level":"実戦","options":[{"move":[5,-1,0,2],"diff":13.08,"facts":{"gain_me":0,"gain_opp":0,"proj_me":5,"proj_opp":0,"meeple":{"kind":"M","kind_ja":"修道院","returned":false}},"note":"周りが4マスしか埋まっていない場所。今は5点の見込み。"},{"move":[-1,-3,2,null],"diff":12.4,"facts":{"gain_me":0,"gain_opp":0,"proj_me":3,"proj_opp":0,"meeple":null},"note":"同じ場所でも修道士なし。草原の同点分しか得をしない。"},{"move":[-1,-3,2,2],"diff":16.85,"facts":{"gain_me":0,"gain_opp":0,"proj_me":11,"proj_opp":0,"meeple":{"kind":"M","kind_ja":"修道院","returned":false}},"note":"修道士つき。8点の見込みで、あと1枚で完成（9点）。"}],"best":2},{"id":"s9t30","turn":30,"deck_left":41,"player":1,"scores":[17,17],"supply":[1,4],"current":14,"remaining":[8,1,2,2,1,0,1,2,1,3,0,2,1,1,2,3,2,0,2,1,1,0,2,3],"board":[{"x":0,"y":0,"t":19,"v":0},{"x":0,"y":1,"t":14,"v":2},{"x":1,"y":1,"t":3,"v":0},{"x":-1,"y":0,"t":22,"v":0},{"x":1,"y":2,"t":11,"v":0},{"x":1,"y":3,"t":19,"v":2},{"x":1,"y":0,"t":17,"v":0},{"x":0,"y":3,"t":6,"v":2},{"x":2,"y":3,"t":23,"v":2},{"x":-1,"y":3,"t":13,"v":1},{"x":2,"y":1,"t":10,"v":2},{"x":2,"y":2,"t":1,"v":0},{"x":2,"y":4,"t":5,"v":3},{"x":-1,"y":1,"t":1,"v":0},{"x":1,"y":-1,"t":22,"v":1},{"x":-2,"y":3,"t":19,"v":1},{"x":1,"y":-2,"t":22,"v":1},{"x":3,"y":3,"t":22,"v":0},{"x":2,"y":0,"t":18,"v":0},{"x":0,"y":4,"t":17,"v":2},{"x":1,"y":-3,"t":22,"v":1},{"x":2,"y":5,"t":21,"v":0},{"x":1,"y":-4,"t":22,"v":1},{"x":1,"y":5,"t":7,"v":0},{"x":2,"y":-2,"t":10,"v":1},{"x":3,"y":1,"t":0,"v":3},{"x":3,"y":-2,"t":8,"v":2},{"x":3,"y":0,"t":17,"v":1},{"x":2,"y":-3,"t":14,"v":0},{"x":3,"y":2,"t":1,"v":0}],"meeples":[{"x":1,"y":1,"piece":1,"player":1},{"x":-1,"y":0,"piece":1,"player":0},{"x":1,"y":0,"piece":1,"player":1},{"x":0,"y":3,"piece":3,"player":0},{"x":-1,"y":3,"piece":0,"player":0},{"x":-1,"y":1,"piece":1,"player":0},{"x":2,"y":5,"piece":0,"player":0},{"x":2,"y":-2,"piece":0,"player":1},{"x":3,"y":0,"piece":0,"player":0}],"title":"ミープルは残り1人","prompt":"あなたは青。手持ちのミープルは残り1人です。引いたのは都市の辺が1つだけのタイル。","explain":["新しい都市を始めたくなりますが、正解はミープルを置かずに、あなたの3枚の都市を閉じる手です。","置いたタイルを含めて4枚・盾2つの都市になり、(4＋2)×2＝12点。都市にいたミープルも戻ってくるので、手持ちが2人に増えます。","ほかの手は最後のミープルで新しい都市を始める手です。今は1点の見込みしかなく、完成するまでそのミープルは動かせません。"],"lesson":"ミープルが足りないときは、完成させて取り戻す。点とミープルが同時に戻ってくる。","level":"実戦","options":[{"move":[3,-3,0,null],"diff":0.41,"facts":{"gain_me":12,"gain_opp":0,"proj_me":7,"proj_opp":3,"meeple":null},"note":"都市が完成して12点、ミープルも戻る。赤の農民にも3点入るが、それでも得。"},{"move":[4,2,1,0],"diff":-3.25,"facts":{"gain_me":0,"gain_opp":0,"proj_me":1,"proj_opp":0,"meeple":{"kind":"C","kind_ja":"都市","returned":false,"tiles":1,"shared":false}},"note":"最後のミープルで新しい都市を始める。今は1点の見込み。"},{"move":[2,-4,1,0],"diff":-3.33,"facts":{"gain_me":0,"gain_opp":0,"proj_me":1,"proj_opp":0,"meeple":{"kind":"C","kind_ja":"都市","returned":false,"tiles":1,"shared":false}},"note":"最後のミープルで新しい都市を始める。今は1点の見込み。"},{"move":[2,-4,2,0],"diff":-3.31,"facts":{"gain_me":0,"gain_opp":0,"proj_me":1,"proj_opp":0,"meeple":{"kind":"C","kind_ja":"都市","returned":false,"tiles":1,"shared":false}},"note":"最後のミープルで新しい都市を始める。今は1点の見込み。"}],"best":0},{"id":"s23t43","turn":43,"deck_left":28,"player":0,"scores":[31,37],"supply":[1,3],"current":2,"remaining":[6,2,1,2,0,0,0,1,1,3,1,1,0,1,2,1,1,1,0,1,0,0,2,1],"board":[{"x":0,"y":0,"t":19,"v":0},{"x":1,"y":0,"t":22,"v":0},{"x":1,"y":1,"t":22,"v":0},{"x":2,"y":0,"t":22,"v":0},{"x":1,"y":2,"t":0,"v":1},{"x":3,"y":0,"t":0,"v":1},{"x":4,"y":0,"t":14,"v":2},{"x":2,"y":-1,"t":14,"v":2},{"x":4,"y":-1,"t":12,"v":0},{"x":2,"y":-2,"t":18,"v":0},{"x":4,"y":1,"t":0,"v":2},{"x":3,"y":-1,"t":1,"v":0},{"x":4,"y":-2,"t":21,"v":0},{"x":-1,"y":0,"t":5,"v":2},{"x":0,"y":1,"t":17,"v":2},{"x":3,"y":1,"t":22,"v":1},{"x":4,"y":-3,"t":15,"v":0},{"x":3,"y":-2,"t":18,"v":1},{"x":3,"y":2,"t":22,"v":1},{"x":3,"y":3,"t":23,"v":0},{"x":2,"y":-3,"t":22,"v":1},{"x":0,"y":2,"t":7,"v":3},{"x":5,"y":-2,"t":19,"v":3},{"x":3,"y":-3,"t":17,"v":2},{"x":3,"y":-4,"t":11,"v":0},{"x":4,"y":3,"t":6,"v":0},{"x":5,"y":-3,"t":20,"v":0},{"x":1,"y":3,"t":8,"v":3},{"x":3,"y":-5,"t":11,"v":0},{"x":0,"y":3,"t":3,"v":0},{"x":3,"y":-6,"t":15,"v":0},{"x":4,"y":-5,"t":16,"v":1},{"x":5,"y":-5,"t":10,"v":2},{"x":2,"y":-4,"t":18,"v":2},{"x":4,"y":-6,"t":6,"v":0},{"x":1,"y":4,"t":4,"v":0},{"x":4,"y":-7,"t":13,"v":0},{"x":2,"y":3,"t":19,"v":0},{"x":4,"y":-8,"t":14,"v":0},{"x":5,"y":-7,"t":1,"v":0},{"x":1,"y":-4,"t":7,"v":2},{"x":1,"y":-3,"t":23,"v":1},{"x":5,"y":-1,"t":23,"v":3}],"meeples":[{"x":2,"y":-2,"piece":2,"player":0},{"x":4,"y":1,"piece":1,"player":1},{"x":3,"y":1,"piece":1,"player":0},{"x":0,"y":2,"piece":1,"player":0},{"x":5,"y":-2,"piece":2,"player":1},{"x":1,"y":3,"piece":0,"player":0},{"x":4,"y":-5,"piece":2,"player":0},{"x":5,"y":-5,"piece":0,"player":1},{"x":2,"y":-4,"piece":3,"player":0},{"x":4,"y":-7,"piece":0,"player":1}],"title":"道つき修道院の使い道","prompt":"あなたは赤。引いたのは道つきの修道院。あなたの道が7枚まで伸びています。手持ちのミープルは1人です。","explain":["正解のマスに置くと、修道院から出る道があなたの7枚の道の端をふさぎ、8枚の道が完成して8点が入ります。","同時に修道院に修道士を置けます。この場所は周りが7マス埋まっているので8点の見込みです。最後の1人を使っても、道のミープルが戻ってくるので次の手番もミープルが使えます。","隣のマスに置いて修道院だけ取る手もありますが、道が未完成のまま残ります。1枚で2つ得をする場所を探しましょう。"],"lesson":"1枚で「完成」と「新しいミープル」の両方ができる場所は特に強い。","level":"実戦","options":[{"move":[2,1,3,null],"diff":3.36,"facts":{"gain_me":8,"gain_opp":0,"proj_me":1,"proj_opp":0,"meeple":null},"note":"道は完成して8点。修道院は空き家のまま。"},{"move":[2,1,3,2],"diff":7.73,"facts":{"gain_me":8,"gain_opp":0,"proj_me":9,"proj_opp":0,"meeple":{"kind":"M","kind_ja":"修道院","returned":false}},"note":"道が完成して8点、さらに修道士で8点の見込み。"},{"move":[2,2,2,2],"diff":4.52,"facts":{"gain_me":0,"gain_opp":0,"proj_me":8,"proj_opp":0,"meeple":{"kind":"M","kind_ja":"修道院","returned":false}},"note":"修道院は8点の見込みだが、道は未完成のまま。"}],"best":1},{"id":"s1t53","turn":53,"deck_left":18,"player":0,"scores":[52,67],"supply":[1,2],"current":22,"remaining":[3,0,1,2,0,0,0,1,0,1,1,1,0,0,1,0,0,2,1,0,1,0,3,0],"board":[{"x":0,"y":0,"t":19,"v":0},{"x":0,"y":1,"t":14,"v":2},{"x":-1,"y":0,"t":7,"v":3},{"x":0,"y":-1,"t":1,"v":0},{"x":-2,"y":0,"t":7,"v":0},{"x":-1,"y":-1,"t":0,"v":1},{"x":-1,"y":1,"t":9,"v":2},{"x":-2,"y":-1,"t":0,"v":2},{"x":-2,"y":1,"t":4,"v":0},{"x":-1,"y":2,"t":1,"v":0},{"x":-3,"y":0,"t":15,"v":0},{"x":1,"y":0,"t":23,"v":0},{"x":-4,"y":0,"t":5,"v":2},{"x":-2,"y":2,"t":3,"v":2},{"x":-3,"y":2,"t":8,"v":1},{"x":-1,"y":3,"t":11,"v":1},{"x":-3,"y":1,"t":13,"v":0},{"x":-3,"y":3,"t":0,"v":3},{"x":-1,"y":4,"t":0,"v":1},{"x":2,"y":0,"t":22,"v":0},{"x":0,"y":4,"t":12,"v":0},{"x":3,"y":0,"t":18,"v":2},{"x":2,"y":1,"t":1,"v":0},{"x":3,"y":1,"t":23,"v":3},{"x":-2,"y":3,"t":8,"v":1},{"x":0,"y":3,"t":6,"v":3},{"x":-4,"y":2,"t":19,"v":0},{"x":1,"y":1,"t":1,"v":0},{"x":-5,"y":2,"t":0,"v":2},{"x":3,"y":-1,"t":16,"v":3},{"x":3,"y":2,"t":23,"v":1},{"x":0,"y":5,"t":10,"v":1},{"x":-4,"y":3,"t":18,"v":2},{"x":-2,"y":4,"t":15,"v":0},{"x":-2,"y":5,"t":14,"v":2},{"x":1,"y":5,"t":19,"v":3},{"x":-1,"y":5,"t":22,"v":1},{"x":1,"y":3,"t":19,"v":3},{"x":-1,"y":6,"t":22,"v":1},{"x":2,"y":-1,"t":11,"v":1},{"x":4,"y":-1,"t":14,"v":1},{"x":5,"y":-1,"t":14,"v":3},{"x":-4,"y":-1,"t":21,"v":0},{"x":4,"y":1,"t":6,"v":0},{"x":-1,"y":7,"t":22,"v":1},{"x":0,"y":-2,"t":13,"v":1},{"x":-1,"y":8,"t":2,"v":2},{"x":1,"y":-2,"t":16,"v":2},{"x":-5,"y":3,"t":23,"v":0},{"x":-1,"y":-2,"t":9,"v":1},{"x":-1,"y":-3,"t":15,"v":0},{"x":0,"y":2,"t":0,"v":2},{"x":1,"y":-3,"t":17,"v":0}],"meeples":[{"x":-1,"y":0,"piece":2,"player":1},{"x":0,"y":-1,"piece":1,"player":0},{"x":-1,"y":1,"piece":1,"player":1},{"x":2,"y":1,"piece":1,"player":1},{"x":-2,"y":3,"piece":3,"player":1},{"x":1,"y":1,"piece":1,"player":0},{"x":3,"y":-1,"piece":2,"player":0},{"x":-2,"y":4,"piece":6,"player":0},{"x":-1,"y":5,"piece":1,"player":1},{"x":1,"y":3,"piece":2,"player":0},{"x":4,"y":1,"piece":2,"player":0}],"title":"最後のミープルの置き場所","prompt":"あなたは赤。山札は残りわずか、手持ちのミープルは1人です。引いたのはまっすぐな道。","explain":["この時期にミープルを置くなら、ゲーム終了までにほぼ確実に点になる場所を選びます。","正解は、置いた道の脇の草原に農民を置く手です。この草原には完成した都市が2つ接しているので、終局時に6点が入ります。都市がすでに完成しているので、この点はまず減りません。","道にミープルを置く手は今のところ3点の見込みですが、道はまだ伸ばせる途中なので、残りのタイルしだいです。"],"lesson":"終盤の最後のミープルは、伸びしろの少ない道や都市より、完成都市に接する草原へ。","level":"実戦","options":[{"move":[-3,4,0,0],"diff":-1.6,"facts":{"gain_me":0,"gain_opp":0,"proj_me":2,"proj_opp":0,"meeple":{"kind":"R","kind_ja":"道","returned":false,"tiles":2,"shared":false}},"note":"別の場所の道にミープル。今は2点の見込み。"},{"move":[-3,4,0,null],"diff":-0.78,"facts":{"gain_me":0,"gain_opp":0,"proj_me":0,"proj_opp":0,"meeple":null},"note":"別の場所に置くだけ。点は動かない。"},{"move":[0,-3,0,1],"diff":2.68,"facts":{"gain_me":0,"gain_opp":0,"proj_me":6,"proj_opp":0,"meeple":{"kind":"F","kind_ja":"草原","returned":false,"done_cities":2,"shared":false}},"note":"農民で6点の見込み（完成都市2つ）。"},{"move":[0,-3,0,0],"diff":-0.58,"facts":{"gain_me":0,"gain_opp":0,"proj_me":3,"proj_opp":0,"meeple":{"kind":"R","kind_ja":"道","returned":false,"tiles":3,"shared":false}},"note":"道にミープル。今は3点の見込み。"}],"best":2},{"id":"s2t30","turn":30,"deck_left":41,"player":1,"scores":[12,14],"supply":[3,0],"current":0,"remaining":[4,2,1,2,0,0,2,2,1,3,0,3,1,2,4,2,1,0,2,1,1,1,3,3],"board":[{"x":0,"y":0,"t":19,"v":0},{"x":0,"y":-1,"t":0,"v":0},{"x":0,"y":-2,"t":22,"v":1},{"x":0,"y":1,"t":7,"v":2},{"x":-1,"y":-2,"t":10,"v":3},{"x":0,"y":2,"t":22,"v":1},{"x":1,"y":-1,"t":1,"v":0},{"x":0,"y":3,"t":22,"v":1},{"x":1,"y":0,"t":22,"v":0},{"x":1,"y":1,"t":0,"v":1},{"x":-1,"y":0,"t":0,"v":3},{"x":1,"y":2,"t":23,"v":3},{"x":2,"y":2,"t":5,"v":0},{"x":0,"y":4,"t":0,"v":0},{"x":1,"y":-2,"t":1,"v":0},{"x":-1,"y":4,"t":18,"v":0},{"x":-2,"y":-2,"t":14,"v":1},{"x":-1,"y":5,"t":15,"v":2},{"x":2,"y":-2,"t":4,"v":0},{"x":3,"y":-2,"t":8,"v":2},{"x":2,"y":0,"t":19,"v":2},{"x":-1,"y":3,"t":2,"v":0},{"x":-1,"y":-1,"t":17,"v":2},{"x":-1,"y":1,"t":10,"v":0},{"x":2,"y":1,"t":16,"v":0},{"x":0,"y":5,"t":22,"v":0},{"x":3,"y":1,"t":19,"v":3},{"x":3,"y":-3,"t":17,"v":0},{"x":3,"y":2,"t":17,"v":3},{"x":-2,"y":3,"t":3,"v":2}],"meeples":[{"x":0,"y":1,"piece":0,"player":0},{"x":1,"y":-1,"piece":1,"player":1},{"x":-1,"y":0,"piece":0,"player":1},{"x":1,"y":-2,"piece":1,"player":1},{"x":-1,"y":5,"piece":6,"player":0},{"x":3,"y":-2,"piece":0,"player":0},{"x":2,"y":0,"piece":0,"player":1},{"x":-1,"y":3,"piece":2,"player":0},{"x":-1,"y":-1,"piece":2,"player":1},{"x":2,"y":1,"piece":0,"player":1},{"x":3,"y":2,"piece":2,"player":1}],"title":"ミープルがなくてもできること","prompt":"あなたは青。手持ちのミープルは0人なので、今回は置く場所だけを決めます。横に寝ているミープルは草原の農民です。","explain":["盤面の草原に注目します。赤の農民とあなたの農民が1人ずつ入っている大きな草原があり、今は同数なので両者が9点ずつもらえる状態です。","正解のマスに曲がり道を置くと、その大きな草原と、あなたの農民がいる別の草原がつながります。農民は あなた2：赤1 になり、9点の草原はあなただけのものになります。赤の見込み点が9点減るうえ、あなたの道も伸びます。","ミープルが手元になくても、置き場所しだいで盤上のミープルの価値を変えられます。"],"lesson":"草原どうしをつなげると、農民の数の勝負が変わる。同数の草原は、別の草原をつないで多数派を奪える。","level":"実戦","options":[{"move":[1,-3,0,null],"diff":8.79,"facts":{"gain_me":0,"gain_opp":0,"proj_me":1,"proj_opp":0,"meeple":null},"note":"修道院の周りが1マス埋まるだけ。"},{"move":[0,-3,1,null],"diff":9.98,"facts":{"gain_me":0,"gain_opp":0,"proj_me":2,"proj_opp":0,"meeple":null},"note":"道が1枚伸び、修道院の周りも1マス埋まる。"},{"move":[0,-3,2,null],"diff":9.89,"facts":{"gain_me":0,"gain_opp":0,"proj_me":2,"proj_opp":0,"meeple":null},"note":"道が1枚伸び、修道院の周りも1マス埋まる。"},{"move":[3,0,1,null],"diff":16.75,"facts":{"gain_me":0,"gain_opp":0,"proj_me":0,"proj_opp":-9,"meeple":null},"note":"草原がつながり、農民2対1で9点の草原を独り占め。"}],"best":3},{"id":"s19t62","turn":62,"deck_left":9,"player":1,"scores":[55,92],"supply":[0,1],"current":1,"remaining":[1,0,0,1,0,0,0,0,1,0,0,0,0,1,0,1,0,1,0,0,0,0,3,0],"board":[{"x":0,"y":0,"t":19,"v":0},{"x":0,"y":1,"t":11,"v":0},{"x":1,"y":1,"t":1,"v":0},{"x":1,"y":2,"t":2,"v":3},{"x":2,"y":1,"t":11,"v":0},{"x":0,"y":2,"t":7,"v":2},{"x":0,"y":3,"t":23,"v":3},{"x":-1,"y":2,"t":18,"v":1},{"x":2,"y":0,"t":14,"v":0},{"x":-1,"y":3,"t":0,"v":1},{"x":2,"y":2,"t":10,"v":1},{"x":3,"y":1,"t":0,"v":2},{"x":2,"y":-1,"t":12,"v":1},{"x":1,"y":-1,"t":7,"v":1},{"x":3,"y":0,"t":1,"v":0},{"x":2,"y":3,"t":0,"v":1},{"x":4,"y":0,"t":22,"v":1},{"x":3,"y":-1,"t":16,"v":2},{"x":3,"y":2,"t":15,"v":3},{"x":1,"y":-2,"t":14,"v":0},{"x":1,"y":0,"t":0,"v":0},{"x":3,"y":-2,"t":10,"v":0},{"x":0,"y":-1,"t":19,"v":2},{"x":4,"y":-2,"t":14,"v":3},{"x":-1,"y":0,"t":2,"v":1},{"x":1,"y":3,"t":23,"v":2},{"x":-1,"y":-1,"t":23,"v":0},{"x":1,"y":-3,"t":16,"v":2},{"x":4,"y":1,"t":20,"v":0},{"x":1,"y":-4,"t":4,"v":3},{"x":-2,"y":-1,"t":22,"v":0},{"x":-3,"y":-1,"t":6,"v":2},{"x":0,"y":-2,"t":9,"v":3},{"x":2,"y":4,"t":23,"v":0},{"x":0,"y":-3,"t":9,"v":1},{"x":-1,"y":-3,"t":22,"v":1},{"x":4,"y":2,"t":17,"v":0},{"x":-1,"y":-2,"t":19,"v":1},{"x":4,"y":3,"t":18,"v":2},{"x":-1,"y":-4,"t":22,"v":1},{"x":1,"y":4,"t":7,"v":3},{"x":0,"y":-4,"t":9,"v":0},{"x":-4,"y":-1,"t":11,"v":1},{"x":4,"y":-1,"t":0,"v":2},{"x":-5,"y":-1,"t":15,"v":1},{"x":-1,"y":-5,"t":0,"v":2},{"x":2,"y":-2,"t":1,"v":0},{"x":2,"y":-4,"t":14,"v":3},{"x":-3,"y":-2,"t":13,"v":0},{"x":0,"y":-5,"t":0,"v":0},{"x":3,"y":4,"t":5,"v":0},{"x":5,"y":-1,"t":19,"v":0},{"x":-3,"y":-3,"t":17,"v":0},{"x":1,"y":5,"t":21,"v":0},{"x":-3,"y":0,"t":18,"v":2},{"x":5,"y":0,"t":3,"v":0},{"x":0,"y":4,"t":6,"v":3},{"x":6,"y":0,"t":8,"v":2},{"x":-4,"y":0,"t":22,"v":0},{"x":0,"y":-6,"t":0,"v":1},{"x":0,"y":5,"t":3,"v":0},{"x":-1,"y":5,"t":14,"v":2}],"meeples":[{"x":2,"y":1,"piece":2,"player":1},{"x":-1,"y":2,"piece":2,"player":0},{"x":2,"y":-1,"piece":1,"player":1},{"x":1,"y":-2,"piece":1,"player":0},{"x":4,"y":-2,"piece":1,"player":0},{"x":-1,"y":0,"piece":2,"player":1},{"x":-1,"y":-2,"piece":1,"player":0},{"x":4,"y":-1,"piece":0,"player":0},{"x":2,"y":-2,"piece":1,"player":1},{"x":2,"y":-4,"piece":1,"player":0},{"x":5,"y":-1,"piece":0,"player":0},{"x":-3,"y":0,"piece":3,"player":1},{"x":0,"y":5,"piece":0,"player":1}],"title":"負けている大草原","prompt":"あなたは青。終盤です。引いたのは道のない修道院。手持ちのミープルは1人です。","explain":["大きな草原に赤の農民が3人、あなたの農民が2人います。このままだと、この草原の点は赤だけのものです。","正解のマスに修道院を置くと、修道院のタイルの草原を通して、あなたの農民がいる別の草原が大草原につながります。農民が3対3の同数になり、大草原の30点をあなたも得られるようになります。","さらに修道院には修道士を置きます。周りが6マス埋まっていて7点の見込みです。同じ場所でも修道士を置かないと、この7点がまるごと消えます。"],"lesson":"負けている草原は、自分の農民がいる草原をつないで同数に持ち込む。同数なら両者が満点。","level":"実戦","options":[{"move":[2,-3,0,1],"diff":32.64,"facts":{"gain_me":0,"gain_opp":0,"proj_me":8,"proj_opp":-3,"meeple":{"kind":"M","kind_ja":"修道院","returned":false}},"note":"修道院は8点の見込みだが、大草原は赤のまま。"},{"move":[-2,0,0,null],"diff":43.1,"facts":{"gain_me":0,"gain_opp":0,"proj_me":25,"proj_opp":3,"meeple":null},"note":"大草原は同数になるが、修道院は空き家のまま。"},{"move":[-2,0,0,1],"diff":47.6,"facts":{"gain_me":0,"gain_opp":0,"proj_me":31,"proj_opp":3,"meeple":{"kind":"M","kind_ja":"修道院","returned":false}},"note":"大草原が農民3対3の同数に。修道士で7点の見込みも。"}],"best":2},{"id":"s8t65","turn":65,"deck_left":6,"player":0,"scores":[51,51],"supply":[0,1],"current":1,"remaining":[1,0,0,1,0,0,0,1,0,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0],"board":[{"x":0,"y":0,"t":19,"v":0},{"x":0,"y":1,"t":14,"v":2},{"x":-1,"y":0,"t":0,"v":2},{"x":1,"y":0,"t":15,"v":2},{"x":-1,"y":1,"t":0,"v":0},{"x":-2,"y":0,"t":9,"v":2},{"x":0,"y":-1,"t":16,"v":1},{"x":-3,"y":0,"t":14,"v":1},{"x":-2,"y":1,"t":23,"v":2},{"x":1,"y":-1,"t":6,"v":3},{"x":-1,"y":-1,"t":1,"v":0},{"x":2,"y":-1,"t":17,"v":3},{"x":0,"y":-2,"t":18,"v":0},{"x":-1,"y":2,"t":1,"v":0},{"x":-3,"y":1,"t":22,"v":0},{"x":2,"y":0,"t":23,"v":2},{"x":1,"y":-2,"t":7,"v":1},{"x":-4,"y":1,"t":20,"v":0},{"x":0,"y":-3,"t":15,"v":3},{"x":1,"y":-3,"t":15,"v":0},{"x":-1,"y":-3,"t":9,"v":1},{"x":0,"y":-4,"t":5,"v":1},{"x":0,"y":-5,"t":12,"v":0},{"x":-2,"y":-1,"t":4,"v":2},{"x":-3,"y":2,"t":22,"v":0},{"x":-3,"y":-1,"t":13,"v":1},{"x":-1,"y":-4,"t":6,"v":3},{"x":-1,"y":3,"t":22,"v":0},{"x":2,"y":1,"t":0,"v":0},{"x":2,"y":-2,"t":7,"v":2},{"x":-2,"y":-4,"t":14,"v":1},{"x":-2,"y":3,"t":22,"v":0},{"x":-3,"y":-2,"t":0,"v":3},{"x":2,"y":-3,"t":17,"v":0},{"x":0,"y":-6,"t":11,"v":0},{"x":0,"y":-7,"t":14,"v":0},{"x":3,"y":-2,"t":0,"v":1},{"x":1,"y":1,"t":0,"v":3},{"x":-4,"y":0,"t":23,"v":1},{"x":3,"y":-1,"t":0,"v":0},{"x":1,"y":-4,"t":18,"v":3},{"x":-1,"y":-6,"t":10,"v":2},{"x":2,"y":-4,"t":8,"v":1},{"x":3,"y":-4,"t":11,"v":1},{"x":3,"y":0,"t":22,"v":0},{"x":2,"y":-5,"t":19,"v":0},{"x":4,"y":0,"t":2,"v":3},{"x":0,"y":3,"t":22,"v":0},{"x":-3,"y":3,"t":22,"v":0},{"x":-2,"y":-6,"t":21,"v":0},{"x":0,"y":2,"t":1,"v":0},{"x":-1,"y":-7,"t":13,"v":0},{"x":1,"y":3,"t":19,"v":0},{"x":2,"y":2,"t":22,"v":0},{"x":2,"y":3,"t":19,"v":0},{"x":-2,"y":-5,"t":10,"v":2},{"x":3,"y":3,"t":23,"v":0},{"x":1,"y":-5,"t":0,"v":3},{"x":3,"y":-3,"t":14,"v":1},{"x":-3,"y":-6,"t":8,"v":0},{"x":1,"y":2,"t":2,"v":1},{"x":-2,"y":-7,"t":11,"v":0},{"x":4,"y":-4,"t":18,"v":3},{"x":-3,"y":-5,"t":3,"v":1},{"x":0,"y":-8,"t":3,"v":1}],"meeples":[{"x":-1,"y":0,"piece":2,"player":1},{"x":-3,"y":0,"piece":0,"player":0},{"x":-1,"y":-1,"piece":1,"player":1},{"x":2,"y":-1,"piece":2,"player":0},{"x":0,"y":-2,"piece":2,"player":1},{"x":-1,"y":2,"piece":1,"player":0},{"x":-3,"y":1,"piece":2,"player":1},{"x":0,"y":-3,"piece":5,"player":1},{"x":-1,"y":-6,"piece":1,"player":0},{"x":2,"y":-5,"piece":2,"player":0},{"x":-3,"y":3,"piece":0,"player":1},{"x":-2,"y":-6,"piece":0,"player":0},{"x":-1,"y":-7,"piece":1,"player":0}],"title":"手持ちゼロの終盤","prompt":"あなたは赤。残り数手で、手持ちのミープルは0人です。引いたのは道のない修道院。","explain":["自分の点を増やす手がないときは、相手の点を減らす手を探します。","青は大きな草原（21点）で農民の数が勝っているうえに、別の草原（9点）にも農民を置いています。正解のマスに修道院を置くと、その2つの草原がつながって1つになります。点は草原1つにつき1回しか入らないので、青の見込み点が9点減ります。","隣にある青の修道院の周りが1マス埋まって青が1点得をしますが、差し引き8点のマイナスを与えられます。ほかの手は誰の点も動かしません。"],"lesson":"相手の農民がいる草原どうしをつなぐと、相手の得点を減らせる。ミープルがない終盤に効く。","level":"実戦","options":[{"move":[4,-2,0,null],"diff":-2.8,"facts":{"gain_me":0,"gain_opp":0,"proj_me":0,"proj_opp":0,"meeple":null},"note":"タイルを置くだけ。点は動かない。"},{"move":[-1,-2,0,null],"diff":2.98,"facts":{"gain_me":0,"gain_opp":0,"proj_me":0,"proj_opp":-8,"meeple":null},"note":"青の2つの草原が1つになり、青の見込みが8点減る。"},{"move":[3,4,0,null],"diff":-2.79,"facts":{"gain_me":0,"gain_opp":0,"proj_me":0,"proj_opp":0,"meeple":null},"note":"タイルを置くだけ。点は動かない。"},{"move":[0,4,0,null],"diff":-2.8,"facts":{"gain_me":0,"gain_opp":0,"proj_me":0,"proj_opp":0,"meeple":null},"note":"タイルを置くだけ。点は動かない。"}],"best":1}]}</script>
+<script>
+"use strict";
+const DATA = JSON.parse(document.getElementById("quiz-data").textContent);
+const LIB = DATA.tiles, PUZ = DATA.puzzles;
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const KIND_JA = {C: "都市", R: "道", F: "草原", M: "修道院"};
+const LETTERS = "ABCD";
+let idx = 0, sel = null;
+const answers = {};
+try { Object.assign(answers, JSON.parse(localStorage.getItem("cc_quiz") || "{}")); } catch (e) {}
+const save = () => { try { localStorage.setItem("cc_quiz", JSON.stringify(answers)); } catch (e) {} };
+
+// ---------- タイル描画（web/play.html と同じ描き方） ----------
+const EM = [[.5,0],[1,.5],[.5,1],[0,.5]];
+const HP = [[.25,0],[.75,0],[1,.25],[1,.75],[.75,1],[.25,1],[0,.75],[0,.25]];
+const D = 0.28;
+function hull(pts) {
+  pts = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cr = (o, a, b) => (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0]);
+  const lo = [], up = [];
+  for (const p of pts) { while (lo.length >= 2 && cr(lo[lo.length-2], lo[lo.length-1], p) <= 0) lo.pop(); lo.push(p); }
+  for (const p of pts.slice().reverse()) { while (up.length >= 2 && cr(up[up.length-2], up[up.length-1], p) <= 0) up.pop(); up.push(p); }
+  return lo.slice(0, -1).concat(up.slice(0, -1));
+}
+function cityShapes(sides) {
+  const trap = {0: [[0,0],[1,0],[.8,D],[.2,D]], 1: [[1,0],[1,1],[1-D,.8],[1-D,.2]], 2: [[0,1],[1,1],[.8,1-D],[.2,1-D]], 3: [[0,0],[0,1],[D,.8],[D,.2]]};
+  const inner = {0:[[.2,D],[.8,D]], 1:[[1-D,.2],[1-D,.8]], 2:[[.2,1-D],[.8,1-D]], 3:[[D,.2],[D,.8]]};
+  const shapes = sides.map(s => trap[s]);
+  if (sides.length > 1) shapes.push(hull(sides.flatMap(s => inner[s])));
+  return shapes;
+}
+function anchorOf(p) {
+  if (p.kind === "M") return [.5, .5];
+  if (p.kind === "C") {
+    const inner = {0:[.5,D*.7], 1:[1-D*.7,.5], 2:[.5,1-D*.7], 3:[D*.7,.5]};
+    const pts = p.sides.map(s => inner[s]);
+    return [pts.reduce((a,q)=>a+q[0],0)/pts.length, pts.reduce((a,q)=>a+q[1],0)/pts.length];
+  }
+  if (p.kind === "R") {
+    if (p.sides.length >= 2) {
+      const pts = p.sides.map(s => EM[s]);
+      const m = [pts.reduce((a,q)=>a+q[0],0)/pts.length, pts.reduce((a,q)=>a+q[1],0)/pts.length];
+      return [m[0]*.5 + .25, m[1]*.5 + .25];
+    }
+    const e = EM[p.sides[0]]; return [e[0] + (.5-e[0])*.6, e[1] + (.5-e[1])*.6];
+  }
+  const pts = p.halves.map(h => HP[h]);
+  const c = [pts.reduce((a,q)=>a+q[0],0)/pts.length, pts.reduce((a,q)=>a+q[1],0)/pts.length];
+  return [c[0] + (.5-c[0])*.3, c[1] + (.5-c[1])*.3];
+}
+const anchorCache = new Map();
+function anchors(t, v) {
+  const key = t + ":" + v;
+  if (anchorCache.has(key)) return anchorCache.get(key);
+  const vr = LIB[t].variants[v], res = vr.pieces.map(p => anchorOf(p));
+  const dist = (a, b) => Math.hypot(a[0]-b[0], a[1]-b[1]);
+  vr.pieces.forEach((p, i) => {
+    if (p.kind !== "F") return;
+    const others = res.filter((_, j) => j !== i);
+    if (others.every(o => dist(o, res[i]) > .2)) return;
+    let best = res[i], bs = -1;
+    for (const h of p.halves) {
+      const c = [HP[h][0] + (.5-HP[h][0])*.2, HP[h][1] + (.5-HP[h][1])*.2];
+      const sc = Math.min(...others.map(o => dist(o, c)));
+      if (sc > bs) { bs = sc; best = c; }
+    }
+    res[i] = best;
+  });
+  anchorCache.set(key, res); return res;
+}
+const tileCache = new Map();
+function tileCanvas(t, v) {
+  const key = t + ":" + v;
+  if (tileCache.has(key)) return tileCache.get(key);
+  const S = 128, c = document.createElement("canvas"); c.width = c.height = S;
+  const g = c.getContext("2d"), vr = LIB[t].variants[v];
+  g.fillStyle = "#86b96a"; g.fillRect(0, 0, S, S);
+  const pt = q => [q[0]*S, q[1]*S];
+  const path = pts => { g.beginPath(); pts.forEach((q, i) => { const [x, y] = pt(q); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.closePath(); };
+  const roads = vr.pieces.filter(p => p.kind === "R");
+  const drawRoads = (w, col) => {
+    g.strokeStyle = col; g.lineWidth = w; g.lineCap = "butt"; g.lineJoin = "round";
+    for (const r of roads) {
+      g.beginPath();
+      if (r.sides.length >= 2) {
+        const a = pt(EM[r.sides[0]]), b = pt(EM[r.sides[1]]), m = pt([.5, .5]);
+        g.moveTo(a[0], a[1]); g.lineTo(m[0], m[1]); g.lineTo(b[0], b[1]);
+      } else {
+        const a = pt(EM[r.sides[0]]), f = roads.length >= 3 ? .78 : 1;
+        g.moveTo(a[0], a[1]); g.lineTo(a[0] + (S/2 - a[0])*f, a[1] + (S/2 - a[1])*f);
+      }
+      g.stroke();
+    }
+  };
+  drawRoads(S*.17, "#7a6a45"); drawRoads(S*.11, "#f3e7c3");
+  if (roads.length >= 3) { g.fillStyle = "#7a6a45"; g.beginPath(); g.arc(S/2, S/2, S*.06, 0, 7); g.fill(); }
+  const cities = vr.pieces.filter(p => p.kind === "C");
+  g.lineJoin = "round";
+  for (const ct of cities) for (const sh of cityShapes(ct.sides)) { path(sh); g.strokeStyle = "#5e3f26"; g.lineWidth = 6; g.stroke(); }
+  for (const ct of cities) for (const sh of cityShapes(ct.sides)) { path(sh); g.fillStyle = "#c08a5a"; g.fill(); }
+  for (const ct of cities) if (ct.pennant) {
+    const [ax, ay] = anchorOf(ct).map(x => x * S);
+    g.fillStyle = "#2f5fb5"; g.strokeStyle = "#fff"; g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(ax-8, ay-10); g.lineTo(ax+8, ay-10); g.lineTo(ax+8, ay+3); g.lineTo(ax, ay+11); g.lineTo(ax-8, ay+3); g.closePath(); g.fill(); g.stroke();
+  }
+  if (vr.pieces.some(p => p.kind === "M")) {
+    g.fillStyle = "#e9e1d0"; g.fillRect(S*.36, S*.46, S*.28, S*.2);
+    g.fillStyle = "#b8403a"; g.beginPath(); g.moveTo(S*.32, S*.46); g.lineTo(S*.5, S*.3); g.lineTo(S*.68, S*.46); g.closePath(); g.fill();
+    g.strokeStyle = "#5a3a2a"; g.lineWidth = 1.5; g.strokeRect(S*.36, S*.46, S*.28, S*.2);
+  }
+  g.strokeStyle = "rgba(0,0,0,.45)"; g.lineWidth = 1.5; g.strokeRect(.75, .75, S-1.5, S-1.5);
+  tileCache.set(key, c); return c;
+}
+// 草原の農民は横に寝かせて描く（ボードゲームの慣習）
+function meeple(g, x, y, r, col, ghost, lying) {
+  g.save(); if (ghost) g.globalAlpha = .85;
+  if (lying) { g.translate(x, y); g.rotate(-Math.PI / 2); g.translate(-x, -y); }
+  g.fillStyle = col; g.strokeStyle = "#fff"; g.lineWidth = Math.max(1.5, r*.22);
+  g.beginPath(); g.arc(x, y - r*.9, r*.75, 0, 7); g.fill(); g.stroke();
+  g.beginPath(); g.moveTo(x - r*1.15, y + r*1.2); g.lineTo(x, y - r*.2); g.lineTo(x + r*1.15, y + r*1.2); g.closePath(); g.fill(); g.stroke();
+  g.restore();
+}
+// 選択肢のサムネイル（タイル＋ミープル）
+function optThumb(P, o, size) {
+  const c = document.createElement("canvas"); c.width = c.height = size * 2;
+  const g = c.getContext("2d"), [, , v, piece] = o.move;
+  g.drawImage(tileCanvas(P.current, v), 0, 0, size*2, size*2);
+  if (piece !== null) { const [ax, ay] = anchors(P.current, v)[piece]; meeple(g, ax*size*2, ay*size*2, size*.2, seatColor(P.player), false, isField(P.current, v, piece)); }
+  return c;
+}
+const isField = (t, v, pi) => LIB[t].variants[v].pieces[pi].kind === "F";
+const seatColor = p => css(p === 0 ? "--p0" : "--p1");
+
+// ---------- 盤面 ----------
+const cv = $("board"), ctx = cv.getContext("2d");
+let geo = null;
+function extent(P) {
+  const cells = P.board.map(b => [b.x, b.y]).concat(P.options.map(o => [o.move[0], o.move[1]]));
+  const xs = cells.map(c => c[0]), ys = cells.map(c => c[1]);
+  return {x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys)};
+}
+function draw() {
+  const P = PUZ[idx]; if (!P) return;
+  const e = extent(P), nx = e.x1 - e.x0 + 1.6, ny = e.y1 - e.y0 + 1.6;
+  cv.style.aspectRatio = `${Math.max(.8, Math.min(1.5, nx / ny))}`;
+  const r = cv.getBoundingClientRect(), dpr = devicePixelRatio || 1, W = r.width, H = r.height;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  const s = Math.min(W / nx, H / ny, 110);
+  const ox = W/2 - (e.x0 + e.x1 + 1) * s / 2, oy = H/2 + (e.y0 + e.y1) * s / 2 - s/2;
+  geo = {s, ox, oy};
+  const L = x => ox + x*s, T = y => oy - y*s;
+  for (const b of P.board) ctx.drawImage(tileCanvas(b.t, b.v), L(b.x), T(b.y), s, s);
+  for (const m of P.meeples) {
+    const b = P.board.find(q => q.x === m.x && q.y === m.y), [ax, ay] = anchors(b.t, b.v)[m.piece];
+    meeple(ctx, L(m.x) + ax*s, T(m.y) + ay*s, s*.1, seatColor(m.player), false, isField(b.t, b.v, m.piece));
+  }
+  const done = answers[P.id] !== undefined;
+  const show = sel !== null ? P.options[sel] : null;
+  const ink = css("--ink"), good = css("--good");
+  for (const [k, list] of cellGroups(P)) {
+    const [x, y] = k.split(",").map(Number);
+    if (show && show.move[0] === x && show.move[1] === y) continue;
+    const isBest = done && list.includes(P.best);
+    ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.fillRect(L(x)+3, T(y)+3, s-6, s-6);
+    ctx.strokeStyle = isBest ? good : "#26342a"; ctx.lineWidth = isBest ? 3 : 2; ctx.setLineDash([5, 4]);
+    ctx.strokeRect(L(x)+3, T(y)+3, s-6, s-6); ctx.setLineDash([]);
+    ctx.fillStyle = "#1d2820"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    const label = list.map(i => LETTERS[i]).join("/");
+    ctx.font = `${Math.round(s * (label.length > 1 ? .22 : .34))}px ${css("--display")}`;
+    ctx.fillText(label, L(x) + s/2, T(y) + s/2);
+  }
+  if (show) {
+    const [x, y, v, piece] = show.move;
+    ctx.drawImage(tileCanvas(P.current, v), L(x), T(y), s, s);
+    ctx.strokeStyle = css("--gold"); ctx.lineWidth = 3; ctx.strokeRect(L(x)+1.5, T(y)+1.5, s-3, s-3);
+    if (piece !== null) { const [ax, ay] = anchors(P.current, v)[piece]; meeple(ctx, L(x) + ax*s, T(y) + ay*s, s*.11, seatColor(P.player), true, isField(P.current, v, piece)); }
+  }
+  $("legend").textContent = show ? `${LETTERS[sel]} を表示中` : "点線のマスが選択肢";
+}
+function cellGroups(P) {
+  const m = new Map();
+  P.options.forEach((o, i) => { const k = o.move[0] + "," + o.move[1]; if (!m.has(k)) m.set(k, []); m.get(k).push(i); });
+  return m;
+}
+cv.addEventListener("click", ev => {
+  const P = PUZ[idx]; if (!P || !geo) return;
+  const r = cv.getBoundingClientRect(), px = ev.clientX - r.left, py = ev.clientY - r.top;
+  const x = Math.floor((px - geo.ox) / geo.s), y = Math.floor((geo.oy - py) / geo.s) + 1;
+  const list = cellGroups(P).get(x + "," + y); if (!list) return;
+  const at = list.indexOf(sel);
+  select(list[(at + 1) % list.length]);
+});
+
+// ---------- 問題カード ----------
+function optLabel(o) {
+  const m = o.facts.meeple;
+  return m ? `${m.kind_ja}にミープルを置く` : "ミープルは置かない";
+}
+function optSub(o) {
+  const f = o.facts, parts = [];
+  if (f.gain_me || f.gain_opp) parts.push(`置いた直後に あなた+${f.gain_me}点` + (f.gain_opp ? `・相手+${f.gain_opp}点` : ""));
+  if (f.meeple && f.meeple.returned) parts.push("ミープルはすぐ戻る");
+  return parts.join(" ／ ") || "その場の得点なし";
+}
+const fmt = d => (d >= 0 ? "+" : "−") + Math.abs(d).toFixed(1);
+function select(i) {
+  sel = i; draw();
+  document.querySelectorAll(".opt").forEach((b, j) => b.classList.toggle("sel", j === i));
+  const go = $("btnGo"); if (go) go.disabled = sel === null;
+}
+function render() {
+  const P = PUZ[idx], card = $("card");
+  renderProgress();
+  if (!P) return renderFinal();
+  const ans = answers[P.id], done = ans !== undefined, me = P.player, op = 1 - me;
+  document.documentElement.style.setProperty("--me", seatColor(me));
+  document.documentElement.style.setProperty("--op", seatColor(op));
+  const colorJa = p => p === 0 ? "赤" : "青";
+  card.innerHTML = `
+    <div class="eyebrow">${P.level === "入門" ? '<span class="lvl easy">入門</span>' : '<span class="lvl">実戦</span>'}問題 ${idx + 1} / ${PUZ.length} ・ 第${P.turn}手 ・ 山札の残り ${P.deck_left}枚</div>
+    <h2>${P.title}</h2>
+    <p class="prompt">${P.prompt} <b>AIならどの手を選ぶでしょう？</b></p>
+    <div class="situ">
+      <canvas id="curTile" width="152" height="152" aria-label="引いたタイル"></canvas>
+      <div class="who me">あなた（${colorJa(me)}）<b>${P.scores[me]}点</b>手持ちミープル ${P.supply[me]}</div>
+      <div class="who op">相手（${colorJa(op)}）<b>${P.scores[op]}点</b>手持ちミープル ${P.supply[op]}</div>
+    </div>
+    <div class="opts" id="opts"></div>
+    <div id="after"></div>
+    <div class="row" id="actions"></div>
+    <details><summary>山札に残っているタイル（公開情報）</summary><div id="remain"></div></details>`;
+  $("curTile").getContext("2d").drawImage(tileCanvas(P.current, 0), 0, 0, 152, 152);
+  const bestDiff = P.options[P.best].diff, worst = Math.min(...P.options.map(o => o.diff));
+  P.options.forEach((o, i) => {
+    const b = document.createElement("button");
+    b.className = "opt"; b.type = "button";
+    if (done) b.classList.add(i === P.best ? "best" : i === ans ? "wrong" : "x");
+    const k = document.createElement("span"); k.className = "k"; k.textContent = LETTERS[i];
+    const t = document.createElement("span"); t.className = "t";
+    let html = optLabel(o);
+    if (done) {
+      html += `<small>${optSub(o)}</small>`;
+      const gap = o.diff - bestDiff, w = worst < bestDiff ? 35 + 65 * (o.diff - worst) / (bestDiff - worst) : 100;
+      html += `<small>AIの予想点差 <b>${fmt(o.diff)}</b>${i === P.best ? "（最善）" : `（最善より ${Math.abs(gap).toFixed(1)}点 損）`}${i === ans ? " ← あなたの答え" : ""}</small><span class="bar"><i style="width:${w}%"></i></span>`;
+      if (o.note) html += `<small>${o.note}</small>`;
+    }
+    t.innerHTML = html;
+    b.append(k, optThumb(P, o, 23), t);
+    b.onclick = () => select(i);
+    $("opts").appendChild(b);
+  });
+  const act = $("actions");
+  if (!done) {
+    act.innerHTML = `<button class="btn primary" id="btnGo" disabled>この手に決める</button><span class="note">選択肢か盤面の点線マスを押すと、置いた形が盤面に表示されます。</span>`;
+    $("btnGo").onclick = () => { if (sel === null) return; answers[P.id] = sel; save(); sel = P.best; render(); };
+  } else {
+    const ok = ans === P.best;
+    $("after").innerHTML = `<div class="explain">
+      <div class="verdict ${ok ? "ok" : "ng"}">${ok ? "正解！" : `AIの答えは ${LETTERS[P.best]}`}</div>
+      ${P.explain.map(p => `<p>${p}</p>`).join("")}
+      ${P.lesson ? `<p class="lesson">${P.lesson}</p>` : ""}</div>`;
+    act.innerHTML = `<button class="btn primary" id="btnNext">${idx + 1 < PUZ.length ? "次の問題へ" : "結果を見る"}</button><button class="btn" id="btnRetry">解き直す</button>`;
+    $("btnNext").onclick = () => go(idx + 1);
+    $("btnRetry").onclick = () => { delete answers[P.id]; save(); sel = null; render(); };
+  }
+  const rem = $("remain");
+  LIB.forEach((t, i) => {
+    const d = document.createElement("div"); if (!P.remaining[i]) d.className = "zero";
+    const c = document.createElement("canvas"); c.width = c.height = 64; c.getContext("2d").drawImage(tileCanvas(i, 0), 0, 0, 64, 64);
+    d.append(c, document.createTextNode("×" + P.remaining[i])); rem.appendChild(d);
+  });
+  select(sel);
+}
+function renderFinal() {
+  const n = PUZ.filter(p => answers[p.id] === p.best).length, a = PUZ.filter(p => answers[p.id] !== undefined).length;
+  $("card").innerHTML = `<div class="final"><div class="eyebrow">結果</div><div class="big">${n} / ${PUZ.length}</div>
+    <p>${a < PUZ.length ? `まだ解いていない問題が ${PUZ.length - a}問 あります。上の番号から選べます。` : n >= PUZ.length * .75 ? "AIとかなり近い考え方ができています。" : "間違えた問題の解説を読み返すと、AIの考え方が見えてきます。"}</p>
+    <div class="row" style="justify-content:center"><button class="btn primary" id="btnAgain">最初から解き直す</button></div></div>`;
+  $("btnAgain").onclick = () => { for (const k in answers) delete answers[k]; save(); go(0); };
+  ctx.clearRect(0, 0, cv.width, cv.height); $("legend").textContent = "";
+}
+function renderProgress() {
+  const nav = $("progress"); nav.innerHTML = "";
+  PUZ.forEach((p, i) => {
+    const b = document.createElement("button"); b.textContent = i + 1; b.type = "button";
+    b.setAttribute("aria-label", `問題${i + 1}`);
+    const a = answers[p.id];
+    if (a !== undefined) b.className = a === p.best ? "ok" : "ng";
+    if (p.level === "入門") b.classList.add("easy");
+    if (i === idx) b.classList.add("cur");
+    b.onclick = () => go(i); nav.appendChild(b);
+  });
+}
+function go(i) {
+  idx = i; const P = PUZ[idx];
+  sel = P && answers[P.id] !== undefined ? P.best : null;
+  render(); if (P) draw();
+  window.scrollTo({top: 0, behavior: "smooth"});
+}
+window.addEventListener("resize", draw);
+{ const ne = PUZ.filter(p => p.level === "入門").length;
+  if (ne) $("levels").textContent = ` 1〜${ne}問目は入門編（点線の番号）、そのあとは実戦編です。`; }
+go(Math.max(0, PUZ.findIndex(p => answers[p.id] === undefined)));
+</script>
+</body>
+</html>
