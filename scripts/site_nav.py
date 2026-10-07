@@ -11,6 +11,7 @@ PAGES = [
     ("rules.html", "ルール入門"),
     ("ai_tips.html", "強いAIのコツ"),
     ("quiz.html", "次の一手クイズ"),
+    ("play.html", "AIと対戦"),
 ]
 
 NAV_CSS = """
