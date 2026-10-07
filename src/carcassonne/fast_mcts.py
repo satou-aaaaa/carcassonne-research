@@ -97,6 +97,7 @@ def run_tree(
     late,
     fpu,
     prior_visits,
+    root_allow,
 ):
     """1本の木を `sims` 回反復し、根の訪問数を agg1/agg2 に、報酬和を aggw1/aggw2 に加算する。
 
@@ -108,6 +109,9 @@ def run_tree(
     prior_visits>0 なら、配置の節点の訪問数がこの値に達した時点で、残りの未展開の配置を
     「ミープルなしで置いた直後の評価値」の高い順に並べ、以後は良さそうな手から展開する
     （手の事前確率の代わり。評価関数があるときだけ）。fpu と組み合わせて使う。
+
+    root_allow が空でなければ、根では `マス*256+向きID` がこの中にある配置だけを試す
+    （方策ネットの上位の手に絞る）。
     """
     N = sims + 2
     POOL = N * 160
@@ -149,6 +153,15 @@ def run_tree(
                             W, T, wsc[SC_CUR], stamp, stamp_box[0], out_cell, out_g, False
                         )
                         for j in range(k):
+                            if node == 0 and len(root_allow) > 0:
+                                code = out_cell[j] * 256 + out_g[j]
+                                ok = False
+                                for q in range(len(root_allow)):
+                                    if root_allow[q] == code:
+                                        ok = True
+                                        break
+                                if not ok:
+                                    continue
                             if pool_used + cnt < POOL:
                                 opt_a[pool_used + cnt] = out_cell[j]
                                 opt_b[pool_used + cnt] = out_g[j]
@@ -319,6 +332,7 @@ def search_stats(
     late,
     fpu,
     prior_visits,
+    root_allow,
 ):
     """根局面 S から決定化MCTSを行い、根の候補ごとの訪問数と報酬和を返す。
 
@@ -350,7 +364,7 @@ def search_stats(
         run_tree(
             D, T, P, sims, c, scale, meeple_prob, depth, stamp, stamp_box,
             out_cell, out_g, free, rec, W, agg1, agg2, aggw1, aggw2, rp_cell, rp_g, k,
-            eval_w, eval_mode, fbuf, late, fpu, prior_visits,
+            eval_w, eval_mode, fbuf, late, fpu, prior_visits, root_allow,
         )  # fmt: skip
     return rp_cell, rp_g, agg1, aggw1, agg2, aggw2
 
@@ -378,11 +392,13 @@ def search(
     late,
     fpu,
     prior_visits,
+    root_allow,
 ):
     """根局面 S から決定化MCTSを行い、(マス, 向きID, 断片) を返す。"""
     rp_cell, rp_g, agg1, _, agg2, _ = search_stats(
         S, T, P, n_sims, n_det, c, scale, meeple_prob, depth, stamp, stamp_box,
         out_cell, out_g, free, rec, eval_w, eval_mode, fbuf, late, fpu, prior_visits,
+        root_allow,
     )  # fmt: skip
     top = agg1.max()
     cands = np.where(agg1 == top)[0]
@@ -411,6 +427,8 @@ class FastMCTSAgent:
         late: int = 0,
         fpu: float = -1.0,
         prior_visits: int = 0,
+        nn_path: str | None = None,
+        nn_topk: int = 8,
     ) -> None:
         """eval_path に線形評価関数の重み(.npy)を渡すと、葉をその評価関数で評価する。
 
@@ -429,6 +447,13 @@ class FastMCTSAgent:
         self.fpu = fpu
         # 0より大きいと、訪問数がこの値に達した配置の節点で未展開の手を評価値順に並べる
         self.prior_visits = prior_visits
+        # 方策ネット（`nn_model.py`）があれば、根を方策の上位 nn_topk 手に絞る
+        self.nn = None
+        self.nn_topk = nn_topk
+        if nn_path:
+            from .nn_model import PolicyValueNet
+
+            self.nn = PolicyValueNet(nn_path)
         self.eval_w, self.eval_mode = load_eval(eval_path) if eval_path else (np.zeros(NF), 0)
         self.fbuf = np.zeros(NF)
         self.fast = Fast()
@@ -439,6 +464,11 @@ class FastMCTSAgent:
             + (f",late={late}" if late else "")
             + (f",fpu={fpu:g}" if fpu >= 0 else "")
             + (f",pv={prior_visits}" if prior_visits else "")
+            + (
+                f",nn={nn_path.replace(chr(92), '/').split('/')[-1]},topk={nn_topk}"
+                if nn_path
+                else ""
+            )
             + ")"
         )
 
@@ -477,8 +507,38 @@ class FastMCTSAgent:
             self.late,
             self.fpu,
             self.prior_visits,
+            self.root_allow(S),
         )
         return int(cell), int(g), int(piece)
+
+    def root_allow(self, S) -> np.ndarray:
+        """方策ネットの上位 nn_topk 手（`マス*256+向きID`）。ネットが無ければ空（全手を試す）。"""
+        if self.nn is None:
+            return np.zeros(0, np.int64)
+        from .nn_encode import NC, NG, R, encode
+
+        sc = self.fast.scratch
+        planes = np.zeros((NC, R, R), np.float32)
+        glob = np.zeros(NG, np.float32)
+        x0, y0, k = encode(
+            S, self.fast.T, self.fast.P, sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g,
+            planes, glob, np.zeros(NF),
+        )  # fmt: skip
+        logits, _ = self.nn.forward(planes[None], glob[None])
+        logits = logits[0]
+        ti = int(S[10][SC_CUR])
+        vb = int(self.fast.T[11][ti])
+        codes = []
+        outside = []
+        for j in range(k):
+            cell, g = int(sc.out_cell[j]), int(sc.out_g[j])
+            x, y = cell // G - x0, cell % G - y0
+            if 0 <= x < R and 0 <= y < R:
+                codes.append((logits[(g - vb) * R * R + x * R + y], cell * 256 + g))
+            else:
+                outside.append(cell * 256 + g)  # 切り出しの外の手は方策が無いので残す
+        codes.sort(reverse=True)
+        return np.array([c for _, c in codes[: self.nn_topk]] + outside, np.int64)
 
     def act(self, state: State, rng: random.Random) -> Move:
         moves = state.legal_moves()

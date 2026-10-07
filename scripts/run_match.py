@@ -34,6 +34,7 @@ INT_KEYS = {
     "depth": "rollout_depth",
     "late": "late",
     "pv": "prior_visits",
+    "topk": "nn_topk",
 }
 BOOL_KEYS = {"fact": "factored"}
 FLOAT_KEYS = {
@@ -56,6 +57,8 @@ def parse_agent(spec: str):
             kwargs[INT_KEYS[key]] = int(value)
         elif key == "eval":
             kwargs["eval_path"] = value
+        elif key == "nn":
+            kwargs["nn_path"] = value
         elif key in BOOL_KEYS:
             kwargs[BOOL_KEYS[key]] = value not in ("0", "false", "False")
         elif key in FLOAT_KEYS:
