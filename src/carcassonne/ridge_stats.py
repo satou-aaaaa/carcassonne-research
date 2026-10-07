@@ -11,6 +11,8 @@ from pathlib import Path
 
 import numpy as np
 
+from .fast_eval import ridge_solve
+
 
 def stats_of(X: np.ndarray, y: np.ndarray) -> dict[str, np.ndarray]:
     return {
@@ -30,11 +32,11 @@ def merge(old: dict[str, np.ndarray] | None, new: dict[str, np.ndarray], decay: 
     return {k: decay * old[k] + new[k] for k in new}
 
 
-def solve_ridge(stats: dict[str, np.ndarray], lam: float) -> np.ndarray:
-    """バイアス項（最後の特徴）を正則化しないリッジ解。"""
-    reg = lam * np.eye(stats["xtx"].shape[0])
-    reg[-1, -1] = 0.0
-    return np.linalg.solve(stats["xtx"] + reg, stats["xty"])
+def solve_ridge(
+    stats: dict[str, np.ndarray], lam: float, prior: np.ndarray | None = None
+) -> np.ndarray:
+    """バイアス項を正則化しないリッジ解（prior は `fast_eval.ridge_solve` を参照）。"""
+    return ridge_solve(stats["xtx"], stats["xty"], lam, prior)
 
 
 def r2(stats: dict[str, np.ndarray], w: np.ndarray) -> float:
