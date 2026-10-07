@@ -1,10 +1,9 @@
-# (1) v6 の重みを固定し、追加7特徴の重みだけを残差で学習した v7_res と v6 の比較
-# (2) 報酬スケール60（sweep4 で強い傾向）を depth=10 の最強設定で再確認
-# 使い方: bash scripts/sweep16.sh
+# 特徴量を29個に増やした評価関数 v7 と、同じデータで22特徴のまま学習した対照 v7_lin22 を、v6 と比べる。
+# いずれも最強設定（12000回・depth=10）。使い方: bash scripts/sweep16.sh
 PY=${PY:-python}
 WORKERS=${WORKERS:-$(nproc 2>/dev/null || echo 4)}
 S="fmcts:sims=12000,depth=10"
 B="$S,eval=models/eval_v6_lin.npy"
-for A in "$S,eval=models/eval_v7_res.npy" "$S,scale=60,eval=models/eval_v6_lin.npy"; do
-  PYTHONIOENCODING=utf-8 $PY scripts/run_match.py "$A" "$B" --seeds 30 --start ${START:-300} --workers "$WORKERS" --log runs/sweep16.jsonl
+for M in eval_v7_lin eval_v7_lin22; do
+  PYTHONIOENCODING=utf-8 $PY scripts/run_match.py "$S,eval=models/$M.npy" "$B" --seeds 30 --start ${START:-200} --workers "$WORKERS" --log runs/sweep16.jsonl
 done
