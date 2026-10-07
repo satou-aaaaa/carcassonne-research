@@ -18,17 +18,17 @@
 ゲームの歴史・競技シーン・著名プレイヤーは [docs/BACKGROUND.md](docs/BACKGROUND.md) を参照。
 強いAIの指し方から初心者向けのコツをまとめたページは [docs/ai_tips.html](docs/ai_tips.html)（作り方はページ末尾）。
 
-## 現状（2026-10-05）
+## 現状（2026-10-07）
 
 - ルールエンジン（Python版・Numba高速版、全手で一致を検証）、ベースライン、決定化MCTS、
   自己対戦による評価関数の方策反復まで実装済み。
-- 最強設定（線形評価関数v6＋MCTS 12000回/手）は貪欲法に勝率79%（+16点）、ロールアウト版MCTSと同等の強さを
-  約1/2.5の時間で達成。詳細は [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md)。
+- 最強設定（線形評価関数v6＋MCTS 12000回/手＋評価前に10手のロールアウト）は、200局の検証で
+  貪欲法に勝率87%（+27点）、以前の最強（ロールアウト無し）に勝率65%（+9点）。詳細は [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md)。
 
 ```bash
 py -m venv .venv && .venv\Scripts\pip install pytest hypothesis ruff numpy numba pypdf
 .venv\Scripts\python -m pytest -q
-.venv\Scripts\python scripts/run_match.py "fmcts:sims=12000,eval=models/eval_v6_lin.npy" greedy --seeds 20 --workers 8
+.venv\Scripts\python scripts/run_match.py "fmcts:sims=12000,depth=10,eval=models/eval_v6_lin.npy" greedy --seeds 20 --workers 8
 ```
 
 ## 人間と対戦する
