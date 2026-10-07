@@ -54,3 +54,16 @@ def test_beats_greedy_with_modest_budget():
 
     s = run_match(partial(FastMCTSAgent, 800, 1, 0.3), GreedyAgent, range(6), workers=1)
     assert s.mean_diff_a > 0
+
+
+def test_fpu_and_prior_ordering_return_legal_moves():
+    # 評価値順の展開（prior_visits）と first-play urgency（fpu）を有効にしても合法手を返し、局面を壊さない
+    agent = FastMCTSAgent(
+        n_sims=300, eval_path="models/eval_v6_lin.npy", rollout_depth=2, fpu=0.6, prior_visits=5
+    )
+    st = State.new_game(25)
+    rng = random.Random(3)
+    for _ in range(6):
+        m = agent.act(st, rng)
+        assert m in st.legal_moves()
+        st.apply(m)

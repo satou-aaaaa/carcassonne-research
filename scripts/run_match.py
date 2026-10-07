@@ -28,13 +28,20 @@ FACTORIES = {
     "mcts": MCTSAgent,
     "fmcts": FastMCTSAgent,
 }
-INT_KEYS = {"sims": "n_sims", "det": "n_det", "depth": "rollout_depth", "late": "late"}
+INT_KEYS = {
+    "sims": "n_sims",
+    "det": "n_det",
+    "depth": "rollout_depth",
+    "late": "late",
+    "pv": "prior_visits",
+}
 BOOL_KEYS = {"fact": "factored"}
 FLOAT_KEYS = {
     "c": "c",
     "scale": "reward_scale",
     "meeple_cost": "meeple_cost",
     "mp": "meeple_prob",
+    "fpu": "fpu",
 }
 
 
