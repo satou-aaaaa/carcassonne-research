@@ -35,6 +35,7 @@ FLOAT_KEYS = {
     "scale": "reward_scale",
     "meeple_cost": "meeple_cost",
     "mp": "meeple_prob",
+    "fpu": "fpu",
 }
 
 
