@@ -1,5 +1,6 @@
 # 探索定数 c の調整。基準=v6線形・12000回・depth=10・c=0.5（現在の最強）
-# 使い方: bash scripts/sweep15.sh   （PY=python, WORKERS=CPU数 を環境変数で上書き可）
+# 使い方: bash scripts/sweeps/sweep15.sh   （PY=python, WORKERS=CPU数 を環境変数で上書き可）
+cd "$(dirname "$0")/../.."  # どこから実行してもリポジトリ直下で動かす
 PY=${PY:-python}
 WORKERS=${WORKERS:-$(nproc 2>/dev/null || echo 4)}
 E=eval=models/eval_v6_lin.npy

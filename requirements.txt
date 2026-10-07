@@ -1,5 +1,4 @@
 numpy
 numba
 pytest
-hypothesis
 ruff
