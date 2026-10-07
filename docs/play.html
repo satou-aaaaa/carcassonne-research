@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>カルカソンヌ 人間 vs AI</title>
+<title>AIと対戦 | カルカソンヌ入門</title>
 <style>
   .local-only { display:none; }
   :root { --bg:#f4f1ea; --panel:#fff; --ink:#2b2b2b; --muted:#777; --line:#ddd6c7; --p0:#d64541; --p1:#2f6fd6; --accent:#2e7d32; }
@@ -123,6 +123,10 @@
   </form>
 </dialog>
 
+<style>.server-only { display: none !important; } .local-only { display: block !important; }</style>
+<script src="play_data.js"></script>
+<script src="carcassonne_engine.js"></script>
+<script src="play_local.js"></script>
 <script>
 "use strict";
 const $ = id => document.getElementById(id);

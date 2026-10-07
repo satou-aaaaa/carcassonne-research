@@ -27,6 +27,7 @@
 | [docs/rules.html](docs/rules.html) | ルール入門（図と点数はエンジンで検算） | `scripts/build_rules_page.py` |
 | [docs/ai_tips.html](docs/ai_tips.html) | 強いAIの対局から学ぶコツ | `scripts/build_tips_page.py`（集計は `docs/results/`） |
 | [docs/quiz.html](docs/quiz.html) | 次の一手クイズ（入門編・実戦編） | `scripts/build_puzzles.py` |
+| [docs/play.html](docs/play.html) | AIと対戦（AIはブラウザの中で計算。サーバー不要） | `scripts/build_play_page.py` |
 
 共通のナビゲーションは `scripts/site_nav.py`。データやテンプレート（`web/*_template.html`）を直したら
 `scripts/build_pages.py` で作り直して `docs/` もコミットする（CI が作り直して差分がないか確かめる）。
@@ -70,6 +71,11 @@ python scripts/build_pages.py     # 公開ページ（docs/）をまとめて作
 PR の進め方（push 前の確認、ページの作り直し、マージの仕方）は `.claude/skills/steward/SKILL.md` にまとめている。
 
 ## 人間と対戦する
+
+公開ページの [AIと対戦](https://satou-aaaaa.github.io/carcassonne-research/play.html) なら、インストールなしでブラウザだけで遊べる。
+AI（評価関数v6＋MCTS 12000回＋10手のロールアウト）を JavaScript に移したもの（`web/carcassonne_engine.js`）が
+ブラウザの中で考える。ルールと特徴量は Python 版と毎手一致することを `tests/test_play_js.py` で確かめている（node が必要）。
+ブラウザ版の対局は記録されない。記録を取る人間評価は、次のローカル版で行う。
 
 ブラウザ上でAIと対戦できる（対局は `runs/human/games.jsonl` に記録される）。手順と評価方法は
 [docs/HUMAN_EVAL.md](docs/HUMAN_EVAL.md)。新しい対局の画面で「初心者モード」を選ぶと、自分の手のたびに

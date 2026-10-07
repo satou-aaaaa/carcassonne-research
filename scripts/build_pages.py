@@ -1,4 +1,4 @@
-"""公開ページ（docs/ の rules・ai_tips・quiz）をまとめて作り直す。
+"""公開ページ（docs/ の rules・ai_tips・quiz・play）をまとめて作り直す。
 
     py scripts/build_pages.py           # 作り直す
     py scripts/build_pages.py --check   # 作り直した結果がコミット済みの docs/ と同じか確かめる（CI用）
@@ -14,7 +14,12 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-BUILDERS = ["build_rules_page.py", "build_puzzles.py", "build_tips_page.py"]
+BUILDERS = [
+    "build_rules_page.py",
+    "build_puzzles.py",
+    "build_tips_page.py",
+    "build_play_page.py",
+]
 
 
 def main() -> None:
