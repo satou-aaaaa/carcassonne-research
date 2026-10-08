@@ -3,7 +3,7 @@
     py scripts/selfplay_loop.py run --root /mnt/project-files/carcassonne-runs/loop --minutes 50
     py scripts/selfplay_loop.py status --root /mnt/project-files/carcassonne-runs/loop
 
-初回の `run` で `--root` に状態を作り、初代チャンピオン（`--initial`、既定は最強設定の評価関数）
+初回の `run` で `--root` に状態を作り、初代チャンピオン（`--initial`、既定は `models/best.json` の最強の評価関数）
 から始める。設定（`--games` など）は初回だけ効き、以後は `state.json` の値を使う。
 指定した分数を過ぎたら、その時点の作業単位（数分）を終えてから止まる。続きは次の `run` で再開する。
 進み具合は `--root` の `progress.md`（世代ごとの成績表）と `log.txt` に残る。
@@ -27,7 +27,8 @@ def main() -> None:
     ap.add_argument("cmd", choices=["run", "status"])
     ap.add_argument("--root", default="runs/loop", help="状態・データ・重みを置くフォルダ")
     ap.add_argument("--minutes", type=float, default=50)
-    ap.add_argument("--initial", default=str(ROOT / "models" / "eval_v6_lin.npy"))
+    best = json.loads((ROOT / "models" / "best.json").read_text(encoding="utf-8"))["best"]
+    ap.add_argument("--initial", default=str(ROOT / best))
     defaults = Config()
     for k, v in vars(defaults).items():
         ap.add_argument(f"--{k.replace('_', '-')}", type=type(v), default=v)
