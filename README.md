@@ -39,7 +39,7 @@ GitHub Pages で公開するには、リポジトリの Settings → Pages で�
 
 - ルールエンジン（Python版・Numba高速版、全手で一致を検証）、ベースライン、決定化MCTS、
   自己対戦による評価関数の方策反復まで実装済み。
-- 最強設定（線形評価関数v6＋MCTS 12000回/手＋評価前に10手のロールアウト）は、200局の検証で
+- 最強設定（線形評価関数＋MCTS 12000回/手＋評価前に10手のロールアウト）は、v6 の200局の検証で
   貪欲法に勝率87%（+27点）、以前の最強（ロールアウト無し）に勝率65%（+9点）。詳細は [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md)。
 
 ## 環境構築
@@ -51,12 +51,12 @@ GitHub Pages で公開するには、リポジトリの Settings → Pages で�
 # Windows
 py -m venv .venv && .venv\Scripts\pip install -r requirements.txt
 .venv\Scripts\python -m pytest -q
-.venv\Scripts\python scripts/run_match.py "fmcts:sims=12000,depth=10,eval=models/eval_v6_lin.npy" greedy --seeds 20 --workers 8
+.venv\Scripts\python scripts/run_match.py "fmcts:sims=12000,depth=10,eval=models/eval_v9_block.npy" greedy --seeds 20 --workers 8
 
 # Linux / macOS
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/python -m pytest -q
-.venv/bin/python scripts/run_match.py "fmcts:sims=12000,depth=10,eval=models/eval_v6_lin.npy" greedy --seeds 20 --workers 8
+.venv/bin/python scripts/run_match.py "fmcts:sims=12000,depth=10,eval=models/eval_v9_block.npy" greedy --seeds 20 --workers 8
 ```
 
 PRを出す前やマージの前の確認は1コマンドでできる（CI も同じものを実行する）。
@@ -73,7 +73,7 @@ PR の進め方（push 前の確認、ページの作り直し、マージの仕
 ## 人間と対戦する
 
 公開ページの [AIと対戦](https://satou-aaaaa.github.io/carcassonne-research/play.html) なら、インストールなしでブラウザだけで遊べる。
-AI（評価関数v6＋MCTS 12000回＋10手のロールアウト）を JavaScript に移したもの（`web/carcassonne_engine.js`）が
+AI（評価関数v9＋MCTS 12000回＋10手のロールアウト）を JavaScript に移したもの（`web/carcassonne_engine.js`）が
 ブラウザの中で考える。ルールと特徴量は Python 版と毎手一致することを `tests/test_play_js.py` で確かめている（node が必要）。
 ブラウザ版の対局は記録されない。記録を取る人間評価は、次のローカル版で行う。
 

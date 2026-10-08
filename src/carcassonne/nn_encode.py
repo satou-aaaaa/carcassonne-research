@@ -4,7 +4,7 @@
   0 タイルあり / 1..12 各辺(4)の地形(都市・道・草原) / 13 修道院 / 14 盾 /
   15..22 各辺の特徴の持ち主（辺sごとに 自分が多数・相手が多数） / 23,24 修道院の持ち主（自分・相手） /
   25..28 手持ちタイルを向き vi で置ける合法マス
-盤全体の情報（`NG` 個）: 評価関数の特徴量（`fast_eval.features`、NF個）と手持ちタイル種別の one-hot。
+盤全体の情報（`NG` 個）: 評価関数の特徴量（`fast_eval.features` の先頭 NF_V7 個）と手持ちタイル種別の one-hot。
 方策の添字は `vi*R*R + x*R + y`（x, y は切り出し内の座標、vi は手持ちタイルの向き番号）。
 """
 
@@ -13,12 +13,12 @@ from __future__ import annotations
 from numba import njit
 
 from .fast import SC_CUR, SC_N, SC_PL, G, find, gen_placements
-from .fast_eval import NF, features
+from .fast_eval import NF_V7, features
 
 R = 25  # 切り出しの一辺（盤の中心から±12マス）
 NC = 29
 NTYPES = 24
-NG = NF + NTYPES
+NG = NF_V7 + NTYPES  # 妨害の特徴量（29〜）は nn_v1 の学習後に足したので入れない
 NPOL = 4 * R * R
 
 
@@ -89,8 +89,8 @@ def encode(S, T, P, stamp, stamp_box, out_cell, out_g, planes, glob, fbuf):
             planes[25 + out_g[j] - vbase[ti], x, y] = 1.0
     features(S, T, P, me, fbuf)
     glob[:] = 0.0
-    glob[:NF] = fbuf
-    glob[NF + ti] = 1.0
+    glob[:NF_V7] = fbuf[:NF_V7]
+    glob[NF_V7 + ti] = 1.0
     return x0, y0, k
 
 

@@ -15,7 +15,8 @@
   const C0 = 72; // 開始タイルの座標オフセット
   const NT = 72; // タイル総数
   const MEEPLES = 7;
-  const NF = 29; // 特徴量数（fast_eval.NF）
+  const NF = 36; // 特徴量数（fast_eval.NF）
+  const HARD = 3; // fast_eval.HARD
   const SC_N = 0, SC_PL = 1, SC_S0 = 2, SC_S1 = 3, SC_SUP0 = 4, SC_OVER = 6, SC_DRAW = 7, SC_CUR = 8, SC_DISC = 9;
   const SC_LEN = 10;
   const DIRCELL = [1, G, -1, -G]; // N,E,S,W
@@ -109,6 +110,10 @@
       this.pairC = new Int32Array(NT * P);
       this.pairF = new Int32Array(NT * P);
       this.done = new Int32Array(P);
+      this.mf = new Int32Array(NT * P);
+      this.fpc = new Int32Array(NT * P);
+      this.fpf = new Int32Array(NT * P);
+      this.cnt = new Int32Array(this.nvar.length);
       this.rng = new Rng(0);
     }
 
@@ -445,12 +450,94 @@
 
     // ---- 評価関数（fast_eval.features） -----------------------------------
 
+    // 空きマス cell に置ける残りタイルの枚数（fast_eval.n_fit）
+    nFit(S, cell, cnt) {
+      const req = this.req;
+      this.reqAt(S, cell, req);
+      let n = 0;
+      for (let ti = 0; ti < cnt.length; ti++) {
+        if (cnt[ti] === 0) continue;
+        for (let vi = 0; vi < this.nvar[ti]; vi++) {
+          const g = this.vbase[ti] + vi;
+          let ok = true;
+          for (let d = 0; d < 4; d++) {
+            if (req[d] >= 0 && req[d] !== this.edge[g * 4 + d]) { ok = false; break; }
+          }
+          if (ok) { n += cnt[ti]; break; }
+        }
+      }
+      return n;
+    }
+
+    // 未完成の都市とミープルのいる未完成の道・修道院の根ごとに、隣の空きマスに合う残りタイル枚数の最小値（fast_eval.min_fit）
+    minFit(S, out) {
+      const P = this.P, sc = S.sc, grid = S.grid, parent = S.parent, meep = S.meep, cnt = this.cnt;
+      cnt.fill(0);
+      for (let i = sc[SC_DRAW]; i < NT - 1; i++) cnt[S.deck[i]]++;
+      if (sc[SC_CUR] >= 0 && sc[SC_OVER] === 0) cnt[sc[SC_CUR]]++;
+      out.fill(1 << 20);
+      for (let t = 0; t < sc[SC_N]; t++) {
+        const g = S.tg[t], c0 = S.tcell[t];
+        for (let s = 0; s < 4; s++) {
+          const c = c0 + DIRCELL[s];
+          if (grid[c] !== 0) continue;
+          const a = this.sidepc[g * 4 + s];
+          if (a < 0) continue;
+          const r = find(parent, t * P + a);
+          if (S.kind[r] === 0 || meep[r * 2] + meep[r * 2 + 1] > 0) out[r] = Math.min(out[r], this.nFit(S, c, cnt));
+        }
+        const mp = this.mpiece[g];
+        if (mp >= 0) {
+          const r = find(parent, t * P + mp);
+          if (meep[r * 2] + meep[r * 2 + 1] > 0) {
+            for (let dx = -1; dx <= 1; dx++) {
+              for (let dy = -1; dy <= 1; dy++) {
+                const c = c0 + dx * G + dy;
+                if (grid[c] === 0) out[r] = Math.min(out[r], this.nFit(S, c, cnt));
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 自分が最多の草原に隣接する、未完成だが完成可能な都市の数×3（相手の分を引く。fast_eval.field_open_cities）
+    fieldOpenCities(S, me, mf) {
+      const P = this.P, parent = S.parent, meep = S.meep, pc = this.fpc, pf = this.fpf;
+      let np = 0, v = 0;
+      for (let t = 0; t < S.sc[SC_N]; t++) {
+        const g = S.tg[t];
+        for (let i = 0; i < this.npc[g]; i++) {
+          if (this.pkind[g * P + i] !== 0) continue;
+          const cr = find(parent, t * P + i);
+          if (S.opn[cr] === 0 || mf[cr] === 0) continue;
+          for (let j = 0; j < this.npc[g]; j++) {
+            if (!((this.cadj[g * P + i] >> j) & 1)) continue;
+            const fr = find(parent, t * P + j);
+            const m0 = meep[fr * 2], m1 = meep[fr * 2 + 1];
+            if (m0 + m1 === 0) continue;
+            let dup = false;
+            for (let q = 0; q < np; q++) if (pc[q] === cr && pf[q] === fr) { dup = true; break; }
+            if (dup) continue;
+            pc[np] = cr; pf[np] = fr; np++;
+            const top = Math.max(m0, m1), mine = me === 0 ? m0 : m1, theirs = me === 0 ? m1 : m0;
+            if (mine === top) v += 3;
+            if (theirs === top) v -= 3;
+          }
+        }
+      }
+      return v;
+    }
+
     features(S, me, out) {
       const P = this.P, sc = S.sc, pts = this.pts, parent = S.parent, meep = S.meep;
       out.fill(0);
       const sign0 = me === 0 ? 1 : -1;
       out[0] = sign0 * (sc[SC_S0] - sc[SC_S0 + 1]);
       this.endPoints(S, pts);
+      const mf = this.mf;
+      this.minFit(S, mf);
+      out[34] = this.fieldOpenCities(S, me, mf);
       for (let t = 0; t < sc[SC_N]; t++) {
         for (let i = 0; i < this.npc[S.tg[t]]; i++) {
           const n = t * P + i;
@@ -472,8 +559,16 @@
             const b = v / S.opn[n];
             if (mine === top) out[22] += b;
             if (theirs === top) out[22] -= b;
+            const q = mf[n] === 0 ? 31 : (mf[n] <= HARD ? 32 : -1);
+            if (q >= 0) {
+              if (mine === top) out[q] += b;
+              if (theirs === top) out[q] -= b;
+            }
           }
-          if (k !== 2) { out[24] += mine; out[25] += theirs; }
+          if (k !== 2) {
+            out[24] += mine; out[25] += theirs;
+            if (mf[n] === 0) { out[29] += mine; out[30] += theirs; }
+          }
           if (k === 3) {
             const room = 9 - v;
             if (mine === top) out[28] += room;
@@ -496,6 +591,8 @@
       out[26] = out[4] * rem;
       out[27] = out[2] * rem;
       out[28] *= rem;
+      out[33] = (out[29] - out[30]) * rem;
+      out[35] = out[34] * rem;
     }
 
     // ---- 探索（fast_mcts.run_tree / search_stats / search） ------------------

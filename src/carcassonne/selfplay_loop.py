@@ -153,7 +153,11 @@ class Loop:
             if not a - w < int(f.name[1:4]) <= a:
                 continue
             with np.load(f) as d:
-                Xs.append(d["X"])
+                X = d["X"]
+                if X.shape[1] < NF:
+                    # 特徴量を足す前のデータ: 新しい特徴量は 0 として使う（チャンピオンの重みも 0 から始まる）
+                    X = np.hstack([X, np.zeros((len(X), NF - X.shape[1]))])
+                Xs.append(X)
                 ys.append(d["y"])
                 ps.append(d["p"])
                 gs.append(d["g"] + off)
