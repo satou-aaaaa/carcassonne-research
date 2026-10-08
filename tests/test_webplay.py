@@ -1,3 +1,4 @@
+import copy
 import json
 import random
 
@@ -82,3 +83,42 @@ def test_coach_reports_loss_and_marks_record(tmp_path):
         g.human_move(p["x"], p["y"], p["v"], None)
     rec = json.loads((tmp_path / "g.jsonl").read_text(encoding="utf-8"))
     assert rec["coach"] is True
+
+
+def test_undo_restores_position_and_marks_record(tmp_path):
+    """待った: 自分の手とAIの返し手を取り消して同じ局面に戻り、記録に回数が残る。"""
+    g = HumanGame(6, 0, "test", RandomAgent(), "t", tmp_path / "g.jsonl")
+    rng = random.Random(6)
+    for _ in range(3):
+        p = rng.choice(g.view()["placements"])
+        g.human_move(p["x"], p["y"], p["v"], p["pieces"][0] if p["pieces"] else None)
+    before = copy.deepcopy(g.view())
+    p = rng.choice(before["placements"])
+    g.human_move(p["x"], p["y"], p["v"], p["pieces"][0] if p["pieces"] else None)
+    g.undo()
+    after = g.view()
+    for k in ("board", "scores", "supply", "meeples", "placements", "current", "player"):
+        assert after[k] == before[k], k
+    assert after["can_undo"] and g.undos == 1
+    while not g.st.over:
+        p = rng.choice(g.view()["placements"])
+        g.human_move(p["x"], p["y"], p["v"], None)
+    assert not g.view()["can_undo"]
+    rec = json.loads((tmp_path / "g.jsonl").read_text(encoding="utf-8"))
+    assert rec["undos"] == 1 and rec["hints"] == 0
+
+
+def test_hint_returns_legal_move(tmp_path):
+    from carcassonne.fast_mcts import FastMCTSAgent
+    from carcassonne.webplay import make_advisor
+
+    g = HumanGame(7, 0, "test", RandomAgent(), "t", tmp_path / "g.jsonl",
+                  advisor=make_advisor(FastMCTSAgent(n_sims=200)))  # fmt: skip
+    g.request_hint()
+    h = g.view()["hint"]
+    p = next(
+        q for q in g.view()["placements"] if (q["x"], q["y"], q["v"]) == (h["x"], h["y"], h["v"])
+    )
+    assert h["piece"] is None or h["piece"] in p["pieces"]
+    g.human_move(h["x"], h["y"], h["v"], h["piece"])
+    assert g.view()["hint"] is None and g.hints == 1
