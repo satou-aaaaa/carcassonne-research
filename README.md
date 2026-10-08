@@ -25,6 +25,7 @@
 |---|---|---|
 | [docs/index.html](docs/index.html) | トップ（各ページへの入口） | 手書き |
 | [docs/rules.html](docs/rules.html) | ルール入門（図と点数はエンジンで検算） | `scripts/build_rules_page.py` |
+| [docs/strategy.html](docs/strategy.html) | 戦略ガイド（考え方、タイルの内訳、穴の埋まりやすさ、序盤〜終盤、失敗例、用語集） | `scripts/build_strategy_page.py` |
 | [docs/ai_tips.html](docs/ai_tips.html) | 強いAIの対局から学ぶコツ | `scripts/build_tips_page.py`（集計は `docs/results/`） |
 | [docs/quiz.html](docs/quiz.html) | 次の一手クイズ（入門編・実戦編） | `scripts/build_puzzles.py` |
 | [docs/play.html](docs/play.html) | AIと対戦（AIはブラウザの中で計算。サーバー不要） | `scripts/build_play_page.py` |

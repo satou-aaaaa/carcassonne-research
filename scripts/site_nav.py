@@ -9,6 +9,7 @@ from __future__ import annotations
 PAGES = [
     ("index.html", "トップ"),
     ("rules.html", "ルール入門"),
+    ("strategy.html", "戦略ガイド"),
     ("ai_tips.html", "強いAIのコツ"),
     ("quiz.html", "次の一手クイズ"),
     ("play.html", "AIと対戦"),
