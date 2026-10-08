@@ -44,3 +44,13 @@ def test_loop_runs_and_resumes(tmp_path):
     assert loop.state["phase"] == "selfplay" and loop.attempt == 2
     assert loop.state["history"][0]["vs_initial"]["games"] == 2
     assert "採用" in (tmp_path / "progress.md").read_text(encoding="utf-8")
+
+
+def test_run_skips_when_locked(tmp_path):
+    cfg = Config(games=1, chunk=1, sims=10, depth=2, workers=1)
+    loop = Loop(tmp_path, cfg, "models/eval_v6_lin.npy")
+    (tmp_path / "lock").write_text("other")
+    assert not loop.run(0.0, log=lambda m: None)
+    assert (tmp_path / "lock").exists()
+    assert loop.run(0.0, log=lambda m: None, stale_minutes=0)  # 古いロックは奪う
+    assert not (tmp_path / "lock").exists()

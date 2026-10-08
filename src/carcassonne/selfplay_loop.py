@@ -292,10 +292,30 @@ class Loop:
             )
         (self.root / "progress.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-    def run(self, minutes: float, log=print) -> None:
-        """minutes 分を超えるまで単位作業を繰り返す（単位の途中では止めない）。"""
-        t0 = time.time()
-        while time.time() - t0 < minutes * 60:
-            t = time.time()
-            msg = self.step()
-            log(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {msg}（{time.time() - t:.0f}秒）")
+    def run(self, minutes: float, log=print, stale_minutes: float = 120) -> bool:
+        """minutes 分を超えるまで単位作業を繰り返す（単位の途中では止めない）。
+
+        同じフォルダで2つ同時に動かないよう `lock` ファイルを使う。別の実行中なら何もせず False を返す。
+        `lock` は単位ごとに更新し、stale_minutes 分更新が無ければ落ちた実行の残りとみなして奪う。
+        """
+        lock = self.root / "lock"
+        try:
+            fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            if time.time() - lock.stat().st_mtime < stale_minutes * 60:
+                log(f"{lock} があるので、別の実行が進行中とみなして終了します")
+                return False
+            lock.unlink(missing_ok=True)
+            fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        os.write(fd, f"{os.getpid()} {time.strftime('%Y-%m-%d %H:%M:%S')}\n".encode())
+        os.close(fd)
+        try:
+            t0 = time.time()
+            while time.time() - t0 < minutes * 60:
+                t = time.time()
+                msg = self.step()
+                os.utime(lock)
+                log(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {msg}（{time.time() - t:.0f}秒）")
+        finally:
+            lock.unlink(missing_ok=True)
+        return True
