@@ -81,3 +81,54 @@ def test_browser_ai_beats_greedy():
     wins = sum(r["diff_a"] > 0 for r in res)
     mean = sum(r["diff_a"] for r in res) / len(res)
     assert wins >= 6 and mean > 5, res
+
+
+def run_features(tiles: list, cases: list[dict]) -> list[dict]:
+    r = subprocess.run(
+        [NODE, str(ROOT / "tests" / "play_features_harness.js")],
+        input=json.dumps({"tiles": tiles, "cases": cases}),
+        capture_output=True, text=True, check=True, timeout=120,
+    )  # fmt: skip
+    return json.loads(r.stdout)
+
+
+def test_screen_features_match_python(tmp_path):
+    """対戦画面の特徴計算（play_features.js）が、毎手の予測得点と終局の得点内訳で Python 版と一致する。"""
+    import random
+
+    from carcassonne.agents import RandomAgent
+    from carcassonne.webplay import HumanGame, tile_library
+
+    tiles = tile_library()
+    cases, expect, end_cases, finals = [], [], [], []
+    for seed in range(6):
+        g = HumanGame(seed, seed % 2, "test", RandomAgent(), "t", tmp_path / "g.jsonl")
+        rng = random.Random(seed)
+        while True:
+            v = g.view()
+            if not v["over"]:
+                proj = g.st.projected_scores()
+                cases.append({"board": v["board"], "meeples": v["meeples"]})
+                expect.append([p - s for p, s in zip(proj, v["scores"])])
+            if v["over"]:
+                break
+            p = rng.choice(v["placements"])
+            piece = rng.choice(p["pieces"] + [None]) if p["pieces"] and rng.random() < 0.7 else None
+            g.human_move(p["x"], p["y"], p["v"], piece)
+        # 終局: 最後の1手を終局処理なしで指した得点 + 終局で加わる点数 = 最終得点
+        pre = State.new_game(seed)
+        *head, last = g.st.history
+        for x, y, _, vi, piece in head:
+            pre.apply(Move(x, y, vi, piece))
+        pre._finish = lambda pre=pre: setattr(pre, "over", True)
+        pre.apply(Move(last[0], last[1], last[3], last[4]))
+        end_cases.append({"board": g.view()["board"], "meeples": g.view()["end_meeples"]})
+        finals.append([f - s for f, s in zip(g.st.scores, pre.scores)])
+    got = run_features(tiles, cases + end_cases)
+    assert [r["total"] for r in got[: len(expect)]] == expect
+    ends = got[len(expect) :]
+    assert [r["total"] for r in ends] == finals
+    for r in ends:
+        for pl in (0, 1):
+            assert sum(r["kinds"][pl].values()) == r["total"][pl]
+    assert sum(sum(e) for e in expect) > 200  # ミープルのいる局面を十分に確かめている

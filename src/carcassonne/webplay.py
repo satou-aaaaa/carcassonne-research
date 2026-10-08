@@ -85,7 +85,7 @@ def make_coach(agent):
 def coach_text(c: dict) -> str:
     """ヒントの1行説明。"""
     b = c["best"]
-    ai = f"AIなら黄色い点線のマスに置き、{b['kind'] + 'にミープル' if b['kind'] else 'ミープルは置かない'}"
+    ai = f"AIなら紫の点線のマスに置き、{b['kind'] + 'にミープル' if b['kind'] else 'ミープルは置かない'}"
     if c["loss"] is None:
         return f"ヒント: AIがほとんど考えなかった手です。{ai}。"
     if c["loss"] < 1:
@@ -135,6 +135,7 @@ class HumanGame:
         self.coach = coach
         self.last_coach: dict | None = None
         self.saved = False
+        self.end_meeples: list[dict] = []  # 終局直前に盤上にいたミープル（終局の得点内訳用）
         self._mid = 0
         self._advance_ai()
 
@@ -153,7 +154,15 @@ class HumanGame:
             self.last_coach = self.coach(st, move, self.seed * 1000 + len(st.history))
         self._play(move)
         if self.last_coach is not None:
-            self.events.append({"player": self.human_seat, "text": coach_text(self.last_coach)})
+            b = self.last_coach["best"]
+            self.events.append(
+                {
+                    "player": self.human_seat,
+                    "text": coach_text(self.last_coach),
+                    "x": b["x"],
+                    "y": b["y"],
+                }
+            )
         self._advance_ai()
 
     def _advance_ai(self) -> None:
@@ -175,6 +184,8 @@ class HumanGame:
             self.meeples.append(
                 {"id": self._mid, "x": move.x, "y": move.y, "piece": move.piece, "player": player}
             )
+        if st.over:
+            self.end_meeples = list(self.meeples)
         # 回収されたミープル（特徴が完成/終局処理された）を除く
         self.meeples = [
             m
@@ -190,10 +201,10 @@ class HumanGame:
             if move.piece is not None
             else "ミープルなし"
         )
-        text = f"{who}: ({move.x},{move.y})に配置、{put}"
+        text = f"{who}: タイルを置き、{put}"
         if gain or opp:
             text += f" ／ 得点 {who}+{gain}" + (f" 相手+{opp}" if opp else "")
-        self.events.append({"player": player, "text": text})
+        self.events.append({"player": player, "text": text, "x": move.x, "y": move.y})
 
     # ---- 記録 ------------------------------------------------------------
 
@@ -251,6 +262,7 @@ class HumanGame:
             "remaining": st.remaining_counts(),
             "board": [{"x": x, "y": y, "t": t, "v": v} for (x, y), (t, v) in st.board.items()],
             "meeples": self.meeples,
+            "end_meeples": self.end_meeples if st.over else [],
             "last_ai": self.last_ai,
             "coach": self.coach is not None,
             "last_coach": self.last_coach,
