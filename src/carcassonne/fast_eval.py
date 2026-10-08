@@ -12,6 +12,7 @@ from numba import njit
 
 from .fast import (
     NT,
+    SC_CUR,
     SC_DRAW,
     SC_N,
     SC_OVER,
@@ -20,14 +21,91 @@ from .fast import (
     SC_S1,
     SC_SUP0,
     Fast,
+    G,
     apply_move,
+    dircell,
     end_points,
     find,
     random_move,
+    req_at,
 )
 
-NF = 29
+HARD = 3  # 「完成させにくい」とみなす、空きマスに合う残りタイルの枚数の上限
+
+
+@njit(cache=True)
+def remaining_counts(S, T):
+    """まだ置かれていないタイル（未公開の山札＋手元の1枚）の種別ごとの枚数。"""
+    sc, deck = S[10], S[11]
+    cnt = np.zeros(len(T[11]), np.int32)
+    for i in range(sc[SC_DRAW], NT - 1):
+        cnt[deck[i]] += 1
+    if sc[SC_CUR] >= 0 and sc[SC_OVER] == 0:
+        cnt[sc[SC_CUR]] += 1
+    return cnt
+
+
+@njit(cache=True)
+def n_fit(S, T, cell, cnt, req):
+    """空きマス cell に（どれかの向きで）置ける残りタイルの枚数。0 ならこのマスは二度と埋まらない。"""
+    edge, vbase, nvar = T[0], T[11], T[12]
+    req_at(S, T, cell, req)
+    n = 0
+    for ti in range(len(cnt)):
+        if cnt[ti] == 0:
+            continue
+        for vi in range(nvar[ti]):
+            g = vbase[ti] + vi
+            ok = True
+            for d in range(4):
+                if req[d] >= 0 and req[d] != edge[g, d]:
+                    ok = False
+                    break
+            if ok:
+                n += cnt[ti]
+                break
+    return n
+
+
+@njit(cache=True)
+def min_fit(S, T, P, out):
+    """未完成の都市（ミープルの有無によらない）と、ミープルのいる未完成の道・修道院の根ごとに、
+    隣の空きマスに合う残りタイル枚数の最小値を書く。
+
+    0 なら完成不能（相手に塞がれた、または合うタイルを使い切った）。それ以外の根は大きな値のまま。
+    """
+    grid, tg, tcell, parent, kind, meep = S[0], S[1], S[2], S[3], S[4], S[9]
+    sidepc, mpiece = T[8], T[10]
+    cnt = remaining_counts(S, T)
+    req = np.empty(4, np.int8)
+    out[:] = 1 << 20
+    for t in range(S[10][SC_N]):
+        g = tg[t]
+        c0 = tcell[t]
+        for s in range(4):
+            c = c0 + dircell(s)
+            if grid[c] != 0:
+                continue
+            a = sidepc[g, s]
+            if a < 0:
+                continue
+            r = find(parent, t * P + a)
+            if kind[r] == 0 or meep[r * 2] + meep[r * 2 + 1] > 0:
+                out[r] = min(out[r], n_fit(S, T, c, cnt, req))
+        mp = mpiece[g]
+        if mp >= 0:
+            r = find(parent, t * P + mp)
+            if meep[r * 2] + meep[r * 2 + 1] > 0:
+                for dx in range(-1, 2):
+                    for dy in range(-1, 2):
+                        c = c0 + dx * G + dy
+                        if grid[c] == 0:
+                            out[r] = min(out[r], n_fit(S, T, c, cnt, req))
+
+
+NF = 36
 NF_V6 = 22  # v6 までの特徴量数（旧形式の重み・MLPの読み込み用）
+NF_V7 = 29  # 妨害の特徴量（29〜33）を足す前の数（旧形式のMLP・nn_v1 の入力用）
 FEATURE_NAMES = (
     "score_diff",
     "proj_diff",
@@ -58,6 +136,13 @@ FEATURE_NAMES = (
     "proj_field_x_remaining",
     "proj_city_x_remaining",
     "monastery_room_x_remaining",
+    "dead_mine",
+    "dead_theirs",
+    "dead_city_bonus",
+    "hard_city_bonus",
+    "dead_x_remaining",
+    "field_open_cities",
+    "field_open_cities_x_remaining",
 )
 
 
@@ -71,6 +156,9 @@ def features(S, T, P, me, out):
     NN = NT * P
     pts = np.zeros(NN, np.int32)
     end_points(S, T, P, pts)
+    mf = np.empty(NN, np.int32)
+    min_fit(S, T, P, mf)
+    out[34] = field_open_cities(S, T, P, me, mf)
     parent, meep, tg, npc = S[3], S[9], S[1], T[1]
     for t in range(sc[SC_N]):
         for i in range(npc[tg[t]]):
@@ -110,10 +198,21 @@ def features(S, T, P, me, out):
                     out[22] += b
                 if theirs == top:
                     out[22] -= b
+                # 完成不能な都市には上乗せが来ない。合うタイルが少ない都市には来にくい
+                q = 31 if mf[r] == 0 else (32 if mf[r] <= HARD else -1)
+                if q >= 0:
+                    if mine == top:
+                        out[q] += b
+                    if theirs == top:
+                        out[q] -= b
             if k != 2:
                 # 未完成の都市・道・修道院に置いたミープル（終盤ほど戻ってこない）
                 out[24] += mine
                 out[25] += theirs
+                if mf[r] == 0:
+                    # 完成不能な特徴に閉じ込められたミープル（終局まで戻らない）
+                    out[29] += mine
+                    out[30] += theirs
             if k == 3:
                 room = 9.0 - v  # 修道院の周囲の空きマス（これから増える得点の上限）
                 if mine == top:
@@ -137,6 +236,56 @@ def features(S, T, P, me, out):
     out[26] = out[4] * rem
     out[27] = out[2] * rem
     out[28] *= rem
+    out[33] = (out[29] - out[30]) * rem
+    out[35] = out[34] * rem
+
+
+@njit(cache=True)
+def field_open_cities(S, T, P, me, mf):
+    """農民の取り分: 自分が最多の草原に隣接する、まだ完成していないが完成可能な都市の数×3（相手の分を引く）。
+
+    終局時の草原の得点は「隣接する完成都市×3」なので、これから完成しうる都市は草原の伸びしろになる。
+    """
+    tg, parent, opn, meep = S[1], S[3], S[5], S[9]
+    npc, pkind, cadj = T[1], T[2], T[7]
+    NN = NT * P
+    pc = np.empty(NN, np.int32)
+    pf = np.empty(NN, np.int32)
+    npairs = 0
+    v = 0.0
+    for t in range(S[10][SC_N]):
+        g = tg[t]
+        for i in range(npc[g]):
+            if pkind[g, i] != 0:
+                continue
+            cr = find(parent, t * P + i)
+            if opn[cr] == 0 or mf[cr] == 0:
+                continue
+            for j in range(npc[g]):
+                if (cadj[g, i] >> j) & 1:
+                    fr = find(parent, t * P + j)
+                    m0 = meep[fr * 2]
+                    m1 = meep[fr * 2 + 1]
+                    if m0 + m1 == 0:
+                        continue
+                    dup = False
+                    for q in range(npairs):
+                        if pc[q] == cr and pf[q] == fr:
+                            dup = True
+                            break
+                    if dup:
+                        continue
+                    pc[npairs] = cr
+                    pf[npairs] = fr
+                    npairs += 1
+                    top = max(m0, m1)
+                    mine = m0 if me == 0 else m1
+                    theirs = m1 if me == 0 else m0
+                    if mine == top:
+                        v += 3.0
+                    if theirs == top:
+                        v -= 3.0
+    return v
 
 
 @njit(cache=True)
@@ -167,9 +316,10 @@ def load_eval(path: str) -> tuple[np.ndarray, int]:
     w = np.load(path).astype(np.float64)
     if len(w) <= NF:
         return np.concatenate([w, np.zeros(NF - len(w))]), 1
-    for nf in (NF, NF_V6):
+    for nf in (NF, NF_V7, NF_V6):
         H = (len(w) - 2 * nf - 1) // (nf + 2)
-        if H > 0 and 2 * nf + nf * H + 2 * H + 1 == len(w):
+        # 長さだけでは形式が決まらないことがあるので、標準偏差の欄がすべて正であることも確かめる
+        if H > 0 and 2 * nf + nf * H + 2 * H + 1 == len(w) and np.all(w[nf : 2 * nf] > 0):
             break
     else:
         raise AssertionError("MLPパラメータ長が不正")

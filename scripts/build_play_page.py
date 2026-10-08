@@ -33,7 +33,7 @@ from carcassonne.webplay import tile_library
 
 DOCS = ROOT / "docs"
 WEB = ROOT / "web"
-EVAL = "models/eval_v6_lin.npy"  # 現行の最強設定（docs/EXPERIMENTS.md）の評価関数
+EVAL = "models/eval_v9_block.npy"  # 現行の最強設定（docs/EXPERIMENTS.md）の評価関数
 COPIES = ["carcassonne_engine.js", "play_features.js", "play_local.js", "play_worker.js"]
 TABLE_NAMES = [
     "edge", "npc", "pkind", "psides", "phalves", "ppen", "padj", "cadj",

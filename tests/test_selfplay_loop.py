@@ -54,3 +54,19 @@ def test_run_skips_when_locked(tmp_path):
     assert (tmp_path / "lock").exists()
     assert loop.run(0.0, log=lambda m: None, stale_minutes=0)  # 古いロックは奪う
     assert not (tmp_path / "lock").exists()
+
+
+def test_window_pads_data_from_before_new_features(tmp_path):
+    """特徴量を足す前（29個）のデータも、新しい特徴量を0として学習に使える。"""
+    cfg = Config(games=1, chunk=1, sims=10, depth=2, window=2, workers=1)
+    loop = Loop(tmp_path, cfg, "models/eval_v6_lin.npy")
+    n = 5
+    for name, nf in (("a001_00.npz", 29), ("a001_01.npz", NF)):
+        np.savez(
+            tmp_path / "data" / name,
+            X=np.ones((n, nf)), y=np.zeros(n), p=np.zeros(n, np.int64), g=np.zeros(n, np.int64),
+        )  # fmt: skip
+    X, _, _, g = loop.load_window()
+    assert X.shape == (2 * n, NF)
+    assert np.all(X[:n, 29:] == 0) and np.all(X[n:] == 1)
+    assert list(g) == [0] * n + [1] * n
