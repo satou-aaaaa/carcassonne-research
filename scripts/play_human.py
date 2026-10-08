@@ -21,7 +21,14 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from carcassonne.state import State
-from carcassonne.webplay import LEVELS, HumanGame, make_agent, make_coach, tile_library
+from carcassonne.webplay import (
+    LEVELS,
+    HumanGame,
+    make_advisor,
+    make_agent,
+    make_coach,
+    tile_library,
+)
 
 LOCK = threading.Lock()
 AGENTS: dict[str, object] = {}
@@ -89,6 +96,7 @@ class Handler(BaseHTTPRequestHandler):
                         get_agent(level),
                         str(data.get("name", ""))[:40],
                         coach=make_coach(get_agent("strong")) if data.get("coach") else None,
+                        advisor=make_advisor(get_agent("strong")),
                     )
                     self._json(GAME.view())
                 elif self.path == "/api/move":
@@ -101,6 +109,14 @@ class Handler(BaseHTTPRequestHandler):
                         int(data["variant"]),
                         None if piece is None else int(piece),
                     )
+                    self._json(GAME.view())
+                elif self.path in ("/api/undo", "/api/hint"):
+                    if GAME is None:
+                        raise ValueError("対局が始まっていません")
+                    if self.path == "/api/undo":
+                        GAME.undo()
+                    else:
+                        GAME.request_hint()
                     self._json(GAME.view())
                 else:
                     self._send(404, b"not found", "text/plain")

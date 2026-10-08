@@ -85,6 +85,12 @@
     return `ヒント: AIの見積もりでは最善より約${c.loss.toFixed(0)}点の損。${ai}。`;
   }
 
+  // 解析結果の手を画面用の dict にする（webplay._best_dict と同じ）
+  function bestDict(pieceKind, o) {
+    const [x, y] = C.xyOf(o.cell);
+    return { x, y, v: eng.gVi[o.g], piece: o.piece < 0 ? null : o.piece, kind: o.piece < 0 ? null : KIND_JA[pieceKind(o.g, o.piece)] };
+  }
+
   // ---- 対局（webplay.HumanGame と同じ） ------------------------------------
   class LocalGame {
     constructor(seed, humanSeat, level, name, coach) {
@@ -101,6 +107,10 @@
       this.last_ai = null;
       this.last_coach = null;
       this.end_meeples = [];  // 終局直前に盤上にいたミープル（終局の得点内訳用）
+      this.hint = null;  // 置く前のヒント
+      this.hints = 0;
+      this.undos = 0;
+      this.snaps = [];  // 人間の各手の直前の状態（待った用）
       this.mid = 0;
     }
 
@@ -111,15 +121,14 @@
       if (S.sc[C.SC_OVER] || S.sc[C.SC_PL] !== this.human_seat) throw new Error("あなたの手番ではありません");
       const cell = C.cellOf(x, y), g = eng.vbase[S.sc[C.SC_CUR]] + v, p = piece === null ? -1 : piece;
       if (!eng.legalMoves(S).some(m => m[0] === cell && m[1] === g && m[2] === p)) throw new Error("不正な手です");
+      this.snaps.push({ n: this.history.length, meeples: this.meeples.slice(), events: this.events.slice(), last_ai: this.last_ai, last_coach: this.last_coach, mid: this.mid });
       this.last_ai = null;
       this.last_coach = null;
+      this.hint = null;
       if (this.coach) {
         const opts = await compute({ kind: "analyze", deck: this.deck, history: this.history, seed: this.seed * 1000 + this.history.length });
-        const best = opts[0], [bx, by] = C.xyOf(best.cell);
-        this.last_coach = {
-          best: { x: bx, y: by, v: eng.gVi[best.g], piece: best.piece < 0 ? null : best.piece, kind: best.piece < 0 ? null : KIND_JA[this.pieceKind(best.g, best.piece)] },
-          loss: null,
-        };
+        const best = opts[0];
+        this.last_coach = { best: bestDict((g, p) => this.pieceKind(g, p), best), loss: null };
         const mine = opts.find(o => o.cell === cell && o.g === g && o.piece === p);
         if (mine) this.last_coach.loss = Math.round(Math.max(0, best.diff - mine.diff) * 10) / 10;
       }
@@ -127,6 +136,29 @@
       if (this.last_coach) this.events.push({ player: this.human_seat, text: coachText(this.last_coach), x: this.last_coach.best.x, y: this.last_coach.best.y });
       if (root.onInterimState) root.onInterimState(this.view());
       await this.advanceAi();
+    }
+
+    // 待った: 直前の自分の手（とそれに続くAIの手）を取り消す。局面は山札と着手列から作り直す
+    undo() {
+      if (this.S.sc[C.SC_OVER]) throw new Error("終局後は戻せません");
+      const sn = this.snaps.pop();
+      if (!sn) throw new Error("戻せる手がありません");
+      this.history = this.history.slice(0, sn.n);
+      this.S = eng.newGame(this.deck);
+      for (const [cell, g, piece] of this.history) eng.applyMove(this.S, cell, g, piece);
+      this.meeples = sn.meeples; this.events = sn.events; this.last_ai = sn.last_ai; this.last_coach = sn.last_coach; this.mid = sn.mid;
+      this.hint = null;
+      this.undos++;
+      this.events.push({ player: this.human_seat, text: "待った: 1手戻しました" });
+    }
+
+    // 置く前のヒント: 今の局面でのAIの最善手（最強設定の解析）
+    async requestHint() {
+      const S = this.S;
+      if (S.sc[C.SC_OVER] || S.sc[C.SC_PL] !== this.human_seat) throw new Error("あなたの手番ではありません");
+      const opts = await compute({ kind: "analyze", deck: this.deck, history: this.history, seed: this.seed * 1000 + 500 + this.history.length });
+      this.hint = bestDict((g, p) => this.pieceKind(g, p), opts[0]);
+      this.hints++;
     }
 
     async advanceAi() {
@@ -199,6 +231,8 @@
         last_ai: this.last_ai,
         coach: this.coach,
         last_coach: this.last_coach,
+        hint: this.hint,
+        can_undo: this.snaps.length > 0 && !over,
         events: this.events.slice(-40),
         placements,
         discarded: sc[C.SC_DISC],
@@ -224,6 +258,12 @@
     if (path === "/api/move") {
       if (!game) throw new Error("対局が始まっていません");
       await game.humanMove(Number(body.x), Number(body.y), Number(body.variant), body.piece === null || body.piece === undefined ? null : Number(body.piece));
+      return game.view();
+    }
+    if (path === "/api/undo" || path === "/api/hint") {
+      if (!game) throw new Error("対局が始まっていません");
+      if (path === "/api/undo") game.undo();
+      else await game.requestHint();
       return game.view();
     }
     throw new Error("not found");
