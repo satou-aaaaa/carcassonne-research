@@ -61,6 +61,9 @@ class Handler(BaseHTTPRequestHandler):
         if self.path in ("/", "/index.html"):
             html = (ROOT / "web" / "play.html").read_bytes()
             self._send(200, html, "text/html; charset=utf-8")
+        elif self.path == "/play_features.js":
+            js = (ROOT / "web" / "play_features.js").read_bytes()
+            self._send(200, js, "text/javascript; charset=utf-8")
         elif self.path == "/api/tiles":
             self._json({"tiles": tile_library(), "levels": LEVELS})
         elif self.path == "/api/state":

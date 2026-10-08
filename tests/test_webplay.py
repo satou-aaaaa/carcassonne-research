@@ -25,6 +25,8 @@ def test_full_game_and_record(tmp_path):
     for seed, seat in [(1, 0), (2, 1)]:
         g = _play(seed, seat, tmp_path)
         assert g.view()["meeples"] == []  # 終局時はすべて回収
+        # 棋譜ログの各行は盤上の場所を持つ（画面で押すとそのマスを示す）
+        assert all({"x", "y"} <= e.keys() for e in g.events)
     lines = (tmp_path / "g.jsonl").read_text(encoding="utf-8").splitlines()
     assert len(lines) == 2
     rec = json.loads(lines[0])

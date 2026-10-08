@@ -9,7 +9,8 @@ AIは Python 版（src/carcassonne/fast*.py）を JavaScript に移したもの�
 書き出すもの:
 - docs/play.html            web/play.html にブラウザ内対局用のスクリプトを差し込んだもの
 - docs/play_data.js         タイル定義・エンジン用テーブル・評価関数の重み
-- docs/carcassonne_engine.js, docs/play_local.js, docs/play_worker.js   web/ からの複写
+- docs/carcassonne_engine.js, docs/play_features.js, docs/play_local.js, docs/play_worker.js
+                            web/ からの複写
 
 評価関数は EVAL に固定している（models/best.json を追わない）。JavaScript 版は線形の評価関数しか
 扱えないため、best が別形式に変わっても公開ページが壊れないようにするため。強さを変えるときは
@@ -33,7 +34,7 @@ from carcassonne.webplay import tile_library
 DOCS = ROOT / "docs"
 WEB = ROOT / "web"
 EVAL = "models/eval_v6_lin.npy"  # 現行の最強設定（docs/EXPERIMENTS.md）の評価関数
-COPIES = ["carcassonne_engine.js", "play_local.js", "play_worker.js"]
+COPIES = ["carcassonne_engine.js", "play_features.js", "play_local.js", "play_worker.js"]
 TABLE_NAMES = [
     "edge", "npc", "pkind", "psides", "phalves", "ppen", "padj", "cadj",
     "sidepc", "halfpc", "mpiece", "vbase", "nvar",

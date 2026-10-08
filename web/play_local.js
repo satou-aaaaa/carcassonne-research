@@ -79,7 +79,7 @@
 
   function coachText(c) {
     const b = c.best;
-    const ai = `AIなら黄色い点線のマスに置き、${b.kind ? b.kind + "にミープル" : "ミープルは置かない"}`;
+    const ai = `AIなら紫の点線のマスに置き、${b.kind ? b.kind + "にミープル" : "ミープルは置かない"}`;
     if (c.loss === null) return `ヒント: AIがほとんど考えなかった手です。${ai}。`;
     if (c.loss < 1) return "ヒント: AIの最善手とほぼ同じ、いい手です。";
     return `ヒント: AIの見積もりでは最善より約${c.loss.toFixed(0)}点の損。${ai}。`;
@@ -100,6 +100,7 @@
       this.events = [];
       this.last_ai = null;
       this.last_coach = null;
+      this.end_meeples = [];  // 終局直前に盤上にいたミープル（終局の得点内訳用）
       this.mid = 0;
     }
 
@@ -123,7 +124,7 @@
         if (mine) this.last_coach.loss = Math.round(Math.max(0, best.diff - mine.diff) * 10) / 10;
       }
       this.play(cell, g, p);
-      if (this.last_coach) this.events.push({ player: this.human_seat, text: coachText(this.last_coach) });
+      if (this.last_coach) this.events.push({ player: this.human_seat, text: coachText(this.last_coach), x: this.last_coach.best.x, y: this.last_coach.best.y });
       if (root.onInterimState) root.onInterimState(this.view());
       await this.advanceAi();
     }
@@ -145,14 +146,15 @@
       eng.applyMove(S, cell, g, piece);
       this.history.push([cell, g, piece]);
       if (piece >= 0) this.meeples.push({ id: ++this.mid, x, y, piece, player });
+      if (S.sc[C.SC_OVER]) this.end_meeples = this.meeples.slice();
       // 回収されたミープル（特徴が完成/終局処理された）を除く
       this.meeples = this.meeples.filter(m => eng.meepleAt(S, m.x, m.y, m.piece, m.player));
       const gain = S.sc[C.SC_S0 + player] - before[player], opp = S.sc[C.SC_S0 + 1 - player] - before[1 - player];
       const who = player === this.human_seat ? "あなた" : "AI";
       const put = piece >= 0 ? `${KIND_JA[this.pieceKind(g, piece)]}にミープル` : "ミープルなし";
-      let text = `${who}: (${x},${y})に配置、${put}`;
+      let text = `${who}: タイルを置き、${put}`;
       if (gain || opp) text += ` ／ 得点 ${who}+${gain}` + (opp ? ` 相手+${opp}` : "");
-      this.events.push({ player, text });
+      this.events.push({ player, text, x, y });
     }
 
     view() {
@@ -193,6 +195,7 @@
         remaining,
         board,
         meeples: this.meeples,
+        end_meeples: over ? this.end_meeples : [],
         last_ai: this.last_ai,
         coach: this.coach,
         last_coach: this.last_coach,
