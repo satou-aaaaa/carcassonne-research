@@ -45,7 +45,7 @@ class Config:
     hidden: int = 32  # mlp の隠れ層
     lam: float = 0.7  # TD(λ) の λ
     ridge: float = 1000.0  # lin: チャンピオンの重みへの正則化の強さ
-    gate_seeds: int = 50  # 判定の組数（局数はその2倍）
+    gate_seeds: int = 100  # 判定の組数（局数はその2倍。100局では運で採用されることがあった）
     gate_chunk: int = 10  # 判定の1単位の組数
     threshold: float = 0.55  # 採用に必要な勝率
     anchor_seeds: int = 20  # 採用時に初代と対戦する組数（0で省略）
