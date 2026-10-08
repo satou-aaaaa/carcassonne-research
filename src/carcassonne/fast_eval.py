@@ -105,7 +105,7 @@ def min_fit(S, T, P, out):
 
 NF = 36
 NF_V6 = 22  # v6 までの特徴量数（旧形式の重み・MLPの読み込み用）
-NF_V7 = 29  # 妨害の特徴量（29〜33）を足す前の数（旧形式のMLP・nn_v1 の入力用）
+NF_V7 = 29  # 妨害・農民の特徴量（29〜35）を足す前の数（旧形式のMLP・nn_v1 の入力用）
 FEATURE_NAMES = (
     "score_diff",
     "proj_diff",
