@@ -50,6 +50,19 @@ def make_agent(level: str):
     return FastMCTSAgent(n_sims=sims, rollout_depth=depth, eval_path=best_eval_path())
 
 
+def _best_dict(st: State, best) -> dict:
+    """解析結果の手を、画面用の dict（マス・向き・断片・断片の種類）にする。"""
+    v = st.ts.types[st.current].variants[best.move.variant]
+    kind = KIND_JA[v.pieces[best.move.piece].kind] if best.move.piece is not None else None
+    return {
+        "x": best.move.x,
+        "y": best.move.y,
+        "v": best.move.variant,
+        "piece": best.move.piece,
+        "kind": kind,
+    }
+
+
 def make_coach(agent):
     """人間の着手を採点する関数を返す。agent は FastMCTSAgent（puzzles.analyze で根を解析する）。
 
@@ -62,24 +75,23 @@ def make_coach(agent):
     def coach(st: State, move: Move, seed: int) -> dict:
         opts = analyze(agent, st, seed)
         best = opts[0]  # 訪問数最大の手（AIが実際に指す手）
-        v = st.ts.types[st.current].variants[best.move.variant]
-        kind = KIND_JA[v.pieces[best.move.piece].kind] if best.move.piece is not None else None
-        out = {
-            "best": {
-                "x": best.move.x,
-                "y": best.move.y,
-                "v": best.move.variant,
-                "piece": best.move.piece,
-                "kind": kind,
-            },
-            "loss": None,
-        }
+        out = {"best": _best_dict(st, best), "loss": None}
         mine = next((o for o in opts if o.move == move), None)
         if mine is not None:
             out["loss"] = round(max(0.0, best.diff - mine.diff), 1)
         return out
 
     return coach
+
+
+def make_advisor(agent):
+    """置く前のヒント: (局面, 乱数シード) を受け取り、AIの最善手を画面用の dict で返す関数。"""
+    from .puzzles import analyze
+
+    def advise(st: State, seed: int) -> dict:
+        return _best_dict(st, analyze(agent, st, seed)[0])
+
+    return advise
 
 
 def coach_text(c: dict) -> str:
@@ -119,6 +131,7 @@ class HumanGame:
         name: str = "",
         log_path: str | Path | None = None,
         coach=None,
+        advisor=None,
     ) -> None:
         self.seed = seed
         self.human_seat = human_seat
@@ -136,6 +149,11 @@ class HumanGame:
         self.last_coach: dict | None = None
         self.saved = False
         self.end_meeples: list[dict] = []  # 終局直前に盤上にいたミープル（終局の得点内訳用）
+        self.advisor = advisor  # 置く前のヒント（make_advisor）
+        self.hint: dict | None = None
+        self.hints = 0  # ヒントを見た回数（記録用）
+        self.undos = 0  # 待ったの回数（記録用）
+        self._snaps: list[tuple] = []  # 人間の各手の直前の状態（待った用）
         self._mid = 0
         self._advance_ai()
 
@@ -148,8 +166,20 @@ class HumanGame:
         move = Move(x, y, variant, piece)
         if move not in st.legal_moves():
             raise ValueError("不正な手です")
+        self._snaps.append(
+            (
+                self.st.copy(),
+                list(self.meeples),
+                list(self.events),
+                list(self.moves),
+                self.last_ai,
+                self.last_coach,
+                self._mid,
+            )
+        )
         self.last_ai = None
         self.last_coach = None
+        self.hint = None
         if self.coach is not None:
             self.last_coach = self.coach(st, move, self.seed * 1000 + len(st.history))
         self._play(move)
@@ -164,6 +194,29 @@ class HumanGame:
                 }
             )
         self._advance_ai()
+
+    def undo(self) -> None:
+        """待った: 直前の自分の手（とそれに続くAIの手）を取り消し、その手の前に戻す。"""
+        if self.st.over:
+            raise ValueError("終局後は戻せません")
+        if not self._snaps:
+            raise ValueError("戻せる手がありません")
+        st, meeples, events, moves, last_ai, last_coach, mid = self._snaps.pop()
+        self.st, self.meeples, self.events, self.moves = st, meeples, events, moves
+        self.last_ai, self.last_coach, self._mid = last_ai, last_coach, mid
+        self.hint = None
+        self.undos += 1
+        self.events.append({"player": self.human_seat, "text": "待った: 1手戻しました"})
+
+    def request_hint(self) -> None:
+        """置く前のヒント: 今の局面でのAIの最善手を self.hint に入れる。"""
+        st = self.st
+        if st.over or st.player != self.human_seat:
+            raise ValueError("あなたの手番ではありません")
+        if self.advisor is None:
+            raise ValueError("ヒントは使えません")
+        self.hint = self.advisor(st, self.seed * 1000 + 500 + len(st.history))
+        self.hints += 1
 
     def _advance_ai(self) -> None:
         while not self.st.over and self.st.player != self.human_seat:
@@ -221,6 +274,8 @@ class HumanGame:
             "human_seat": h,
             "level": self.level,
             "coach": self.coach is not None,
+            "hints": self.hints,
+            "undos": self.undos,
             "ai": getattr(self.agent, "name", str(self.agent)),
             "scores": list(s),
             "human_score": s[h],
@@ -266,6 +321,8 @@ class HumanGame:
             "last_ai": self.last_ai,
             "coach": self.coach is not None,
             "last_coach": self.last_coach,
+            "hint": self.hint,
+            "can_undo": bool(self._snaps) and not st.over,
             "events": self.events[-40:],
             "placements": placements,
             "discarded": len(st.discarded),

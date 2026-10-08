@@ -51,6 +51,7 @@
   #remain { display:flex; flex-wrap:wrap; gap:4px; }
   #remain div { text-align:center; font-size:11px; color:var(--muted); width:38px; }
   #remain div.zero { opacity:.3; }
+  #remain div.fit { outline:2px solid #ff9800; border-radius:3px; color:var(--ink); font-weight:600; }
   #remain canvas { width:34px; height:34px; display:block; }
   label { display:block; margin:6px 0 2px; color:var(--muted); font-size:12px; }
   input, select { width:100%; font:inherit; padding:5px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--ink); }
@@ -125,6 +126,10 @@
         </div>
         <div class="row" id="pieceBtns"></div>
         <div class="row"><button class="primary" id="btnOk" disabled>確定<kbd class="kbd-only" style="color:inherit">Enter</kbd></button></div>
+        <div class="row">
+          <button id="btnHint" disabled title="AIならどこに置くかを仮置きで見せる">ヒント</button>
+          <button id="btnBack" disabled title="直前の自分の手とAIの返し手を取り消す">待った（1手戻す）</button>
+        </div>
       </div>
     </div>
     <div id="featInfo"></div>
@@ -146,6 +151,8 @@
       <li>最多ミープルの側が得点（同数なら両者満点）。</li>
       <li>置けないタイルは捨てて引き直し（手番は変わらない）。</li>
       <li>操作: 緑のマスを押してタイルを仮置き → 回転ボタンかタイルをもう一度押して向きを変える → ミープルを円かボタンで選ぶ → 確定。</li>
+      <li>「ヒント」でAIならどう置くかを仮置きで見られます。「待った」で直前の自分の手を取り消せます（ローカル版の記録には回数が残り、強さの集計からは除かれます）。</li>
+      <li>盤の空きマスにカーソルを合わせる（スマホは押す）と、そこに合うタイルが山札に何枚残っているかが出ます。</li>
       <li>盤の移動はドラッグ、拡大縮小はホイール（スマホは2本指）か右上のボタン。置いたミープルにカーソルを合わせる（スマホは押す）と、その特徴の範囲と点数が出ます。</li>
     </ul>
   </details>
@@ -187,7 +194,7 @@ if (TOUCH) document.documentElement.classList.add("touch");
 let LIB = [], LEVELS = {}, G = null;
 let view = {ox: 0, oy: 0, s: 72};
 let selV = 0, pending = null, hover = null, busy = false, lastForm = null;
-let inspect = null, inflight = null, hoverPiece = null;
+let inspect = null, inflight = null, hoverPiece = null, cellInfo = null;
 const cache = new Map();
 
 // ---------- タイル描画 ----------
@@ -403,6 +410,7 @@ function draw() {
   }
   // 調べている特徴（置いたミープルにカーソル／タップ）
   if (inspect && !pending) drawFeature(inspect.feature, inspect.color, .45);
+  if (cellInfo && !pending) { ctx.strokeStyle = "#ff9800"; ctx.lineWidth = 3; ctx.setLineDash([5, 4]); ctx.strokeRect(cellLeft(cellInfo.x)+2, cellTop(cellInfo.y)+2, s-4, s-4); ctx.setLineDash([]); }
   for (const m of G.meeples) drawMeeple(cellLeft(m.x), cellTop(m.y), m.piece, m.player, G.board.find(b => b.x === m.x && b.y === m.y));
   if (inflight && inflight.piece !== null) drawMeeple(cellLeft(inflight.x), cellTop(inflight.y), inflight.piece, G.human_seat, inflight);
   if (myTurn() && G.current !== null) {
@@ -429,7 +437,12 @@ function draw() {
     }
   }
   // 初心者モード: 直前の自分の手番でAIが選んだマス（紫の点線）
-  if (G.last_coach && (G.last_coach.loss === null || G.last_coach.loss >= 1) && !G.over) {
+  // 置く前のヒント（紫の点線＋「ヒント」）
+  if (G.hint && myTurn()) {
+    const c = G.hint;
+    ctx.strokeStyle = COACH; ctx.lineWidth = 4; ctx.setLineDash([7, 5]); ctx.strokeRect(cellLeft(c.x)+2, cellTop(c.y)+2, s-4, s-4); ctx.setLineDash([]);
+    if (s >= 40) tag(c.x, c.y, "ヒント", COACH);
+  } else if (G.last_coach && (G.last_coach.loss === null || G.last_coach.loss >= 1) && !G.over) {
     const c = G.last_coach.best;
     ctx.strokeStyle = COACH; ctx.lineWidth = 4; ctx.setLineDash([7, 5]); ctx.strokeRect(cellLeft(c.x)+2, cellTop(c.y)+2, s-4, s-4); ctx.setLineDash([]);
     if (s >= 40) tag(c.x, c.y, "おすすめ", COACH);
@@ -513,6 +526,38 @@ function candidateNear(px, py) {
   return best;
 }
 
+// ---------- 空きマスに合うタイル ----------
+const DIRS = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+// (x, y) に置けるタイルの種類と、山札に残る枚数（向きを問わず辺が合うもの）
+function fitsAt(x, y) {
+  const at = new Map(G.board.map(b => [keyOf(b.x, b.y), b]));
+  if (at.has(keyOf(x, y))) return null;
+  const need = DIRS.map(([dx, dy], s) => { const b = at.get(keyOf(x + dx, y + dy)); return b ? LIB[b.t].variants[b.v].edges[(s + 2) % 4] : null; });
+  if (need.every(e => e === null)) return null;  // 盤に接していないマス
+  const types = [];
+  let n = 0;
+  LIB.forEach((t, i) => {
+    if (!G.remaining[i]) return;
+    if (t.variants.some(vr => need.every((e, s) => e === null || vr.edges[s] === e))) { types.push(i); n += G.remaining[i]; }
+  });
+  return {types, n};
+}
+function setCellInfo(x, y) {
+  if (x === null || !G) { if (cellInfo) { cellInfo = null; refreshInfo(); markFits(); requestDraw(); } return; }
+  if (cellInfo && cellInfo.x === x && cellInfo.y === y) return;
+  const f = fitsAt(x, y);
+  if (!f) { setCellInfo(null); return; }
+  const total = G.remaining.reduce((a, b) => a + b, 0);
+  const text = f.n ? `この空きマスに合うタイルは、山札に残り${f.n}枚（全${total}枚中）。オレンジの枠のタイルです。`
+                   : "この空きマスに合うタイルは、もう山札にありません。ここは最後まで埋まりません。";
+  cellInfo = {x, y, text, types: f.types};
+  refreshInfo(); markFits(); requestDraw();
+}
+function markFits() {
+  const set = new Set(cellInfo && !pending ? cellInfo.types : []);
+  [...$("remain").children].forEach((d, i) => d.classList.toggle("fit", set.has(i)));
+}
+
 // ---------- 視点 ----------
 function bounds(cells) {
   const xs = cells.map(c => c.x), ys = cells.map(c => c.y);
@@ -585,11 +630,12 @@ window.addEventListener("pointermove", e => {
     } else {
       const m = meepleNear(px, py, view.s * .2);
       setInspect(m && m.x, m && m.y, m ? m.piece : null);
+      if (!m) setCellInfo(hover[0], hover[1]); else setCellInfo(null);
     }
     draw();
   }
 });
-cv.addEventListener("pointerleave", () => { hover = null; if (hoverPiece !== null) { hoverPiece = null; refreshInfo(); } draw(); });
+cv.addEventListener("pointerleave", () => { hover = null; if (hoverPiece !== null) { hoverPiece = null; refreshInfo(); } setCellInfo(null); draw(); });
 cv.addEventListener("contextmenu", e => { e.preventDefault(); cancelPending(); });
 cv.addEventListener("wheel", e => {
   e.preventDefault();
@@ -612,8 +658,15 @@ window.addEventListener("keydown", e => {
   if (e.key === "Escape") cancelPending();
   if (e.key === "Enter" && pending && myTurn()) { e.preventDefault(); confirmMove(); }
 });
-function startPending(p) {
-  pending = {x: p.x, y: p.y, v: p.v, pieces: p.pieces, piece: null}; selV = p.v; hoverPiece = null; inspect = null; refresh();
+function startPending(p, piece = null) {
+  pending = {x: p.x, y: p.y, v: p.v, pieces: p.pieces, piece}; selV = p.v; hoverPiece = null; inspect = null; cellInfo = null;
+  // スマホで盤が小さいときは、仮置きしたマスに寄って拡大する（ミープルの円を押しやすくする）
+  if (TOUCH && view.s < 56) {
+    const r = cv.getBoundingClientRect(), ns = 64;
+    viewAnim = {from: {...view}, to: {s: ns, ox: r.width/2 - (p.x + .5)*ns, oy: r.height/2 + (p.y - .5)*ns}, t0: performance.now()};
+    requestDraw();
+  }
+  refresh();
 }
 function onClick(e) {
   if (!G) return;
@@ -633,9 +686,10 @@ function onClick(e) {
     return cancelPending();
   }
   if (mine && cellPlacements(cx, cy).length) return startPending(preferred(cx, cy));
-  // 置いてあるミープルを押すと、その特徴の範囲と点数を出す
+  // 置いてあるミープルを押すと、その特徴の範囲と点数を出す。空きマスなら合うタイルの残り枚数
   const m = meepleNear(px, py, view.s * (TOUCH ? .3 : .2));
   setInspect(m && m.x, m && m.y, m ? m.piece : null);
+  setCellInfo(m ? null : cx, cy);
 }
 function cancelPending() { if (pending) { pending = null; hoverPiece = null; refresh(); } }
 function rotate() {
@@ -655,6 +709,24 @@ function confirmMove() {
 $("btnRot").onclick = rotate;
 $("btnUndo").onclick = cancelPending;
 $("btnOk").onclick = confirmMove;
+// 置く前のヒント: AIの最善手を受け取り、その手を仮置きにする
+$("btnHint").onclick = async () => {
+  if (!myTurn()) return;
+  busy = true; pending = null; refresh(); setHint("AIが考えています…（ヒント）");
+  try { G = await api("/api/hint", {}); }
+  catch (err) { alert(err.message); }
+  busy = false;
+  const h = G.hint, p = h && G.placements.find(q => q.x === h.x && q.y === h.y && q.v === h.v);
+  if (p) { ensureVisible([p]); startPending(p, h.piece); } else refresh();
+};
+// 待った: 直前の自分の手とAIの返し手を取り消す
+$("btnBack").onclick = async () => {
+  if (!G || !G.can_undo || busy) return;
+  busy = true; pending = null; refresh();
+  try { setState(await api("/api/undo", {})); }
+  catch (err) { alert(err.message); }
+  busy = false; refresh();
+};
 
 async function api(path, body) {
   if (window.LOCAL_API) return window.LOCAL_API(path, body);  // 公開ページ（docs/play.html）: ブラウザ内で対局する
@@ -673,7 +745,7 @@ window.onInterimState = v => setState(v);
 // 新しい盤面を受け取る。前の盤面との差分（新しいタイル・得点・回収されたミープル）を演出する
 function setState(next) {
   const prev = G, sent = inflight;
-  G = next; inflight = null; pending = null; inspect = null; hoverPiece = null;
+  G = next; inflight = null; pending = null; inspect = null; hoverPiece = null; cellInfo = null;
   selV = 0;
   if (G && G.current !== null && G.placements.length) selV = G.placements[0].v;
   if (prev && G && prev.seed === G.seed && prev.human_seat === G.human_seat && G.board.length >= prev.board.length) animateDiff(prev, G, sent);
@@ -728,9 +800,13 @@ function refreshInfo() {
   if (pending && myTurn()) {
     const shown = pending.piece !== null ? pending.piece : hoverPiece;
     if (shown !== null) { const B = pendingBoard(); t = featureText(B.feature(pending.x, pending.y, shown), B, G.meeples, true); }
+    const h = G.hint;
+    if (h && h.x === pending.x && h.y === pending.y && h.v === pending.v && h.piece === pending.piece)
+      t = `ヒント: AIならこう置きます（${h.kind ? h.kind + "にミープル" : "ミープルなし"}）。そのまま確定しても、変えてもかまいません。` + (t ? " " + t : "");
     else if (pending.pieces.length) t = "ミープルを置くなら、円かボタンで選びます。置くと黄色の範囲があなたの物になります。";
     else t = G.supply[G.human_seat] ? "このタイルにはミープルを置ける場所がありません。" : "手持ちのミープルがありません。";
   } else if (inspect) t = inspect.text;
+  else if (cellInfo) t = cellInfo.text;
   else if (!G.over && matchMedia("(max-width: 760px)").matches) t = lastCoachText();
   $("featInfo").textContent = t;
 }
@@ -763,6 +839,8 @@ function refresh() {
   $("btnRot").disabled = !mine || (pending ? cellPlacements(pending.x, pending.y).length <= 1 : curVariants() <= 1);
   $("btnUndo").disabled = !(mine && pending);
   $("btnOk").disabled = !(mine && pending);
+  $("btnHint").disabled = !mine || G.current === null;
+  $("btnBack").disabled = !(G.can_undo && !busy && G.player === h);
   $("btnOk").firstChild.textContent = pending ? (pending.piece !== null ? `確定（${pieceLabel(pending.piece, pending.pieces)}にミープル）` : "確定（ミープルなし）") : "確定";
   const pb = $("pieceBtns"); pb.innerHTML = "";
   if (mine && pending && pending.pieces.length) {
@@ -782,6 +860,7 @@ function refresh() {
     const c = document.createElement("canvas"); c.width = c.height = 68; c.getContext("2d").drawImage(tileCanvas(i, 0), 0, 0, 68, 68);
     d.appendChild(c); d.appendChild(document.createTextNode("×" + G.remaining[i])); rem.appendChild(d);
   });
+  markFits();
   // ヒント・結果
   const res = $("result");
   const keys = TOUCH ? "" : "（R: 回転、Enter: 確定、Esc: 取り消し）";

@@ -5,7 +5,8 @@
 
 出力は人間側の視点。同じシードを先後入れ替えて2局指した「ペア」があれば、ペア単位の
 得点差（2局の合計）も出す。山札の運と先手有利が打ち消されるため、こちらを主指標にする。
-初心者モード（AIのヒントあり）の対局は強さの測定にならないので、既定では除く（--with-coach で含める）。
+初心者モード（AIのヒントあり）や、置く前のヒント・待ったを使った対局は強さの測定にならないので、
+既定では除く（--with-coach で含める）。
 """
 
 from __future__ import annotations
@@ -35,7 +36,9 @@ def main() -> None:
     ap.add_argument("--log", default=str(ROOT / "runs" / "human" / "games.jsonl"))
     ap.add_argument("--name")
     ap.add_argument("--level")
-    ap.add_argument("--with-coach", action="store_true", help="初心者モードの対局も含める")
+    ap.add_argument(
+        "--with-coach", action="store_true", help="初心者モード・ヒント・待ったを使った対局も含める"
+    )
     args = ap.parse_args()
     path = Path(args.log)
     if not path.exists():
@@ -46,7 +49,7 @@ def main() -> None:
         for r in recs
         if (args.name is None or r["name"] == args.name)
         and (args.level is None or r["level"] == args.level)
-        and (args.with_coach or not r.get("coach"))
+        and (args.with_coach or not (r.get("coach") or r.get("hints") or r.get("undos")))
     ]
     groups: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for r in recs:
