@@ -86,6 +86,21 @@ AIの評価（最善手より何点損したか）と、AIならどこに置い�
 .venv\Scripts\python scripts/summarize_human.py
 ```
 
+## 自己対戦で強くなり続けるループ
+
+AlphaZero と同じ「自己対戦 → 学習 → 旧版と対戦 → 強ければ採用」を、CPUで回る規模で繰り返す
+（`src/carcassonne/selfplay_loop.py`）。1試行は、チャンピオン同士の自己対戦200局（2000回/手・depth=10）、
+直近4試行分のデータでの学習（TD(λ) の目標、線形はチャンピオンの重みへ正則化）、候補とチャンピオンの100局の対戦
+（勝率0.55以上で採用）。採用したら初代（v6）とも40局対戦して、通算の伸びを記録する。4コアで1試行あたり1時間弱。
+
+作業は数分単位に分かれていて、止まっても次の `run` で続きから再開する。状態・データ・世代ごとの重みは `--root` に置き、
+成績表は `--root/progress.md` に書く。
+
+```bash
+python scripts/selfplay_loop.py run --root /mnt/project-files/carcassonne-runs/loop --minutes 50
+python scripts/selfplay_loop.py status --root /mnt/project-files/carcassonne-runs/loop
+```
+
 ## 練習問題「次の一手」
 
 AIの自己対戦から「この局面ならどこに置く？」形式の初心者向け問題を作り、AIの評価と解説つきの
