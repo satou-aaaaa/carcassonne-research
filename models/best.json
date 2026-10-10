@@ -1,5 +1,5 @@
 {
-  "best": "models/eval_v9_block.npy",
+  "best": "models/eval_c5_lin.npy",
   "history": [
     {
       "version": "v6_lin",
@@ -33,6 +33,13 @@
       "promoted": true,
       "date": "2026-10-08",
       "note": "妨害・農民の伸びしろの特徴量（36個）。12000回/手・depth=10で v6 に60局"
+    },
+    {
+      "version": "c5_lin",
+      "win_rate_vs_best": 0.675,
+      "mean_diff": 4.85,
+      "promoted": true,
+      "date": "2026-10-10"
     }
   ]
 }
