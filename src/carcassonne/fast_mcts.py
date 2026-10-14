@@ -111,6 +111,7 @@ def run_tree(
     prior_visits,
     root_allow,
     chance,
+    farm=True,
 ):
     """1本の木を `sims` 回反復し、根の訪問数を agg1/agg2 に、報酬和を aggw1/aggw2 に加算する。
 
@@ -129,6 +130,8 @@ def run_tree(
     chance=1 のときは確率節点（タイル引き）を持つ木にする: 反復ごとに山札の未公開部分を
     引き直し、ミープル節点の次に「引いたタイル種別」を鍵とする確率節点を挟む。
     chance=0 は従来どおり、木ごとに固定した1つの山札並びで進める（将来のタイルが木に漏れる）。
+
+    farm=False なら、ロールアウトでは草原にミープルを置かない。
     """
     # 確率節点ありでは1反復で最大2節点（ミープル節点の子の確率節点＋その先の配置節点）増える
     N = 2 * sims + 4 if chance == 1 else sims + 2
@@ -311,7 +314,9 @@ def run_tree(
         if use_eval and wsc[SC_OVER] == 0:
             # 学習型評価関数: depth手のロールアウトで進めた後の局面を線形モデルで評価する
             if depth > 0:
-                rollout(W, T, P, meeple_prob, depth, stamp, stamp_box, out_cell, out_g, free, rec)
+                rollout(
+                    W, T, P, meeple_prob, depth, stamp, stamp_box, out_cell, out_g, free, rec, farm
+                )
             if wsc[SC_OVER] == 0:
                 features(W, T, P, 0, fbuf)
                 v0 = eval_value(eval_w, eval_mode, fbuf)
@@ -328,7 +333,7 @@ def run_tree(
                 # 評価関数を使わない葉（終盤の late 枚以下、または評価関数なし）は終局までロールアウト
                 rd = -1 if eval_mode >= 1 else depth
                 s0, s1 = rollout(
-                    W, T, P, meeple_prob, rd, stamp, stamp_box, out_cell, out_g, free, rec
+                    W, T, P, meeple_prob, rd, stamp, stamp_box, out_cell, out_g, free, rec, farm
                 )
             v0 = float(s0 - s1)
             v1m = -v0
@@ -379,6 +384,7 @@ def search_stats(
     prior_visits,
     root_allow,
     chance=0,
+    farm=True,
 ):
     """根局面 S から決定化MCTSを行い、根の候補ごとの訪問数と報酬和を返す。
 
@@ -404,7 +410,7 @@ def search_stats(
         run_tree(
             D, T, P, sims, c, scale, meeple_prob, depth, stamp, stamp_box,
             out_cell, out_g, free, rec, W, agg1, agg2, aggw1, aggw2, rp_cell, rp_g, k,
-            eval_w, eval_mode, fbuf, late, fpu, prior_visits, root_allow, chance,
+            eval_w, eval_mode, fbuf, late, fpu, prior_visits, root_allow, chance, farm,
         )  # fmt: skip
     return rp_cell, rp_g, agg1, aggw1, agg2, aggw2
 
@@ -434,12 +440,13 @@ def search(
     prior_visits,
     root_allow,
     chance=0,
+    farm=True,
 ):
     """根局面 S から決定化MCTSを行い、(マス, 向きID, 断片) を返す。"""
     rp_cell, rp_g, agg1, _, agg2, _ = search_stats(
         S, T, P, n_sims, n_det, c, scale, meeple_prob, depth, stamp, stamp_box,
         out_cell, out_g, free, rec, eval_w, eval_mode, fbuf, late, fpu, prior_visits,
-        root_allow, chance,
+        root_allow, chance, farm,
     )  # fmt: skip
     top = agg1.max()
     cands = np.where(agg1 == top)[0]
@@ -471,6 +478,7 @@ class FastMCTSAgent:
         nn_path: str | None = None,
         nn_topk: int = 8,
         chance: bool = False,
+        rollout_farm: bool = True,
     ) -> None:
         """eval_path に線形評価関数の重み(.npy)を渡すと、葉をその評価関数で評価する。
 
@@ -479,6 +487,8 @@ class FastMCTSAgent:
         EXPERIMENTS.md の既存の結果はすべてこの条件。確率節点版は同回数で優位を示せていないため既定にしない。
         """
         self.chance = chance
+        # False なら、ロールアウトでは草原（農民）にミープルを置かない
+        self.rollout_farm = rollout_farm
         self.n_sims = n_sims
         self.n_det = n_det
         self.c = c
@@ -510,6 +520,7 @@ class FastMCTSAgent:
             + (f",fpu={fpu:g}" if fpu >= 0 else "")
             + (f",pv={prior_visits}" if prior_visits else "")
             + (",chance" if chance else "")
+            + ("" if rollout_farm else ",rf=0")
             + (
                 f",nn={nn_path.replace(chr(92), '/').split('/')[-1]},topk={nn_topk}"
                 if nn_path
@@ -555,6 +566,7 @@ class FastMCTSAgent:
             self.prior_visits,
             self.root_allow(S),
             1 if self.chance else 0,
+            bool(self.rollout_farm),
         )
         return int(cell), int(g), int(piece)
 
