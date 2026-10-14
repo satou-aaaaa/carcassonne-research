@@ -35,6 +35,7 @@ INT_KEYS = {
     "late": "late",
     "pv": "prior_visits",
     "topk": "nn_topk",
+    "chance": "chance",
 }
 BOOL_KEYS = {"fact": "factored"}
 FLOAT_KEYS = {

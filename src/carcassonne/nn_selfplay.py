@@ -50,6 +50,7 @@ def _play_games(args):
                 S, T, P, agent.n_sims, 1, agent.c, scale, agent.meeple_prob,
                 depth, sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g, sc.free, sc.rec,
                 agent.eval_w, agent.eval_mode, agent.fbuf, 0, -1.0, 0, np.zeros(0, np.int64),
+                False,
             )  # fmt: skip
             pol = np.zeros(NPOL, np.float32)
             for k in range(len(cells)):
