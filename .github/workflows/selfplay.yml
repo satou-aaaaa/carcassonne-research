@@ -1,0 +1,99 @@
+name: selfplay
+
+# 自己対戦ループ（scripts/selfplay_loop.py）を GitHub Actions で回す。
+# 計算は Python だけで済むので、Claude を起こさずに CI で進める（公開リポジトリの Actions は無料）。
+#
+# 状態（state.json・直近の自己対戦データ・各世代の重み・progress.md）はブランチ selfplay-state の loop/ に置く。
+# 履歴を増やさないよう、そのブランチは毎回1コミットだけの状態で上書きする（main には入れない）。
+# selfplay-state ブランチが無いときは何もしない（共有フォルダから状態を移すまで、二重に回さないため）。
+# 新しく「採用」が出たときだけ Issue を立てて知らせる。
+
+on:
+  schedule:
+    # 6時間ごと（UTC 1:17, 7:17, 13:17, 19:17）。GitHub の cron は数分〜数十分遅れることがある
+    - cron: "17 1-23/6 * * *"
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: "回す分数（単位の途中では止めない）"
+        default: "300"
+
+concurrency:
+  group: selfplay
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  loop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - name: 状態ブランチがあるか確かめる
+        id: state
+        run: |
+          if git ls-remote --exit-code --heads origin selfplay-state >/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::selfplay-state ブランチが無いので何もしません（状態を移したら動き始めます）"
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.state.outputs.exists == 'true'
+        with:
+          ref: selfplay-state
+          path: state
+      - uses: actions/setup-python@v5
+        if: steps.state.outputs.exists == 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+        if: steps.state.outputs.exists == 'true'
+      - name: 自己対戦ループを回す
+        if: steps.state.outputs.exists == 'true'
+        env:
+          MINUTES: ${{ inputs.minutes || '300' }}
+        run: |
+          rm -f state/loop/lock
+          python -c "import json;print(sum(h['promoted'] for h in json.load(open('state/loop/state.json'))['history']))" > before.txt
+          python scripts/selfplay_loop.py run --root state/loop --minutes "$MINUTES"
+      - name: 古い自己対戦データを消す（学習に使うのは直近 window 試行分だけ）
+        if: always() && steps.state.outputs.exists == 'true'
+        run: |
+          rm -f state/loop/lock
+          python - <<'EOF'
+          import json
+          from pathlib import Path
+          root = Path("state/loop")
+          st = json.loads((root / "state.json").read_text(encoding="utf-8"))
+          window = st.get("config", {}).get("window", 4)
+          for f in (root / "data").glob("a*.npz"):
+              if int(f.name[1:4]) <= st["attempt"] - window:
+                  f.unlink()
+          EOF
+      - name: 状態を保存する
+        if: always() && steps.state.outputs.exists == 'true'
+        working-directory: state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan tmp
+          git add -A -f loop
+          git commit -q -m "自己対戦ループの状態 $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -f origin tmp:selfplay-state
+      - name: 新しく採用が出たら Issue で知らせる
+        if: steps.state.outputs.exists == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          before=$(cat before.txt)
+          after=$(python -c "import json;print(sum(h['promoted'] for h in json.load(open('state/loop/state.json'))['history']))")
+          if [ "$after" -gt "$before" ]; then
+            last=$(python -c "import json;h=[x for x in json.load(open('state/loop/state.json'))['history'] if x['promoted']][-1];print(f\"試行{h['attempt']}（勝率 {h['win_rate']:.3f}）\")")
+            { echo "自己対戦ループで新しいチャンピオンが採用されました: $last"; echo; cat state/loop/progress.md; echo; echo "状態: https://github.com/${{ github.repository }}/tree/selfplay-state/loop"; } > body.md
+            gh issue create --title "自己対戦ループ: $last を採用" --body-file body.md
+          fi

@@ -103,6 +103,10 @@ python scripts/selfplay_loop.py run --root /mnt/project-files/carcassonne-runs/l
 python scripts/selfplay_loop.py status --root /mnt/project-files/carcassonne-runs/loop
 ```
 
+定期実行は GitHub Actions（`.github/workflows/selfplay.yml`、6時間ごとに約5時間）で回す。計算だけなので Claude を使わない。
+状態はブランチ `selfplay-state` の `loop/` に置き、毎回1コミットで上書きする（学習に使わない古いデータは消す）。
+新しく採用が出たときだけ Issue が立つ。成績表は `selfplay-state` ブランチの `loop/progress.md`。
+
 ## 練習問題「次の一手」
 
 AIの自己対戦から「この局面ならどこに置く？」形式の初心者向け問題を作り、AIの評価と解説つきの
