@@ -125,7 +125,7 @@ def main() -> None:
     elapsed = (time.time() - t0) / 60
 
     # 4. 記録
-    today = date.today().isoformat()  # noqa: DTZ011
+    today = date.today().isoformat()
     line = (
         f"\n### 自動改善サイクル #{cycle}（{today}）\n"
         f"- データ: 新規{len(y)}局面（有効累計{int(stats['n'])}）、線形R²={r2:.3f}、所要{elapsed:.0f}分\n"
