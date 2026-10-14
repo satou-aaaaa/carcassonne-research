@@ -549,8 +549,11 @@ def init_game(S, T, P, deck, start_ti, stamp, stamp_box, out_cell, out_g):
 
 
 @njit(cache=True)
-def random_move(S, T, P, meeple_prob, stamp, stamp_box, out_cell, out_g, free):
-    """ロールアウト用: 配置は一様、ミープルは確率 meeple_prob で置ける断片から一様。"""
+def random_move(S, T, P, meeple_prob, stamp, stamp_box, out_cell, out_g, free, farm=True):
+    """ロールアウト用: 配置は一様、ミープルは確率 meeple_prob で置ける断片から一様。
+
+    farm=False なら草原（農民）には置かない。
+    """
     sc = S[10]
     ti = sc[SC_CUR]
     stamp_box[0] += 1
@@ -562,7 +565,7 @@ def random_move(S, T, P, meeple_prob, stamp, stamp_box, out_cell, out_g, free):
     if sc[SC_SUP0 + sc[SC_PL]] > 0 and np.random.random() < meeple_prob:
         nf = 0
         for pi in range(T[1][g]):
-            if piece_free(S, T, P, cell, g, pi):
+            if (farm or T[2][g, pi] != 2) and piece_free(S, T, P, cell, g, pi):
                 free[nf] = pi
                 nf += 1
         if nf > 0:
@@ -571,7 +574,9 @@ def random_move(S, T, P, meeple_prob, stamp, stamp_box, out_cell, out_g, free):
 
 
 @njit(cache=True)
-def rollout(S, T, P, meeple_prob, max_steps, stamp, stamp_box, out_cell, out_g, free, rec):
+def rollout(
+    S, T, P, meeple_prob, max_steps, stamp, stamp_box, out_cell, out_g, free, rec, farm=True
+):
     """S を破壊的に進める。max_steps<0で終局まで。戻り値は（予測）得点 (s0, s1)。
 
     rec[k] = (マス, 向きID, 断片) として着手を記録する（検証用。rec は NT 行以上）。
@@ -581,7 +586,9 @@ def rollout(S, T, P, meeple_prob, max_steps, stamp, stamp_box, out_cell, out_g, 
     while sc[SC_OVER] == 0:
         if max_steps >= 0 and steps >= max_steps:
             return projected(S, T, P)
-        cell, g, piece = random_move(S, T, P, meeple_prob, stamp, stamp_box, out_cell, out_g, free)
+        cell, g, piece = random_move(
+            S, T, P, meeple_prob, stamp, stamp_box, out_cell, out_g, free, farm
+        )
         rec[steps, 0] = cell
         rec[steps, 1] = g
         rec[steps, 2] = piece
