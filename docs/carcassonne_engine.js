@@ -598,13 +598,11 @@
     // ---- 探索（fast_mcts.run_tree / search_stats / search） ------------------
 
     // 根局面 S から決定化MCTSを1本の木で行い、根の候補ごとの訪問数と報酬和を返す。
-    // opts: {sims, c, scale, meepleProb, depth, w(線形の重み), late, chance}
-    // chance が真なら、反復ごとに山札の未公開部分を引き直し、着手の後に引いたタイルの種類で枝分かれする
-    // 確率節点を置く（fast_mcts.run_tree の chance）
+    // opts: {sims, c, scale, meepleProb, depth, w(線形の重み), late}
     searchStats(S, opts) {
       const P = this.P, rng = this.rng;
       const sims = Math.max(1, opts.sims), c = opts.c, scale = opts.scale, mp = opts.meepleProb;
-      const depth = opts.depth, ew = opts.w, late = opts.late || 0, chance = !!opts.chance;
+      const depth = opts.depth, ew = opts.w, late = opts.late || 0;
       const k0 = this.genPlacements(S, S.sc[SC_CUR], false);
       const rpCell = this.outCell.slice(0, k0), rpG = this.outG.slice(0, k0);
       const agg1 = new Float64Array(k0), aggw1 = new Float64Array(k0);
@@ -616,10 +614,9 @@
         const j = rng.randint(lo, i + 1);
         const tmp = deck[i]; deck[i] = deck[j]; deck[j] = tmp;
       }
-      const N = chance ? 2 * sims + 4 : sims + 2, POOL = (sims + 2) * 160;
+      const N = sims + 2, POOL = N * 160;
       const par = new Int32Array(N).fill(-1), fch = new Int32Array(N).fill(-1), nxt = new Int32Array(N).fill(-1);
       const ntype = new Int8Array(N), kcell = new Int32Array(N), kg = new Int16Array(N), kpiece = new Int16Array(N).fill(-1);
-      const ktile = new Int16Array(N).fill(-1);
       const vis = new Int32Array(N), wsum = new Float64Array(N), mover = new Int8Array(N).fill(-1);
       const ostart = new Int32Array(N), ocnt = new Int32Array(N).fill(-1);
       const optA = new Int32Array(POOL), optB = new Int16Array(POOL);
@@ -631,30 +628,10 @@
       let poolUsed = 0, nNodes = 1;
       for (let it = 0; it < sims; it++) {
         copyInto(W, root);
-        if (chance) { // 山札の未公開部分を反復ごとにシャッフル
-          const wd = W.deck;
-          for (let i = NT - 2; i > lo; i--) {
-            const j = rng.randint(lo, i + 1);
-            const tmp = wd[i]; wd[i] = wd[j]; wd[j] = tmp;
-          }
-        }
         let node = 0, plen = 1;
         path[0] = 0;
         for (;;) {
           const t = ntype[node];
-          if (t === 2) { // 確率節点: 引いたタイルの種類の子へ進む（無ければ作る）
-            if (wsc[SC_OVER] !== 0) break;
-            const ti = wsc[SC_CUR];
-            let ch = fch[node];
-            while (ch >= 0 && ktile[ch] !== ti) ch = nxt[ch];
-            if (ch < 0) {
-              ch = nNodes++;
-              par[ch] = node; nxt[ch] = fch[node]; fch[node] = ch; ktile[ch] = ti;
-            }
-            path[plen++] = ch;
-            node = ch;
-            continue;
-          }
           if (ocnt[node] < 0) { // 選択肢の初期化
             ostart[node] = poolUsed;
             let cnt = 0;
@@ -689,7 +666,7 @@
             fch[node] = nw;
             mover[nw] = wsc[SC_PL];
             if (t === 0) { ntype[nw] = 1; kcell[nw] = a; kg[nw] = b; }
-            else { ntype[nw] = chance ? 2 : 0; kpiece[nw] = a; this.applyMove(W, kcell[node], kg[node], a); }
+            else { ntype[nw] = 0; kpiece[nw] = a; this.applyMove(W, kcell[node], kg[node], a); }
             path[plen++] = nw;
             node = nw;
             break;
