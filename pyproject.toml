@@ -6,13 +6,12 @@ requires-python = ">=3.11"
 dependencies = ["numpy", "numba"]
 
 [project.optional-dependencies]
-dev = ["pytest", "hypothesis", "ruff"]
-analysis = ["pandas", "matplotlib"]
+dev = ["pytest", "ruff"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-markers = ["slow: 実行に時間のかかるテスト（CIの高速ジョブでは -m \"not slow\" で除外）"]
+markers = ["slow: 時間のかかる強さの検証（scripts/check.py --quick では飛ばす）"]
 
 [tool.ruff]
 line-length = 100

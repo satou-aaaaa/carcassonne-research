@@ -46,3 +46,32 @@ def test_r2_matches_direct_computation(tmp_path):
     loaded = ridge_stats.load(path)
     assert all(np.allclose(loaded[k], s[k]) for k in s)
     assert ridge_stats.load(tmp_path / "none.npz") is None
+
+
+def test_load_discards_stats_with_other_feature_count(tmp_path):
+    rng = np.random.default_rng(1)
+    X, y = rng.normal(size=(50, 4)), rng.normal(size=50)
+    path = tmp_path / "s.npz"
+    ridge_stats.save(ridge_stats.stats_of(X, y), path)
+    assert ridge_stats.load(path, 4) is not None
+    assert ridge_stats.load(path, 5) is None
+    assert ridge_stats.load(path) is not None
+
+
+def test_prior_is_kept_when_regularization_dominates():
+    X, y = make()
+    prior = np.arange(X.shape[1], dtype=float)
+    w = fit_ridge(X, y, 1e9, prior=prior).w
+    # バイアス（最後の列）以外は prior に張り付く
+    assert np.allclose(w[:-1], prior[:-1], atol=1e-3)
+
+
+def test_bias_feature_of_real_features_is_not_regularized():
+    from carcassonne.fast_eval import NF_V6, bias_index
+
+    rng = np.random.default_rng(0)
+    X = rng.normal(size=(300, NF_V6))
+    X[:, bias_index(NF_V6)] = 1.0
+    y = np.full(300, 5.0)
+    w = fit_ridge(X, y, 1e9).w
+    assert abs(w[bias_index(NF_V6)] - 5.0) < 1e-3

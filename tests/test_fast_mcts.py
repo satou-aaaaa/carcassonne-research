@@ -67,9 +67,47 @@ def test_chance_search_plays_full_game_to_the_end():
     assert st.over
 
 
-@pytest.mark.slow
+@pytest.mark.slow  # 約100秒。scripts/check.py --quick では飛ばす（CIでは必ず実行）
 def test_beats_greedy_with_modest_budget():
     from functools import partial
 
     s = run_match(partial(FastMCTSAgent, 800, 1, 0.3), GreedyAgent, range(6), workers=1)
     assert s.mean_diff_a > 0
+
+
+def test_fpu_and_prior_ordering_return_legal_moves():
+    # 評価値順の展開（prior_visits）と first-play urgency（fpu）を有効にしても合法手を返し、局面を壊さない
+    agent = FastMCTSAgent(
+        n_sims=300, eval_path="models/eval_v6_lin.npy", rollout_depth=2, fpu=0.6, prior_visits=5
+    )
+    st = State.new_game(25)
+    rng = random.Random(3)
+    for _ in range(6):
+        m = agent.act(st, rng)
+        assert m in st.legal_moves()
+        st.apply(m)
+
+
+def test_chance_nodes_combine_with_fpu_prior_and_eval():
+    # 確率節点（chance）を、評価関数・fpu・prior_visits と同時に有効にしても合法手を返す
+    agent = FastMCTSAgent(
+        n_sims=300,
+        eval_path="models/eval_v6_lin.npy",
+        rollout_depth=2,
+        fpu=0.6,
+        prior_visits=5,
+        chance=True,
+    )
+    assert "chance" in agent.name
+    st = State.new_game(28)
+    rng = random.Random(9)
+    for _ in range(6):
+        m = agent.act(st, rng)
+        assert m in st.legal_moves()
+        st.apply(m)
+
+
+def test_chance_off_by_default():
+    agent = FastMCTSAgent(n_sims=10)
+    assert agent.chance is False
+    assert "chance" not in agent.name

@@ -25,17 +25,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from carcassonne import State
 from carcassonne.agents import GreedyAgent
 from carcassonne.fast import (
-    SC_CUR,
     SC_PL,
     SC_SUP0,
     apply_move,
     copy_state,
-    gen_placements,
     piece_free,
     seed_rng,
 )
 from carcassonne.fast_eval import NF, eval_value, features, load_eval
-from carcassonne.fast_mcts import FastMCTSAgent, run_tree, shuffle_rest
+from carcassonne.fast_mcts import FastMCTSAgent, search_stats
 
 
 def ranks(a: np.ndarray) -> np.ndarray:
@@ -58,19 +56,10 @@ def spearman(a: np.ndarray, b: np.ndarray) -> float:
 def root_visits(agent: FastMCTSAgent, S, sims: int):
     """ロールアウト版MCTSの根の訪問数を、配置ごとに返す（cells, gs, visits）。"""
     fast, sc = agent.fast, agent.fast.scratch
-    sc.stamp_box[0] += 1
-    k = gen_placements(
-        S, fast.T, S[10][SC_CUR], sc.stamp, sc.stamp_box[0], sc.out_cell, sc.out_g, False
-    )
-    cells, gs = sc.out_cell[:k].copy(), sc.out_g[:k].copy()
-    agg1 = np.zeros(k, np.int64)
-    agg2 = np.zeros((k, fast.P + 1), np.int64)
-    D, W = copy_state(S), copy_state(S)
-    shuffle_rest(D)
-    run_tree(
-        D, fast.T, fast.P, sims, 0.5, 30.0, 0.3, -1, sc.stamp, sc.stamp_box, sc.out_cell,
-        sc.out_g, sc.free, sc.rec, W, agg1, agg2, cells, gs, k,
-        np.zeros(NF), 0, np.zeros(NF), 0,
+    cells, gs, agg1, _, _, _ = search_stats(
+        S, fast.T, fast.P, sims, 1, 0.5, 30.0, 0.3, -1, sc.stamp, sc.stamp_box, sc.out_cell,
+        sc.out_g, sc.free, sc.rec, np.zeros(NF), 0, np.zeros(NF), 0, -1.0, 0,
+        np.zeros(0, np.int64),
     )  # fmt: skip
     return cells, gs, agg1
 

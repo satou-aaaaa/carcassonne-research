@@ -28,13 +28,21 @@ FACTORIES = {
     "mcts": MCTSAgent,
     "fmcts": FastMCTSAgent,
 }
-INT_KEYS = {"sims": "n_sims", "det": "n_det", "depth": "rollout_depth"}
+INT_KEYS = {
+    "sims": "n_sims",
+    "det": "n_det",
+    "depth": "rollout_depth",
+    "late": "late",
+    "pv": "prior_visits",
+    "topk": "nn_topk",
+}
 BOOL_KEYS = {"fact": "factored", "chance": "chance"}
 FLOAT_KEYS = {
     "c": "c",
     "scale": "reward_scale",
     "meeple_cost": "meeple_cost",
     "mp": "meeple_prob",
+    "fpu": "fpu",
 }
 
 
@@ -49,6 +57,8 @@ def parse_agent(spec: str):
             kwargs[INT_KEYS[key]] = int(value)
         elif key == "eval":
             kwargs["eval_path"] = value
+        elif key == "nn":
+            kwargs["nn_path"] = value
         elif key in BOOL_KEYS:
             kwargs[BOOL_KEYS[key]] = value not in ("0", "false", "False")
         elif key in FLOAT_KEYS:
