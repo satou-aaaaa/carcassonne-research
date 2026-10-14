@@ -56,6 +56,18 @@ def copy_into(dst, src):
 
 
 @njit(cache=True)
+def shuffle_rest(S):
+    """山札の未公開部分（引き済みの手元タイルを除く残り）をその場でシャッフルする。"""
+    deck = S[11]
+    lo = S[10][SC_DRAW]
+    for i in range(NT - 2, lo, -1):
+        j = np.random.randint(lo, i + 1)
+        tmp = deck[i]
+        deck[i] = deck[j]
+        deck[j] = tmp
+
+
+@njit(cache=True)
 def reward_of(diff, scale):
     """mover視点の（予測）得点差 diff を [0,1] の報酬に変換する。scale<=0 なら勝敗報酬。"""
     if scale <= 0.0:
@@ -98,6 +110,7 @@ def run_tree(
     fpu,
     prior_visits,
     root_allow,
+    chance,
 ):
     """1本の木を `sims` 回反復し、根の訪問数を agg1/agg2 に、報酬和を aggw1/aggw2 に加算する。
 
@@ -112,9 +125,14 @@ def run_tree(
 
     root_allow が空でなければ、根では `マス*256+向きID` がこの中にある配置だけを試す
     （方策ネットの上位の手に絞る）。
+
+    chance=1 のときは確率節点（タイル引き）を持つ木にする: 反復ごとに山札の未公開部分を
+    引き直し、ミープル節点の次に「引いたタイル種別」を鍵とする確率節点を挟む。
+    chance=0 は従来どおり、木ごとに固定した1つの山札並びで進める（将来のタイルが木に漏れる）。
     """
-    N = sims + 2
-    POOL = N * 160
+    # 確率節点ありでは1反復で最大2節点（ミープル節点の子の確率節点＋その先の配置節点）増える
+    N = 2 * sims + 4 if chance == 1 else sims + 2
+    POOL = (sims + 2) * 160
     par = np.full(N, -1, np.int32)
     fch = np.full(N, -1, np.int32)
     nxt = np.full(N, -1, np.int32)
@@ -122,6 +140,7 @@ def run_tree(
     kcell = np.zeros(N, np.int32)
     kg = np.zeros(N, np.int16)
     kpiece = np.full(N, -1, np.int16)
+    ktile = np.full(N, -1, np.int16)
     vis = np.zeros(N, np.int32)
     wsum = np.zeros(N, np.float64)
     mover = np.full(N, -1, np.int8)
@@ -134,15 +153,39 @@ def run_tree(
     X = copy_state(root)
     pool_used = 0
     n_nodes = 1
-    path = np.zeros(NT * 2 + 4, np.int32)
+    path = np.zeros(NT * 3 + 4, np.int32)  # 1手あたり 配置・ミープル・確率節点の高々3段
     wsc = W[10]
     for _ in range(sims):
         copy_into(W, root)
+        if chance == 1:
+            shuffle_rest(W)
         node = 0
         path[0] = 0
         plen = 1
         while True:
             t = ntype[node]
+            if t == 2:  # 確率節点: 実際に引いたタイル種別の子へ進む（なければ作って葉にする）
+                tile = wsc[SC_CUR]
+                ch = fch[node]
+                while ch >= 0 and ktile[ch] != tile:
+                    ch = nxt[ch]
+                if ch >= 0:
+                    node = ch
+                    path[plen] = node
+                    plen += 1
+                    continue
+                new = n_nodes
+                n_nodes += 1
+                par[new] = node
+                nxt[new] = fch[node]
+                fch[node] = new
+                mover[new] = wsc[SC_PL]
+                ntype[new] = 0
+                ktile[new] = tile
+                path[plen] = new
+                plen += 1
+                node = new
+                break
             if ocnt[node] < 0:  # 選択肢の初期化
                 ostart[node] = pool_used
                 cnt = 0
@@ -231,12 +274,14 @@ def run_tree(
                     kcell[new] = a
                     kg[new] = b
                 else:
-                    ntype[new] = 0
+                    ntype[new] = 2 if chance == 1 else 0
                     kpiece[new] = a
                     apply_move(W, T, P, kcell[node], kg[node], a, stamp, stamp_box, out_cell, out_g)
                 path[plen] = new
                 plen += 1
                 node = new
+                if t == 1 and chance == 1:
+                    continue  # 確率節点を解決して、その先の葉まで進める
                 break
             if fch[node] < 0:  # 終端（選択肢なし）
                 break
@@ -333,11 +378,13 @@ def search_stats(
     fpu,
     prior_visits,
     root_allow,
+    chance=0,
 ):
     """根局面 S から決定化MCTSを行い、根の候補ごとの訪問数と報酬和を返す。
 
     戻り値は (マス, 向きID, 配置の訪問数, 配置の報酬和, 断片別の訪問数, 断片別の報酬和)。
     断片別の配列の列 q は断片 q-1（列0はミープルなし）。報酬は手番側視点。
+    chance=1 で確率節点版の木にする（`run_tree` を参照）。
     """
     sc = S[10]
     stamp_box[0] += 1
@@ -353,18 +400,11 @@ def search_stats(
     D = copy_state(S)
     for _ in range(n_det):
         copy_into(D, S)
-        # 山札の未公開部分（引き済みの手元タイルを除く残り）をシャッフル
-        deck = D[11]
-        lo = D[10][SC_DRAW]
-        for i in range(NT - 2, lo, -1):
-            j = np.random.randint(lo, i + 1)
-            tmp = deck[i]
-            deck[i] = deck[j]
-            deck[j] = tmp
+        shuffle_rest(D)
         run_tree(
             D, T, P, sims, c, scale, meeple_prob, depth, stamp, stamp_box,
             out_cell, out_g, free, rec, W, agg1, agg2, aggw1, aggw2, rp_cell, rp_g, k,
-            eval_w, eval_mode, fbuf, late, fpu, prior_visits, root_allow,
+            eval_w, eval_mode, fbuf, late, fpu, prior_visits, root_allow, chance,
         )  # fmt: skip
     return rp_cell, rp_g, agg1, aggw1, agg2, aggw2
 
@@ -393,12 +433,13 @@ def search(
     fpu,
     prior_visits,
     root_allow,
+    chance=0,
 ):
     """根局面 S から決定化MCTSを行い、(マス, 向きID, 断片) を返す。"""
     rp_cell, rp_g, agg1, _, agg2, _ = search_stats(
         S, T, P, n_sims, n_det, c, scale, meeple_prob, depth, stamp, stamp_box,
         out_cell, out_g, free, rec, eval_w, eval_mode, fbuf, late, fpu, prior_visits,
-        root_allow,
+        root_allow, chance,
     )  # fmt: skip
     top = agg1.max()
     cands = np.where(agg1 == top)[0]
@@ -429,11 +470,15 @@ class FastMCTSAgent:
         prior_visits: int = 0,
         nn_path: str | None = None,
         nn_topk: int = 8,
+        chance: bool = False,
     ) -> None:
         """eval_path に線形評価関数の重み(.npy)を渡すと、葉をその評価関数で評価する。
 
         その場合 rollout_depth は評価前に進めるランダム手数（未指定は0=評価のみ）。
+        chance=True で、タイル引きを確率節点としてモデル化する。既定の False は従来の固定山札で、
+        EXPERIMENTS.md の既存の結果はすべてこの条件。確率節点版は同回数で優位を示せていないため既定にしない。
         """
+        self.chance = chance
         self.n_sims = n_sims
         self.n_det = n_det
         self.c = c
@@ -464,6 +509,7 @@ class FastMCTSAgent:
             + (f",late={late}" if late else "")
             + (f",fpu={fpu:g}" if fpu >= 0 else "")
             + (f",pv={prior_visits}" if prior_visits else "")
+            + (",chance" if chance else "")
             + (
                 f",nn={nn_path.replace(chr(92), '/').split('/')[-1]},topk={nn_topk}"
                 if nn_path
@@ -508,6 +554,7 @@ class FastMCTSAgent:
             self.fpu,
             self.prior_visits,
             self.root_allow(S),
+            1 if self.chance else 0,
         )
         return int(cell), int(g), int(piece)
 
