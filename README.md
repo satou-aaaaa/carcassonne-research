@@ -71,6 +71,18 @@ python scripts/build_pages.py     # 公開ページ（docs/）をまとめて作
 
 PR の進め方（push 前の確認、ページの作り直し、マージの仕方）は `.claude/skills/steward/SKILL.md` にまとめている。
 
+### 実験スクリプト
+
+```bash
+python scripts/first_player.py fmcts:sims=2000 --games 400 --workers 4   # 先手有利の検定
+python scripts/eval_rank.py models/eval_v6_lin.npy --positions 40 --rollouts 30   # 評価関数の手の順位付け性能
+```
+
+- 対戦ログ（JSONL）は `--log docs/results/<name>.jsonl` でリポジトリに残す（`runs/` はgit管理外の作業用）。
+- 探索の既定は従来の固定山札版。`chance=1`（例: `"fmcts:sims=2000,chance=1"`）でタイル引きを確率節点としてモデル化できる
+  （同回数では優位を示せていない。`docs/EXPERIMENTS.md`）。
+- 自動改善サイクル（`scripts/improve_cycle.py`）の昇格判定はSPRT（逐次確率比検定）。
+
 ## 人間と対戦する
 
 公開ページの [AIと対戦](https://satou-aaaaa.github.io/carcassonne-research/play.html) なら、インストールなしでブラウザだけで遊べる。
@@ -102,6 +114,10 @@ AlphaZero と同じ「自己対戦 → 学習 → 旧版と対戦 → 強けれ�
 python scripts/selfplay_loop.py run --root /mnt/project-files/carcassonne-runs/loop --minutes 50
 python scripts/selfplay_loop.py status --root /mnt/project-files/carcassonne-runs/loop
 ```
+
+定期実行は GitHub Actions（`.github/workflows/selfplay.yml`、6時間ごとに約5時間）で回す。計算だけなので Claude を使わない。
+状態はブランチ `selfplay-state` の `loop/` に置き、毎回1コミットで上書きする（学習に使わない古いデータは消す）。
+新しく採用が出たときだけ Issue が立つ。成績表は `selfplay-state` ブランチの `loop/progress.md`。
 
 ## 練習問題「次の一手」
 
