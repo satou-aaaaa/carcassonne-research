@@ -1,11 +1,8 @@
 name: Branch cleanup
 
-# 使い終わったブランチを週1回片付ける（Claude は使わない）。消すのは、次のすべてに当てはまるものだけ。
-#   - main（既定のブランチ）でも、KEEP に書いた状態保存用のブランチでも、保護されたブランチでもない
-#   - 開いている PR が無い
-#   - 先頭のコミットが KEEP_DAYS 日より古い
-#   - 中身が main に入っている（main より先のコミットが無い）か、その先頭のコミットのまま PR がマージ済み
-# マージされていない作業中のブランチは、古くても消さない。消したブランチは PR の画面の「Restore branch」で戻せる。
+# 使い終わったブランチを週1回片付ける（Claude は使わない）。中身と消す条件は共通部品 satou-aaaaa/shared-workflows にある。
+# 消すのは main に入ったもの・その先頭のコミットのまま PR がマージ済みのものだけで、作業中・PR が開いているもの・
+# 7日より新しいもの・下の keep に書いた状態保存用のブランチは消さない。消したブランチは PR の画面の「Restore branch」で戻せる。
 # 手で動かすときは dry_run を選ぶと、消す候補を一覧にするだけで何も消さない。
 on:
   schedule:
@@ -22,47 +19,10 @@ permissions:
   contents: write
   pull-requests: read
 
-concurrency:
-  group: branch-cleanup
-  cancel-in-progress: false
-
-env:
-  KEEP: '^(selfplay-state|gh-pages)$'
-  KEEP_DAYS: '7'
-
 jobs:
   cleanup:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - name: 片付ける
-        env:
-          GH_TOKEN: ${{ github.token }}
-          R: ${{ github.repository }}
-          OWNER: ${{ github.repository_owner }}
-          DEFAULT: ${{ github.event.repository.default_branch }}
-          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
-        run: |
-          set -euo pipefail
-          cutoff=$(date -u -d "-${KEEP_DAYS} days" +%s)
-          echo "## ブランチの片付け（dry_run=${DRY_RUN}）" >> "$GITHUB_STEP_SUMMARY"
-          deleted=0; kept=0
-          while IFS=$'\t' read -r b protected sha; do
-            if [ "$b" = "$DEFAULT" ] || [ "$protected" = true ] || [[ "$b" =~ $KEEP ]]; then continue; fi
-            if [ "$(gh api "repos/$R/pulls?state=open&head=$OWNER:$b" --jq length)" != 0 ]; then kept=$((kept+1)); continue; fi
-            d=$(gh api "repos/$R/commits/$sha" --jq .commit.committer.date)
-            if [ "$(date -u -d "$d" +%s)" -gt "$cutoff" ]; then kept=$((kept+1)); continue; fi
-            ahead=$(gh api "repos/$R/compare/$DEFAULT...$sha" --jq .ahead_by)
-            merged=$(gh api "repos/$R/pulls?state=closed&head=$OWNER:$b&per_page=100" \
-              --jq "[.[] | select(.merged_at != null and .head.sha == \"$sha\")] | length")
-            if [ "$ahead" != 0 ] && [ "$merged" = 0 ]; then kept=$((kept+1)); continue; fi
-            if [ "$DRY_RUN" = true ]; then
-              echo "- 候補: \`$b\`（最後のコミット $d）" >> "$GITHUB_STEP_SUMMARY"
-            else
-              gh api -X DELETE "repos/$R/git/refs/heads/$b" >/dev/null
-              echo "- 消した: \`$b\`（最後のコミット $d）" >> "$GITHUB_STEP_SUMMARY"
-            fi
-            deleted=$((deleted+1))
-          done < <(gh api --paginate "repos/$R/branches?per_page=100" --jq '.[] | [.name, .protected, .commit.sha] | @tsv')
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "対象 ${deleted} 本、残した ${kept} 本（作業中・PRが開いている・新しい）" >> "$GITHUB_STEP_SUMMARY"
+    uses: satou-aaaaa/shared-workflows/.github/workflows/branch-cleanup.yml@main
+    with:
+      keep: '^(selfplay-state|gh-pages)$'
+      keep_days: 7
+      dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
