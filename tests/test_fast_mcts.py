@@ -111,3 +111,13 @@ def test_chance_off_by_default():
     agent = FastMCTSAgent(n_sims=10)
     assert agent.chance is False
     assert "chance" not in agent.name
+
+
+def test_rollout_reshuffle_gives_legal_moves():
+    st = State.new_game(27)
+    rng = random.Random(8)
+    for _ in range(10):
+        st.apply(rng.choice(st.legal_moves()))
+    agent = FastMCTSAgent(n_sims=150, rollout_depth=6, rollout_reshuffle=True)
+    assert "rs=1" in agent.name
+    assert agent.act(st, random.Random(9)) in st.legal_moves()
