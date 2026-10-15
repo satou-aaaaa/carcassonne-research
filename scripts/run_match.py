@@ -36,7 +36,12 @@ INT_KEYS = {
     "pv": "prior_visits",
     "topk": "nn_topk",
 }
-BOOL_KEYS = {"fact": "factored", "chance": "chance", "rf": "rollout_farm"}
+BOOL_KEYS = {
+    "fact": "factored",
+    "chance": "chance",
+    "rf": "rollout_farm",
+    "rs": "rollout_reshuffle",
+}
 FLOAT_KEYS = {
     "c": "c",
     "scale": "reward_scale",

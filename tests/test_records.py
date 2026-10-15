@@ -38,3 +38,16 @@ def test_ext_features_finite_and_symmetric():
         assert np.isclose(f0[9], f1[10]) and np.isclose(f0[10], f1[9])
         assert np.isclose(f0[0], -f1[0]) and np.isclose(f0[2], f1[3])
         assert f0[2] >= 0.0 and f0[3] >= 0.0
+
+
+def test_leaf_data_depth0_equals_real_features():
+    """depth=0 のロールアウトは局面を動かさないので、ロールアウト先の特徴量は実局面と一致する。"""
+    from carcassonne.rollout_fit import records_to_leaf_data
+
+    decks, moves, nmoves = play_records(KW, 1, 1, seed=5)
+    X, L, Lo, fin, y, _, _ = records_to_leaf_data(decks, moves, nmoves, k=2, depth=0)
+    np.testing.assert_allclose(L, X)
+    assert (fin == 0).all() and len(y) == int(nmoves[0]) and L.shape == Lo.shape
+    _, L, _, fin, _, _, _ = records_to_leaf_data(decks, moves, nmoves, k=2, depth=10)
+    # 終盤は10手で終局するロールアウトがあり、その分は得点差として fin に入る
+    assert np.isfinite(L).all() and (fin[-3:] != 0).any()

@@ -112,6 +112,7 @@ def run_tree(
     root_allow,
     chance,
     farm=True,
+    rshuf=0,
 ):
     """1本の木を `sims` 回反復し、根の訪問数を agg1/agg2 に、報酬和を aggw1/aggw2 に加算する。
 
@@ -132,6 +133,9 @@ def run_tree(
     chance=0 は従来どおり、木ごとに固定した1つの山札並びで進める（将来のタイルが木に漏れる）。
 
     farm=False なら、ロールアウトでは草原にミープルを置かない。
+
+    rshuf=1 なら、木の中（chance=0 の固定山札）はそのままに、葉から先のロールアウトの前に山札の未公開部分を
+    引き直す。木ごとに1つの山札並びに合わせて手を選ぶ偏りを、木の統計を分散させずに減らす。
     """
     # 確率節点ありでは1反復で最大2節点（ミープル節点の子の確率節点＋その先の配置節点）増える
     N = 2 * sims + 4 if chance == 1 else sims + 2
@@ -309,6 +313,8 @@ def run_tree(
         # 評価
         if ntype[node] == 1:  # ミープル節点が葉: ミープルなしで置いた後を評価
             apply_move(W, T, P, kcell[node], kg[node], -1, stamp, stamp_box, out_cell, out_g)
+        if rshuf == 1 and chance == 0:
+            shuffle_rest(W)
         v0 = 0.0
         use_eval = eval_mode >= 1 and (NT - 1 - wsc[SC_DRAW]) > late
         if use_eval and wsc[SC_OVER] == 0:
@@ -385,6 +391,7 @@ def search_stats(
     root_allow,
     chance=0,
     farm=True,
+    rshuf=0,
 ):
     """根局面 S から決定化MCTSを行い、根の候補ごとの訪問数と報酬和を返す。
 
@@ -410,7 +417,7 @@ def search_stats(
         run_tree(
             D, T, P, sims, c, scale, meeple_prob, depth, stamp, stamp_box,
             out_cell, out_g, free, rec, W, agg1, agg2, aggw1, aggw2, rp_cell, rp_g, k,
-            eval_w, eval_mode, fbuf, late, fpu, prior_visits, root_allow, chance, farm,
+            eval_w, eval_mode, fbuf, late, fpu, prior_visits, root_allow, chance, farm, rshuf,
         )  # fmt: skip
     return rp_cell, rp_g, agg1, aggw1, agg2, aggw2
 
@@ -441,12 +448,13 @@ def search(
     root_allow,
     chance=0,
     farm=True,
+    rshuf=0,
 ):
     """根局面 S から決定化MCTSを行い、(マス, 向きID, 断片) を返す。"""
     rp_cell, rp_g, agg1, _, agg2, _ = search_stats(
         S, T, P, n_sims, n_det, c, scale, meeple_prob, depth, stamp, stamp_box,
         out_cell, out_g, free, rec, eval_w, eval_mode, fbuf, late, fpu, prior_visits,
-        root_allow, chance, farm,
+        root_allow, chance, farm, rshuf,
     )  # fmt: skip
     top = agg1.max()
     cands = np.where(agg1 == top)[0]
@@ -479,6 +487,7 @@ class FastMCTSAgent:
         nn_topk: int = 8,
         chance: bool = False,
         rollout_farm: bool = True,
+        rollout_reshuffle: bool = False,
     ) -> None:
         """eval_path に線形評価関数の重み(.npy)を渡すと、葉をその評価関数で評価する。
 
@@ -489,6 +498,8 @@ class FastMCTSAgent:
         self.chance = chance
         # False なら、ロールアウトでは草原（農民）にミープルを置かない
         self.rollout_farm = rollout_farm
+        # True なら、葉から先のロールアウトの前に山札の未公開部分を引き直す（`run_tree` の rshuf）
+        self.rollout_reshuffle = rollout_reshuffle
         self.n_sims = n_sims
         self.n_det = n_det
         self.c = c
@@ -521,6 +532,7 @@ class FastMCTSAgent:
             + (f",pv={prior_visits}" if prior_visits else "")
             + (",chance" if chance else "")
             + ("" if rollout_farm else ",rf=0")
+            + (",rs=1" if rollout_reshuffle else "")
             + (
                 f",nn={nn_path.replace(chr(92), '/').split('/')[-1]},topk={nn_topk}"
                 if nn_path
@@ -567,6 +579,7 @@ class FastMCTSAgent:
             self.root_allow(S),
             1 if self.chance else 0,
             bool(self.rollout_farm),
+            1 if self.rollout_reshuffle else 0,
         )
         return int(cell), int(g), int(piece)
 
