@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+# 外部の人の PR でも動くので、トークンは読むだけにする
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
