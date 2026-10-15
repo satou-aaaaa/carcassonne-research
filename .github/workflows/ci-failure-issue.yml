@@ -5,7 +5,7 @@ name: CI failure issue
 # 中身は共通部品 satou-aaaaa/shared-workflows にある。ここには見張るワークフローの名前（name:）だけを書く。
 on:
   workflow_run:
-    workflows: ["test", "selfplay"]
+    workflows: ["test", "selfplay", "Link check", "Secret scan"]
     types: [completed]
 
 permissions:
