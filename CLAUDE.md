@@ -8,7 +8,7 @@
 python scripts/check.py --quick   # ruff・整形・公開ページ・slow 以外のテスト
 ```
 
-PR の作り方・公開ページの作り直し・マージの仕方は `.claude/skills/steward/SKILL.md` が正（こちらが優先）。
+このリポジトリだけの PR の決まり（確認コマンド・公開ページの作り直し）は `.claude/skills/steward/SKILL.md`（共通の手順より優先）。
 
 ## 公開
 
@@ -16,6 +16,6 @@ PR の作り方・公開ページの作り直し・マージの仕方は `.claud
 
 ## 共通のきまり
 
-- PR の作り方・マージの仕方は共通スキル（PR の手順）と、satou-aaaaa/shared-workflows の `routines/common.md` に従う。
+- PR の作り方・マージの仕方は satou-aaaaa/shared-workflows の `routines/pr.md`、全体のきまりは `routines/common.md` に従う。
 - CI の部品（CI失敗Issue・ブランチ片付け）は shared-workflows の共通部品を呼ぶ。
   リポジトリ側の .github/workflows には呼び出しと設定値だけを書く。

@@ -5,6 +5,8 @@ description: このリポジトリでPRを作る・直す・CIを通す・マー
 
 # PR の手順（carcassonne-research）
 
+共通の手順（PR の書き方・CI・コンフリクト・マージ）は satou-aaaaa/shared-workflows の `routines/pr.md`。ここにはこのリポジトリだけの決まりを書く（食い違ったらこちらが優先）。
+
 ## push する前
 1. `python scripts/check.py --quick` を実行する（ruff・整形・公開ページ・slow 以外のテスト、約20秒）。
    - lint や整形で落ちたら `python scripts/check.py --fix --quick` で直してから見直す。
@@ -21,9 +23,7 @@ description: このリポジトリでPRを作る・直す・CIを通す・マー
   CI で飛ばしたり、テストを無効にしたりしない。
 
 ## マージ
-- 持ち主（satou-aaaaa）が「マージして」と言ったPRは、CI が緑で未解決のレビューがなければ、
-  ドラフトを解除して squash マージする。タイトルは PR のタイトルをそのまま使う。
-- マージ後にブランチを再利用するときは、`origin/main` から作り直す。
+- 共通の手順（`routines/pr.md`）どおり、CI が緑で未解決のレビューが無ければ squash マージしてよい（satou さん 2026-10-10 にマージを任されている）。
 
 ## 公開
 - GitHub Pages は `main` の `/docs` を公開する設定（Settings → Pages）。マージすれば反映される。
