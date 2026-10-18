@@ -1,0 +1,18 @@
+# Gemini Code Assist（GitHub アプリ）の設定。PR に2人目のレビューを付ける（2026-10-18 satou さん承認、無料）。
+# 書式: https://docs.cloud.google.com/gemini/docs/code-review/customize-repo-review
+have_fun: false
+code_review:
+  disable: false
+  # MEDIUM 以上だけ書く（細かい好みの指摘でエージェントの手を止めない）
+  comment_severity_threshold: MEDIUM
+  max_review_comments: 10
+  pull_request_opened:
+    help: false
+    summary: false
+    code_review: true
+    # エージェントは下書きで作業するので、下書きのうちに見てもらう
+    include_drafts: true
+ignore_patterns:
+  - "docs/*.html"
+  - "models/**"
+  - "data/**"
