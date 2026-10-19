@@ -4,6 +4,14 @@
 
 カルカソンヌ（基本セット・2人対戦）の強いAIを作る研究リポジトリ。背景とロードマップは README.md と docs/ROADMAP.md。
 
+## 準備（最初に一度）
+
+```bash
+bash scripts/setup.sh   # .venv を作り requirements.txt を入れる（Python の版は .python-version）。何度実行してもよい（Windows は Git Bash で）
+```
+
+以後のコマンドは .venv の Python で動かす。Claude Code のクラウドセッションでは `.claude/settings.json` のフックが自動で実行し、.venv を PATH の先頭に置く。
+
 ## push する前の確認
 
 ```bash
