@@ -50,6 +50,14 @@ GitHub Pages で公開するには、リポジトリの Settings → Pages で�
 以下のコマンド例は Windows（`py`・`.venv\Scripts\python`）で書いている。Linux / macOS では
 `.venv\Scripts\python` を `.venv/bin/python` に読み替える。
 
+準備は1コマンド（.venv を作って requirements.txt を入れる。何度実行してもよい。Windows は Git Bash で）。
+
+```bash
+bash scripts/setup.sh
+```
+
+手で行うときは次のとおり。
+
 ```bash
 # Windows
 py -m venv .venv && .venv\Scripts\pip install -r requirements.txt
