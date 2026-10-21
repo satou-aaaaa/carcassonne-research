@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from carcassonne.fast_mcts import FastMCTSAgent
 from carcassonne.puzzles import analyze, move_facts, pick_options, snapshot, track_meeples
 from carcassonne.state import State
-from carcassonne.webplay import best_eval_path
+from carcassonne.webplay import champion_eval_path
 
 
 def parse_seeds(s: str) -> list[int]:
@@ -46,9 +46,9 @@ def gap_of(opts) -> tuple[float, float]:
 
 def run_seed(seed: int, args) -> list[dict]:
     # 対局画面の「最強」と同じく、評価前に10手のロールアウトを挟む（webplay.make_agent）
-    play = FastMCTSAgent(n_sims=args.sims, rollout_depth=10, eval_path=best_eval_path())
+    play = FastMCTSAgent(n_sims=args.sims, rollout_depth=10, eval_path=champion_eval_path())
     deep = FastMCTSAgent(
-        n_sims=args.sims * 5, n_det=4, rollout_depth=10, eval_path=best_eval_path()
+        n_sims=args.sims * 5, n_det=4, rollout_depth=10, eval_path=champion_eval_path()
     )
     st = State.new_game(seed)
     meeples: list[dict] = []

@@ -71,6 +71,9 @@ def pick(games):
                     "left": m["left"],
                     "mover": m["player"],
                     "meeple": m["meeple"],
+                    "self_blocked": sorted(
+                        {b["kind"] for b in m["newly_blocked"] if b["owner"] != "opp"}
+                    ),
                 }
                 break
         if "block" in ex:
@@ -92,9 +95,13 @@ def pick(games):
                 r = st._find(st.tile_nodes[(q["x"], q["y"])][q["piece"]])
                 if st.kind[r] == "C":
                     roots.setdefault(r, set()).add(q["player"])
-            if not any(len(v) == 2 for v in roots.values()):
+            shared = [r for r, v in roots.items() if len(v) == 2]
+            if not shared:
                 continue
+            r = shared[0]
             ex["merge"] = {
+                "city_tiles": len(st.tiles[r]),
+                "meeples": list(st.meeples[r]),
                 "svg": render_after(g, m["ply"]),
                 "seed": g["seed"],
                 "ply": m["ply"],

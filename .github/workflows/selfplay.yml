@@ -7,6 +7,7 @@ name: selfplay
 # 履歴を増やさないよう、そのブランチは毎回1コミットだけの状態で上書きする（main には入れない）。
 # selfplay-state ブランチが無いときは何もしない（共有フォルダから状態を移すまで、二重に回さないため）。
 # 新しく「採用」が出たときだけ Issue を立てて知らせ、対戦ページ（docs/play.html）のAIも差し替える。
+# 差し替えたら、学習ページ（コツ集・クイズ）を同じAIで作り直す ai-content.yml を起動する。
 
 on:
   schedule:
@@ -25,6 +26,7 @@ concurrency:
 permissions:
   contents: write
   issues: write
+  actions: write # 学習ページの作り直し（ai-content.yml）を起動する
 
 jobs:
   loop:
@@ -104,6 +106,14 @@ jobs:
           done
           # 入れられなかったらジョブを失敗にする（ci-failure-issue.yml が Issue で知らせる）
           [ -n "${pushed:-}" ] || exit 1
+      - name: 学習ページ（コツ集・クイズ）を最新チャンピオンで作り直す
+        # 対戦ページのAIを差し替えたときだけ。重い（約1時間）ので別のワークフローで回す
+        if: steps.state.outputs.exists == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ "$(python scripts/refresh_ai_content.py --check)" = "stale" ] || exit 0
+          gh workflow run ai-content.yml --ref main
       - name: 新しく採用が出たら Issue で知らせる
         if: steps.state.outputs.exists == 'true'
         env:

@@ -55,18 +55,34 @@ def to_page(p: dict) -> dict:
     return out
 
 
+def ai_note(puzzles: list[dict]) -> str:
+    """どのAIで答えを確かめたかの一文（scripts/recheck_puzzles.py が書く checked_by から）。"""
+    names = {(p.get("checked_by") or {}).get("name") for p in puzzles}
+    if len(names) != 1 or None in names:
+        return ""
+    by = next(p["checked_by"] for p in puzzles)
+    when = f"、{by['date']} 採用" if by.get("date") else ""
+    return (
+        f"答えと点差は、対戦ページと同じ最新のAI（{by['name']}{when}）で確かめ直したものです。"
+        "AIが強くなるたびに確かめ直し、答えが変わった問題は見直すまで外しています。"
+    )
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--src", default=str(ROOT / "data" / "puzzles.json"))
     ap.add_argument("--out", default=str(ROOT / "docs" / "quiz.html"))
     ap.add_argument("--fragment", action="store_true", help="<html>等で包まない（Artifact公開用）")
     args = ap.parse_args()
-    puzzles = [to_page(p) for p in load(Path(args.src))]
+    raw = [
+        p for p in load(Path(args.src)) if not p.get("disputed")
+    ]  # 最新AIと答えが食い違う問題は出さない
+    puzzles = [to_page(p) for p in raw]
     puzzles.sort(key=lambda p: p["level"] != "入門")  # 安定ソート: 入門編を先に
     data = {"tiles": tile_library(), "puzzles": puzzles}
     blob = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     body = (ROOT / "web" / "quiz_template.html").read_text(encoding="utf-8")
-    body = body.replace("__QUIZ_DATA__", blob)
+    body = body.replace("__QUIZ_DATA__", blob).replace("__AI_NOTE__", ai_note(raw))
     nav = "" if args.fragment else nav_html("quiz.html")
     body = body.replace("__SITE_NAV_CSS__", NAV_CSS).replace("__SITE_NAV__", nav)
     if not args.fragment:
