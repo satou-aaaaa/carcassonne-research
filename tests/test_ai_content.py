@@ -85,3 +85,9 @@ def test_disputed_when_ai_top_is_outside_the_options():
             "best_ok": False, "top": 0, "ai_top_listed": False}]  # fmt: skip
     assert recheck_puzzles.apply_results(p, res, {"name": "genX"}) == [p[0]["id"]]
     assert "選択肢の外" in p[0]["disputed"]
+
+
+def test_dispute_reason_names_both_problems():
+    r = {"top": 1, "ai_top_listed": False}
+    assert recheck_puzzles.reason(r) == "選択肢2の点差が最大、一番よく選ぶ手は選択肢の外"
+    assert recheck_puzzles.reason({"top": 2, "ai_top_listed": True}) == "選択肢3の点差が最大"

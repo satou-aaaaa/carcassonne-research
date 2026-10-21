@@ -60,6 +60,16 @@ def recheck(p: dict, sims: int = 12000) -> dict:
     }
 
 
+def reason(r: dict) -> str:
+    """正解が成り立たなくなった理由（選択肢の中の点差と、AIが一番よく選ぶ手の両方を見る）。"""
+    out = []
+    if r["top"] != 0:
+        out.append(f"選択肢{r['top'] + 1}の点差が最大")
+    if not r.get("ai_top_listed", True):
+        out.append("一番よく選ぶ手は選択肢の外")
+    return "、".join(out)
+
+
 def apply_results(puzzles: list[dict], results: list[dict], ai: dict) -> list[str]:
     """解析結果を問題に書き込み、正解が変わった問題の id を返す。"""
     res = {r["id"]: r for r in results}
@@ -76,11 +86,7 @@ def apply_results(puzzles: list[dict], results: list[dict], ai: dict) -> list[st
         if r["best_ok"]:
             p.pop("disputed", None)
         else:
-            p["disputed"] = (
-                f"{ai['name']} は選択肢{r['top'] + 1}を最善とした"
-                if r["top"] != 0
-                else f"{ai['name']} は選択肢の外の手を最善とした"
-            )
+            p["disputed"] = f"{ai['name']}: {reason(r)}"
             bad.append(p["id"])
     return bad
 
@@ -101,13 +107,7 @@ def main() -> None:
     with Pool(args.workers) as pool:
         results = pool.starmap(recheck, [(p, args.sims) for p in todo])
     for r in results:
-        mark = (
-            "OK"
-            if r["best_ok"]
-            else f"NG（最善は選択肢{r['top'] + 1}）"
-            if r["top"] != 0
-            else "NG（最善は選択肢の外）"
-        )
+        mark = "OK" if r["best_ok"] else f"NG（{reason(r)}）"
         extra = "" if r["ai_top_listed"] else "（AIの一番手は選択肢の外）"
         print(f"{r['id']}: {mark} 点差 {r['diffs']}{extra}", flush=True)
     bad = apply_results(puzzles, results, ai)
