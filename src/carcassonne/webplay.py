@@ -36,6 +36,25 @@ def best_eval_path() -> str:
     return str(ROOT / best)
 
 
+CHAMPION_EVAL = ROOT / "models" / "eval_champion.npy"
+CHAMPION_INFO = ROOT / "models" / "eval_champion.json"
+
+
+def champion_eval_path() -> str:
+    """いま一番強いAIの評価関数（自己対戦ループの最新チャンピオン）。無ければ best.json のもの。
+
+    対戦ページ・コツ集・クイズは、どれもこの評価関数で作る（チャンピオンが変わったら作り直す）。
+    """
+    return str(CHAMPION_EVAL) if CHAMPION_EVAL.exists() else best_eval_path()
+
+
+def champion_info() -> dict:
+    """最新チャンピオンの世代名と採用日（{"name", "attempt", "date"}）。"""
+    if CHAMPION_INFO.exists():
+        return json.loads(CHAMPION_INFO.read_text(encoding="utf-8"))
+    return {"name": Path(best_eval_path()).stem, "attempt": None, "date": None}
+
+
 def make_agent(level: str):
     """強さ指定からAIを作る。重いimport（numba）は必要になるまで遅らせる。"""
     if level == "greedy":
@@ -47,7 +66,7 @@ def make_agent(level: str):
     sims = {"strong": 12000, "standard": 2000}[level]
     # 最強は評価前に10手のロールアウトを挟む（docs/EXPERIMENTS.md「探索の構造」。標準は従来どおり）
     depth = 10 if level == "strong" else None
-    return FastMCTSAgent(n_sims=sims, rollout_depth=depth, eval_path=best_eval_path())
+    return FastMCTSAgent(n_sims=sims, rollout_depth=depth, eval_path=champion_eval_path())
 
 
 def _best_dict(st: State, best) -> dict:

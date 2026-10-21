@@ -100,6 +100,10 @@ AI（自己対戦ループの最新チャンピオンの評価関数＋MCTS 1200
 ブラウザの中で考える。ルールと特徴量は Python 版と毎手一致することを `tests/test_play_js.py` で確かめている（node が必要）。
 評価関数は `models/eval_champion.npy`（世代名は `models/eval_champion.json`）。自己対戦ループで新しいチャンピオンが採用されると、
 `.github/workflows/selfplay.yml` が `scripts/update_champion.py` で差し替えて公開ページを作り直し、main に入れる。
+学習ページ（[強いAIに学ぶコツ](https://satou-aaaaa.github.io/carcassonne-research/ai_tips.html)・
+[次の一手クイズ](https://satou-aaaaa.github.io/carcassonne-research/quiz.html)）も同じAIで作る。差し替えのたびに
+`.github/workflows/ai-content.yml` が `scripts/refresh_ai_content.py` で最新AI同士の対局を取り直し、クイズの答えを確かめ直す
+（答えが変わった問題はページから外して Issue で知らせる。本文の言い切りが新しい集計と合わなければ止まって Issue になる）。
 ブラウザ版の対局は記録されない。記録を取る人間評価は、次のローカル版で行う。
 
 ブラウザ上でAIと対戦できる（対局は `runs/human/games.jsonl` に記録される）。手順と評価方法は

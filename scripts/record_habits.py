@@ -31,8 +31,9 @@ def make_agent(level: str):
     if level == "greedy":
         return GreedyAgent()
     from carcassonne.fast_mcts import FastMCTSAgent
+    from carcassonne.webplay import champion_eval_path
 
-    ev = str(ROOT / "models" / "eval_v6_lin.npy")
+    ev = champion_eval_path()  # 対戦ページと同じ最新チャンピオン
     if level == "strong":  # 対人用「最強」と同じ設定（webplay.make_agent）
         return FastMCTSAgent(n_sims=12000, rollout_depth=10, eval_path=ev)
     if level == "standard":

@@ -1,0 +1,79 @@
+name: AI content
+
+# 学習ページ（コツ集 docs/ai_tips.html・次の一手クイズ docs/quiz.html）を、最新AI（チャンピオン）で作り直す。
+# 対戦ページのAIが差し替わったら（selfplay.yml がこのワークフローを起動する）、それに合わせて
+# 最新AI同士の対局を取り直し、クイズの答えを確かめ直して、main へ直接入れる（scripts/refresh_ai_content.py）。
+# 起動を取りこぼしても、毎日1回「古くなっていないか」を見て、古ければ作り直す。
+# 本文の言い切りが新しい集計と合わない・入れられないときはジョブを失敗にする（ci-failure-issue.yml が Issue で知らせる）。
+# クイズで答えが変わった問題はページから外し、Issue で見直しを頼む。
+
+on:
+  schedule:
+    - cron: "43 3 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "最新でも作り直す"
+        type: boolean
+        default: false
+
+concurrency:
+  group: ai-content
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: .python-version
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: 古くなっているか確かめる
+        id: stale
+        run: |
+          status=$(python scripts/refresh_ai_content.py --check)
+          echo "学習ページ: $status"
+          if [ "$status" = "stale" ] || [ "${{ inputs.force }}" = "true" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: 最新AIで作り直す
+        if: steps.stale.outputs.run == 'true'
+        run: python scripts/refresh_ai_content.py --force --workers "$(nproc)"
+      - name: main へ入れる
+        if: steps.stale.outputs.run == 'true'
+        run: |
+          name=$(python -c "import json;print(json.load(open('models/eval_champion.json'))['name'])")
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs data/puzzles.json
+          if git diff --cached --quiet; then echo "変更なし"; exit 0; fi
+          git commit -q -m "学習ページ（コツ集・クイズ）を最新AI $name で作り直す（自動）"
+          for i in 1 2 3; do
+            git pull -q --rebase origin main && git push -q origin HEAD:main && pushed=1 && break
+            sleep 5
+          done
+          [ -n "${pushed:-}" ] || exit 1
+      - name: 答えが変わったクイズを Issue で知らせる
+        if: steps.stale.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - > body.md <<'EOF'
+          import json
+          ps = [p for p in json.load(open("data/puzzles.json", encoding="utf-8")) if p.get("disputed")]
+          for p in ps:
+              print(f"- {p['id']}「{p['title']}」: {p['disputed']}")
+          EOF
+          [ -s body.md ] || exit 0
+          { echo; echo "これらの問題は公開ページから外しています。解説を書き直すか、問題を差し替えてください（data/puzzles.json の disputed を消すと戻ります）。"; } >> body.md
+          gh issue create --title "次の一手クイズ: 最新AIと答えが食い違う問題があります" --body-file body.md
