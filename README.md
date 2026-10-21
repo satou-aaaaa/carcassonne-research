@@ -96,8 +96,10 @@ python scripts/eval_rank.py models/eval_v6_lin.npy --positions 40 --rollouts 30 
 ## 人間と対戦する
 
 公開ページの [AIと対戦](https://satou-aaaaa.github.io/carcassonne-research/play.html) なら、インストールなしでブラウザだけで遊べる。
-AI（評価関数v9＋MCTS 12000回＋10手のロールアウト）を JavaScript に移したもの（`web/carcassonne_engine.js`）が
+AI（自己対戦ループの最新チャンピオンの評価関数＋MCTS 12000回＋10手のロールアウト）を JavaScript に移したもの（`web/carcassonne_engine.js`）が
 ブラウザの中で考える。ルールと特徴量は Python 版と毎手一致することを `tests/test_play_js.py` で確かめている（node が必要）。
+評価関数は `models/eval_champion.npy`（世代名は `models/eval_champion.json`）。自己対戦ループで新しいチャンピオンが採用されると、
+`.github/workflows/selfplay.yml` が `scripts/update_champion.py` で差し替えて公開ページを作り直し、main に入れる。
 ブラウザ版の対局は記録されない。記録を取る人間評価は、次のローカル版で行う。
 
 ブラウザ上でAIと対戦できる（対局は `runs/human/games.jsonl` に記録される）。手順と評価方法は

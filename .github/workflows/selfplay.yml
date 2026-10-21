@@ -6,7 +6,7 @@ name: selfplay
 # 状態（state.json・直近の自己対戦データ・各世代の重み・progress.md）はブランチ selfplay-state の loop/ に置く。
 # 履歴を増やさないよう、そのブランチは毎回1コミットだけの状態で上書きする（main には入れない）。
 # selfplay-state ブランチが無いときは何もしない（共有フォルダから状態を移すまで、二重に回さないため）。
-# 新しく「採用」が出たときだけ Issue を立てて知らせる。
+# 新しく「採用」が出たときだけ Issue を立てて知らせ、対戦ページ（docs/play.html）のAIも差し替える。
 
 on:
   schedule:
@@ -85,6 +85,29 @@ jobs:
           git add -A -f loop
           git commit -q -m "自己対戦ループの状態 $(date -u +%Y-%m-%dT%H:%MZ)"
           git push -f origin tmp:selfplay-state
+      - name: 対戦ページ（docs/play.html）のAIを最新チャンピオンに差し替える
+        # 採用が無ければ unchanged で何もしない。main へ直接入れ、入れられないときは Issue で知らせる
+        if: steps.state.outputs.exists == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          result=$(python scripts/update_champion.py state/loop)
+          echo "対戦ページのAI: $result"
+          [ "$result" = "updated" ] || exit 0
+          name=$(python -c "import json;print(json.load(open('models/eval_champion.json'))['name'])")
+          python scripts/build_pages.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add models/eval_champion.npy models/eval_champion.json docs
+          git commit -q -m "対戦ページのAIを最新チャンピオン $name に差し替える（自動）"
+          for i in 1 2 3; do
+            git pull -q --rebase origin main && git push -q origin HEAD:main && pushed=1 && break
+            sleep 5
+          done
+          if [ -z "${pushed:-}" ]; then
+            gh issue create --title "対戦ページのAIを $name に差し替えられませんでした" \
+              --body "自己対戦ループで採用された $name を main に入れられませんでした（push 失敗）。scripts/update_champion.py と scripts/build_pages.py を手で回して PR にしてください。ログ: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi
       - name: 新しく採用が出たら Issue で知らせる
         if: steps.state.outputs.exists == 'true'
         env:
