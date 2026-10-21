@@ -88,8 +88,6 @@ jobs:
       - name: 対戦ページ（docs/play.html）のAIを最新チャンピオンに差し替える
         # 採用が無ければ unchanged で何もしない。main へ直接入れ、入れられないときはジョブを失敗にする
         if: steps.state.outputs.exists == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           result=$(python scripts/update_champion.py state/loop)
           echo "対戦ページのAI: $result"

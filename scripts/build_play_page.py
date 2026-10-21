@@ -66,7 +66,9 @@ def play_data() -> dict:
     info = json.loads((ROOT / CHAMPION).read_text(encoding="utf-8"))
     levels = json.loads(json.dumps(LEVELS))
     adopted = f"、{info['date']} 採用" if info.get("date") else ""
-    levels["strong"]["label"] = f"最強（自己対戦で学んだ最新AI {info['name']}{adopted}。1手1〜数秒）"
+    levels["strong"]["label"] = (
+        f"最強（自己対戦で学んだ最新AI {info['name']}{adopted}。1手1〜数秒）"
+    )
     tables = {name: arr.reshape(-1).tolist() for name, arr in zip(TABLE_NAMES, T)}
     return {
         "tables": {
