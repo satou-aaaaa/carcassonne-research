@@ -76,3 +76,12 @@ def test_recheck_rebuilds_the_puzzle_position():
     r = recheck_puzzles.recheck(p, sims=40)
     assert r["id"] == p["id"] and len(r["diffs"]) == len(p["options"])
     assert any(d is not None for d in r["diffs"])
+
+
+def test_disputed_when_ai_top_is_outside_the_options():
+    p = json.loads((ROOT / "data/puzzles.json").read_text(encoding="utf-8"))[:1]
+    n = len(p[0]["options"])
+    res = [{"id": p[0]["id"], "diffs": [1.0] * n, "visits": [0.1] * n,
+            "best_ok": False, "top": 0, "ai_top_listed": False}]  # fmt: skip
+    assert recheck_puzzles.apply_results(p, res, {"name": "genX"}) == [p[0]["id"]]
+    assert "選択肢の外" in p[0]["disputed"]

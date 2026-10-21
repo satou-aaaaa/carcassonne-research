@@ -45,16 +45,18 @@ def recheck(p: dict, sims: int = 12000) -> dict:
         diffs.append(round(hit.diff, 2) if hit else None)
         visits.append(round(hit.visits / total, 4) if hit else 0.0)
     scored = [(d if d is not None else -1e9, i) for i, d in enumerate(diffs)]
-    top = max(scored)[1]
+    top = max(scored, key=lambda t: (t[0], -t[1]))[1]  # 同点なら先頭（正解）の選択肢を優先
     m = opts[0].move
     top_move = (m.x, m.y, m.variant, m.piece)
+    listed = any(tuple(o["move"]) == top_move for o in p["options"])
     return {
         "id": p["id"],
         "diffs": diffs,
         "visits": visits,
-        "best_ok": top == 0,
+        # AIが一番よく選ぶ手が選択肢の外なら、「AIならどの手？」の答えも成り立たない
+        "best_ok": top == 0 and listed,
         "top": top,
-        "ai_top_listed": any(tuple(o["move"]) == top_move for o in p["options"]),
+        "ai_top_listed": listed,
     }
 
 
@@ -74,7 +76,11 @@ def apply_results(puzzles: list[dict], results: list[dict], ai: dict) -> list[st
         if r["best_ok"]:
             p.pop("disputed", None)
         else:
-            p["disputed"] = f"{ai['name']} は選択肢{r['top'] + 1}を最善とした"
+            p["disputed"] = (
+                f"{ai['name']} は選択肢{r['top'] + 1}を最善とした"
+                if r["top"] != 0
+                else f"{ai['name']} は選択肢の外の手を最善とした"
+            )
             bad.append(p["id"])
     return bad
 
@@ -95,7 +101,13 @@ def main() -> None:
     with Pool(args.workers) as pool:
         results = pool.starmap(recheck, [(p, args.sims) for p in todo])
     for r in results:
-        mark = "OK" if r["best_ok"] else f"NG（最善は選択肢{r['top'] + 1}）"
+        mark = (
+            "OK"
+            if r["best_ok"]
+            else f"NG（最善は選択肢{r['top'] + 1}）"
+            if r["top"] != 0
+            else "NG（最善は選択肢の外）"
+        )
         extra = "" if r["ai_top_listed"] else "（AIの一番手は選択肢の外）"
         print(f"{r['id']}: {mark} 点差 {r['diffs']}{extra}", flush=True)
     bad = apply_results(puzzles, results, ai)
