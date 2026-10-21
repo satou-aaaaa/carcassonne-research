@@ -12,9 +12,9 @@ AIは Python 版（src/carcassonne/fast*.py）を JavaScript に移したもの�
 - docs/carcassonne_engine.js, docs/play_features.js, docs/play_local.js, docs/play_worker.js
                             web/ からの複写
 
-評価関数は EVAL に固定している（models/best.json を追わない）。JavaScript 版は線形の評価関数しか
-扱えないため、best が別形式に変わっても公開ページが壊れないようにするため。強さを変えるときは
-EVAL を書き換えて作り直す。
+評価関数は EVAL（自己対戦ループの最新チャンピオンの複写）を使う。models/best.json は追わない
+（JavaScript 版は線形の評価関数しか扱えないため）。新しいチャンピオンが採用されると、
+.github/workflows/selfplay.yml が EVAL と CHAMPION を差し替えてこのスクリプトで作り直し、main に入れる。
 """
 
 from __future__ import annotations
@@ -33,7 +33,8 @@ from carcassonne.webplay import tile_library
 
 DOCS = ROOT / "docs"
 WEB = ROOT / "web"
-EVAL = "models/eval_v9_block.npy"  # 現行の最強設定（docs/EXPERIMENTS.md）の評価関数
+EVAL = "models/eval_champion.npy"  # 自己対戦ループの最新チャンピオン（selfplay-state の loop/models/ から複写）
+CHAMPION = "models/eval_champion.json"  # その世代名・採用日（画面の表示用）
 COPIES = ["carcassonne_engine.js", "play_features.js", "play_local.js", "play_worker.js"]
 TABLE_NAMES = [
     "edge", "npc", "pkind", "psides", "phalves", "ppen", "padj", "cadj",
@@ -42,7 +43,7 @@ TABLE_NAMES = [
 # 強さ（ブラウザ版）。sims・depth は Python 版の webplay.make_agent と同じ
 LEVELS = {
     "strong": {
-        "label": "最強（このプロジェクトの最強設定。1手1〜数秒）",
+        "label": "最強（自己対戦で学んだ最新AI。1手1〜数秒）",
         "sims": 12000,
         "depth": 10,
     },
@@ -62,6 +63,12 @@ def play_data() -> dict:
     w, mode = load_eval(str(ROOT / EVAL))
     if mode != 1 or len(w) != NF:
         raise SystemExit(f"{EVAL} は線形の評価関数ではありません（JavaScript 版は線形のみ対応）")
+    info = json.loads((ROOT / CHAMPION).read_text(encoding="utf-8"))
+    levels = json.loads(json.dumps(LEVELS))
+    adopted = f"、{info['date']} 採用" if info.get("date") else ""
+    levels["strong"]["label"] = (
+        f"最強（自己対戦で学んだ最新AI {info['name']}{adopted}。1手1〜数秒）"
+    )
     tables = {name: arr.reshape(-1).tolist() for name, arr in zip(TABLE_NAMES, T)}
     return {
         "tables": {
@@ -71,8 +78,8 @@ def play_data() -> dict:
             "counts": [t.count for t in ts.types],
         },
         "tiles": tile_library(),
-        "eval": {"path": EVAL, "w": [round(float(x), 12) for x in w]},
-        "levels": LEVELS,
+        "eval": {"path": EVAL, "champion": info, "w": [round(float(x), 12) for x in w]},
+        "levels": levels,
     }
 
 
