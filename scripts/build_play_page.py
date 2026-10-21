@@ -65,9 +65,8 @@ def play_data() -> dict:
         raise SystemExit(f"{EVAL} は線形の評価関数ではありません（JavaScript 版は線形のみ対応）")
     info = json.loads((ROOT / CHAMPION).read_text(encoding="utf-8"))
     levels = json.loads(json.dumps(LEVELS))
-    levels["strong"]["label"] = (
-        f"最強（自己対戦で学んだ最新AI {info['name']}、{info['date']} 採用。1手1〜数秒）"
-    )
+    adopted = f"、{info['date']} 採用" if info.get("date") else ""
+    levels["strong"]["label"] = f"最強（自己対戦で学んだ最新AI {info['name']}{adopted}。1手1〜数秒）"
     tables = {name: arr.reshape(-1).tolist() for name, arr in zip(TABLE_NAMES, T)}
     return {
         "tables": {

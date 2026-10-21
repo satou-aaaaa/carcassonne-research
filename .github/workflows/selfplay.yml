@@ -86,7 +86,7 @@ jobs:
           git commit -q -m "自己対戦ループの状態 $(date -u +%Y-%m-%dT%H:%MZ)"
           git push -f origin tmp:selfplay-state
       - name: 対戦ページ（docs/play.html）のAIを最新チャンピオンに差し替える
-        # 採用が無ければ unchanged で何もしない。main へ直接入れ、入れられないときは Issue で知らせる
+        # 採用が無ければ unchanged で何もしない。main へ直接入れ、入れられないときはジョブを失敗にする
         if: steps.state.outputs.exists == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -104,10 +104,8 @@ jobs:
             git pull -q --rebase origin main && git push -q origin HEAD:main && pushed=1 && break
             sleep 5
           done
-          if [ -z "${pushed:-}" ]; then
-            gh issue create --title "対戦ページのAIを $name に差し替えられませんでした" \
-              --body "自己対戦ループで採用された $name を main に入れられませんでした（push 失敗）。scripts/update_champion.py と scripts/build_pages.py を手で回して PR にしてください。ログ: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          fi
+          # 入れられなかったらジョブを失敗にする（ci-failure-issue.yml が Issue で知らせる）
+          [ -n "${pushed:-}" ] || exit 1
       - name: 新しく採用が出たら Issue で知らせる
         if: steps.state.outputs.exists == 'true'
         env:
