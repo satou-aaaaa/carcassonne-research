@@ -468,6 +468,53 @@ def search(
     return rp_cell[bk], rp_g[bk], bp
 
 
+@njit(cache=True)
+def next_tile_value(
+    S, T, P, cells, gs, pieces, eval_w, eval_mode, fbuf, stamp, stamp_box, out_cell, out_g
+):
+    """候補手ごとに、着手後に相手が引くタイル種別で平均した評価値（手番側視点の得点差）を返す。
+
+    未公開タイルの種別ごとに、その種別を次に引いた局面を作り、相手視点の評価値の符号を反転して
+    未公開の枚数で重み付け平均する。置けない種別（捨てられる）は省く。山札が尽きる手は実際の得点差。
+    実際の山札の並び（`S[11]`）は使わない（次のタイルは種別ごとに入れ替えて作る）。
+    """
+    me = S[10][SC_PL]
+    lo = S[10][SC_DRAW]
+    out = np.zeros(len(cells))
+    X = copy_state(S)
+    seen = np.zeros(128, np.bool_)
+    for ci in range(len(cells)):
+        if lo >= NT - 1:  # この手で終局
+            copy_into(X, S)
+            apply_move(X, T, P, cells[ci], gs[ci], pieces[ci], stamp, stamp_box, out_cell, out_g)
+            d = float(X[10][SC_S0] - X[10][SC_S1])
+            out[ci] = d if me == 0 else -d
+            continue
+        seen[:] = False
+        tot = 0.0
+        wsum = 0.0
+        for j in range(lo, NT - 1):
+            t = S[11][j]
+            if seen[t]:
+                continue
+            seen[t] = True
+            n = 0
+            for q in range(lo, NT - 1):
+                if S[11][q] == t:
+                    n += 1
+            copy_into(X, S)
+            X[11][lo] = t
+            X[11][j] = S[11][lo]
+            apply_move(X, T, P, cells[ci], gs[ci], pieces[ci], stamp, stamp_box, out_cell, out_g)
+            if X[10][SC_OVER] != 0 or X[10][SC_CUR] != t or X[10][SC_DRAW] != lo + 1:
+                continue
+            features(X, T, P, 1 - me, fbuf)
+            tot -= n * eval_value(eval_w, eval_mode, fbuf)
+            wsum += n
+        out[ci] = tot / wsum if wsum > 0 else np.nan
+    return out
+
+
 class FastMCTSAgent:
     """`MCTSAgent` と同じ探索をNumbaで行うエージェント（Pythonの `State` に着手を返す）。"""
 
@@ -488,6 +535,8 @@ class FastMCTSAgent:
         chance: bool = False,
         rollout_farm: bool = True,
         rollout_reshuffle: bool = False,
+        reselect: float = 0.0,
+        reselect_k: int = 6,
     ) -> None:
         """eval_path に線形評価関数の重み(.npy)を渡すと、葉をその評価関数で評価する。
 
@@ -500,6 +549,10 @@ class FastMCTSAgent:
         self.rollout_farm = rollout_farm
         # True なら、葉から先のロールアウトの前に山札の未公開部分を引き直す（`run_tree` の rshuf）
         self.rollout_reshuffle = rollout_reshuffle
+        # 0より大きいと、探索の上位 reselect_k 候補を「次に相手が引くタイルで平均した評価値」と
+        # この重みで混ぜて選び直す（`choose_reselect`）。評価関数があるときだけ
+        self.reselect = reselect if eval_path else 0.0
+        self.reselect_k = max(1, int(reselect_k))
         self.n_sims = n_sims
         self.n_det = n_det
         self.c = c
@@ -533,6 +586,7 @@ class FastMCTSAgent:
             + (",chance" if chance else "")
             + ("" if rollout_farm else ",rf=0")
             + (",rs=1" if rollout_reshuffle else "")
+            + (f",rsel={reselect:g},rk={reselect_k}" if self.reselect > 0 else "")
             + (
                 f",nn={nn_path.replace(chr(92), '/').split('/')[-1]},topk={nn_topk}"
                 if nn_path
@@ -554,6 +608,8 @@ class FastMCTSAgent:
             self.rollout_depth if self.rollout_depth is not None else (0 if self.eval_path else -1)
         )
         sc = self.fast.scratch
+        if self.reselect > 0:
+            return self.choose_reselect(S, depth)
         cell, g, piece = search(
             S,
             self.fast.T,
@@ -582,6 +638,37 @@ class FastMCTSAgent:
             1 if self.rollout_reshuffle else 0,
         )
         return int(cell), int(g), int(piece)
+
+    def choose_reselect(self, S, depth: int):
+        """探索の訪問数の上位候補（配置×ミープル）を、探索の平均報酬を得点差に戻した値と
+        `next_tile_value` を (1-reselect):reselect で混ぜた値で選び直す。"""
+        f = self.fast
+        sc = f.scratch
+        scale = -1.0 if self.reward_scale is None else self.reward_scale
+        cells, gs, a1, _, a2, w2 = search_stats(
+            S, f.T, f.P, self.n_sims, self.n_det, self.c, scale, self.meeple_prob, depth,
+            sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g, sc.free, sc.rec, self.eval_w,
+            self.eval_mode, self.fbuf, self.late, self.fpu, self.prior_visits, self.root_allow(S),
+            1 if self.chance else 0, bool(self.rollout_farm), 1 if self.rollout_reshuffle else 0,
+        )  # fmt: skip
+        ks, qs = np.nonzero(a2)
+        if len(ks) == 0:
+            # 探索が少なくミープルの節点まで届いていない: 訪問数最多の配置をミープルなしで
+            return int(cells[np.argmax(a1)]), int(gs[np.argmax(a1)]), -1
+        order = np.argsort(-a2[ks, qs], kind="stable")[: self.reselect_k]
+        ks, qs = ks[order], qs[order]
+        if len(ks) == 1 or scale <= 0:
+            return int(cells[ks[0]]), int(gs[ks[0]]), int(qs[0]) - 1
+        val = next_tile_value(
+            S, f.T, f.P, cells[ks].astype(np.int64), gs[ks].astype(np.int64),
+            (qs - 1).astype(np.int64), self.eval_w, self.eval_mode, self.fbuf,
+            sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g,
+        )  # fmt: skip
+        q = w2[ks, qs] / a2[ks, qs]
+        dm = scale * np.arctanh(np.clip(2 * q - 1, -0.999, 0.999))
+        dn = np.where(np.isnan(val), dm, val)
+        b = int(np.argmax((1 - self.reselect) * dm + self.reselect * dn))
+        return int(cells[ks[b]]), int(gs[ks[b]]), int(qs[b]) - 1
 
     def root_allow(self, S) -> np.ndarray:
         """方策ネットの上位 nn_topk 手（`マス*256+向きID`）。ネットが無ければ空（全手を試す）。"""
