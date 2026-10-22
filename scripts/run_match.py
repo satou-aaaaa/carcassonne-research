@@ -35,6 +35,7 @@ INT_KEYS = {
     "late": "late",
     "pv": "prior_visits",
     "topk": "nn_topk",
+    "rk": "reselect_k",
 }
 BOOL_KEYS = {
     "fact": "factored",
@@ -48,6 +49,7 @@ FLOAT_KEYS = {
     "meeple_cost": "meeple_cost",
     "mp": "meeple_prob",
     "fpu": "fpu",
+    "rsel": "reselect",
 }
 
 

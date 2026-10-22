@@ -121,3 +121,60 @@ def test_rollout_reshuffle_gives_legal_moves():
     agent = FastMCTSAgent(n_sims=150, rollout_depth=6, rollout_reshuffle=True)
     assert "rs=1" in agent.name
     assert agent.act(st, random.Random(9)) in st.legal_moves()
+
+
+EVAL = "models/eval_v9_block.npy"
+
+
+def test_reselect_plays_full_game_with_legal_moves():
+    agent = FastMCTSAgent(n_sims=40, rollout_depth=4, eval_path=EVAL, reselect=0.3)
+    assert "rsel=0.3" in agent.name
+    st = State.new_game(28)
+    rng = random.Random(10)
+    while not st.over:
+        m = agent.act(st, rng)
+        assert m in st.legal_moves()
+        st.apply(m)
+
+
+def test_reselect_off_by_default_and_without_eval():
+    assert FastMCTSAgent(n_sims=10, eval_path=EVAL).reselect == 0.0
+    agent = FastMCTSAgent(n_sims=10, reselect=0.3)  # 評価関数なしでは使わない
+    assert agent.reselect == 0.0 and "rsel" not in agent.name
+
+
+def test_next_tile_value_ignores_true_deck_order():
+    import numpy as np
+
+    from carcassonne.fast import NT, SC_CUR, SC_DRAW, gen_placements
+    from carcassonne.fast_mcts import next_tile_value
+
+    agent = FastMCTSAgent(n_sims=10, eval_path=EVAL)
+    st = State.new_game(29)
+    rng = random.Random(11)
+    for _ in range(20):
+        st.apply(rng.choice(st.legal_moves()))
+    f = agent.fast
+    sc = f.scratch
+    S = agent.to_fast(st)
+    sc.stamp_box[0] += 1
+    k = gen_placements(
+        S, f.T, S[10][SC_CUR], sc.stamp, sc.stamp_box[0], sc.out_cell, sc.out_g, False
+    )
+    cells = sc.out_cell[:k].astype(np.int64).copy()
+    gs = sc.out_g[:k].astype(np.int64).copy()
+    pieces = np.full(k, -1, np.int64)
+
+    def values(S):
+        return next_tile_value(
+            S, f.T, f.P, cells, gs, pieces, agent.eval_w, agent.eval_mode, agent.fbuf,
+            sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g,
+        )  # fmt: skip
+
+    v0 = values(S)
+    lo = int(S[10][SC_DRAW])
+    rest = S[11][lo : NT - 1].copy()
+    np.random.default_rng(0).shuffle(rest)
+    S[11][lo : NT - 1] = rest
+    assert np.allclose(v0, values(S))
+    assert np.all(np.isfinite(v0))
