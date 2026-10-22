@@ -55,8 +55,8 @@ h1 .accent { color: var(--field); }
 .method b { font-family: var(--font-num); color: var(--ink); font-weight: 500; }
 
 nav.toc { border-block: 1px solid var(--line); padding-block: 14px; margin-block: 8px 8px; }
-nav.toc ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px 20px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); font-size: 15px; }
-nav.toc a { color: var(--ink); text-decoration: none; border-bottom: 1px solid transparent; }
+nav.toc ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 0 20px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); font-size: 15px; }
+nav.toc a { color: var(--ink); text-decoration: none; border-bottom: 1px solid transparent; display: inline-block; padding-block: 5px; }
 nav.toc a:hover, nav.toc a:focus-visible { border-bottom-color: var(--field); outline: none; }
 nav.toc .grp { font-size: 12px; letter-spacing: .1em; color: var(--muted); font-weight: 700; }
 
@@ -90,7 +90,7 @@ figcaption .k { display: block; font-size: 12px; letter-spacing: .1em; color: va
 
 .chartbox { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 14px 14px 6px; overflow-x: auto; }
 .chartbox .cap { font-size: 13px; color: var(--muted); margin: 0 0 6px; }
-svg.chart { width: 100%; min-width: 420px; height: auto; display: block; }
+svg.chart { width: 100%; height: auto; display: block; }
 svg.chart .grid { stroke: var(--line); stroke-width: 1; }
 svg.chart .tick { fill: var(--muted); font-size: 12px; font-family: var(--font-num); }
 svg.chart .axis { fill: var(--muted); font-size: 12px; }
@@ -104,6 +104,13 @@ svg.chart .b-strong { fill: var(--strong); }
 svg.chart .b-greedy { fill: var(--greedy); }
 svg.chart .val { fill: var(--ink); font-size: 12.5px; font-family: var(--font-num); }
 svg.chart .valname { fill: var(--muted); font-family: var(--font-body); font-size: 11.5px; }
+svg.chart .leg { fill: var(--muted); font-size: 13px; }
+/* スマホでは図が縮むので、図の中の文字を大きく描いて読める大きさ（約11px以上）に保つ */
+@media (max-width: 560px) {
+  .chartbox { padding: 12px 8px 4px; }
+  svg.chart .tick, svg.chart .axis, svg.chart .val, svg.chart .leg { font-size: 22px; }
+  svg.chart .lbl, svg.chart .rowlbl { font-size: 24px; }
+}
 
 .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13.5px; color: var(--muted); align-items: center; }
 .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; margin-right: 5px; }

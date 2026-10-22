@@ -69,7 +69,10 @@
   #result td:first-child, #result th:first-child { text-align:left; font-weight:normal; color:var(--muted); }
   #result tr.sum td { font-weight:700; color:var(--ink); border-bottom:0; }
   #home { font-size:12.5px; color:var(--muted); }
-  #home a { color:inherit; }
+  #home nav { display:flex; flex-wrap:wrap; gap:0 12px; margin-bottom:2px; }
+  #home a { color:inherit; display:inline-flex; align-items:center; min-height:28px; }
+  @media (pointer: coarse) { #home a { min-height:44px; } }
+  summary { padding-block:6px; cursor:pointer; }
   .touch .kbd-only { display:none; }
   @media (max-width: 760px) {
     body { flex-direction:column; height:auto; }
@@ -101,7 +104,7 @@
   </div>
 </div>
 <aside>
-  <div id="home" class="local-only"><a href="index.html">← カルカソンヌ入門（トップ）</a>　AIはこのブラウザの中で考えます。</div>
+  <div id="home" class="local-only"><nav aria-label="サイト内のページ"><a href="index.html">← カルカソンヌ入門</a><a href="rules.html">ルール入門</a><a href="strategy.html">戦略ガイド</a><a href="ai_tips.html">強いAIのコツ</a><a href="quiz.html">次の一手クイズ</a></nav>AIはこのブラウザの中で考えます。</div>
   <div class="row">
     <button class="primary" id="btnNew">新しい対局</button>
     <button id="btnRematch" hidden>同じ山札で席替え再戦</button>

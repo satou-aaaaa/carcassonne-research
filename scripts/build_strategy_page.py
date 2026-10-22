@@ -259,6 +259,7 @@ figcaption .thumbs { display: flex; flex-wrap: wrap; gap: 6px; }
 .tablewrap { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; min-width: 480px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; font-size: 15px; }
 th, td { padding: 8px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+@media (max-width: 560px) { table { min-width: 0; font-size: 14px; } th, td { padding: 8px 6px; } }
 thead th { font-size: 13px; color: var(--muted); font-weight: 700; }
 tbody th { color: var(--ink); font-size: 15px; white-space: nowrap; }
 td.n { text-align: right; white-space: nowrap; font-weight: 700; }

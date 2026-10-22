@@ -12,3 +12,5 @@ checkpoints/
 
 runs_*.txt
 !models/ridge_stats.npz
+node_modules/
+ui-shots/
