@@ -127,7 +127,7 @@ jobs:
             { echo "自己対戦ループで新しいチャンピオンが採用されました: $last"; echo; cat state/loop/progress.md; echo; echo "状態: https://github.com/${{ github.repository }}/tree/selfplay-state/loop"; } > body.md
             url=$(gh issue create --title "自己対戦ループ: $last を採用" --body-file body.md)
             # 前の採用の知らせは役目を終えたので閉じる（開いたままたまらないように）
-            gh issue list --state open --limit 100 --json number,title,url \
-              --jq ".[] | select(.title | startswith(\"自己対戦ループ: \")) | select(.url != \"$url\") | .number" |
+            gh api "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100" --paginate \
+              --jq ".[] | select(.pull_request == null) | select(.title | startswith(\"自己対戦ループ: \")) | select(.html_url != \"$url\") | .number" |
               while read -r n; do gh issue close "$n" --comment "新しい採用が出たので閉じます: $url"; done
           fi

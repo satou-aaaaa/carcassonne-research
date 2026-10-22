@@ -76,7 +76,8 @@ jobs:
               print(f"- {p['id']}「{p['title']}」: {p['disputed']}")
           EOF
           title="次の一手クイズ: 最新AIと答えが食い違う問題があります"
-          num=$(gh issue list --state open --limit 100 --json number,title --jq ".[] | select(.title == \"$title\") | .number" | head -n1)
+          num=$(gh api "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100" --paginate \
+            --jq ".[] | select(.pull_request == null) | select(.title == \"$title\") | .number" | head -n1)
           if [ ! -s body.md ]; then
             # 食い違いが無くなったら、開いている知らせを閉じる
             [ -z "$num" ] || gh issue close "$num" --comment "最新AIで確かめ直したら、食い違う問題は無くなったので閉じます。"
