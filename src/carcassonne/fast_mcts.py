@@ -552,7 +552,7 @@ class FastMCTSAgent:
         # 0より大きいと、探索の上位 reselect_k 候補を「次に相手が引くタイルで平均した評価値」と
         # この重みで混ぜて選び直す（`choose_reselect`）。評価関数があるときだけ
         self.reselect = reselect if eval_path else 0.0
-        self.reselect_k = reselect_k
+        self.reselect_k = max(1, int(reselect_k))
         self.n_sims = n_sims
         self.n_det = n_det
         self.c = c

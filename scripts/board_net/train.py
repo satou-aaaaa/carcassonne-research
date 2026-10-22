@@ -2,6 +2,7 @@
 
 import argparse
 import glob
+import os
 import sys
 import time
 from pathlib import Path
@@ -150,7 +151,9 @@ def main():
             f"ep{ep + 1}: 学習 {tl / (i + 1):.4f} 検証R2 {evaluate():.4f} ({time.time() - t0:.0f}s)",
             flush=True,
         )
-        torch.save({"state": net.state_dict(), "gm": gm, "gs": gs, "c": a.c, "b": a.b}, a.out)
+        tmp = a.out + ".tmp"  # 保存中に止まっても前回の重みを残す
+        torch.save({"state": net.state_dict(), "gm": gm, "gs": gs, "c": a.c, "b": a.b}, tmp)
+        os.replace(tmp, a.out)
         if step >= steps:
             break
 

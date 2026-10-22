@@ -178,3 +178,23 @@ def test_next_tile_value_ignores_true_deck_order():
     S[11][lo : NT - 1] = rest
     assert np.allclose(v0, values(S))
     assert np.all(np.isfinite(v0))
+
+
+def test_reselect_can_override_the_most_visited_candidate(monkeypatch):
+    import numpy as np
+
+    from carcassonne import fast_mcts
+
+    # 候補0 は訪問数最多だが探索の評価は互角、候補1 は次のタイルで平均した評価が大きく上
+    a2 = np.array([[100, 0], [0, 80]], np.int64)
+    w2 = np.array([[50.0, 0.0], [0.0, 40.0]])
+    stats = (np.array([10, 20]), np.array([1, 2]), a2.sum(1), w2.sum(1), a2, w2)
+    monkeypatch.setattr(fast_mcts, "search_stats", lambda *a, **k: stats)
+    monkeypatch.setattr(fast_mcts, "next_tile_value", lambda *a, **k: np.array([0.0, 20.0]))
+    st = State.new_game(30)
+    agent = FastMCTSAgent(n_sims=10, eval_path=EVAL, reselect=0.3)
+    assert agent.choose_reselect(agent.to_fast(st), 0) == (20, 2, 0)
+    agent.reselect = 1e-9  # 重みがほぼ0なら訪問数最多（=探索の評価が互角）の候補0
+    assert agent.choose_reselect(agent.to_fast(st), 0) == (10, 1, -1)
+    agent.reselect_k = 1
+    assert agent.choose_reselect(agent.to_fast(st), 0) == (10, 1, -1)

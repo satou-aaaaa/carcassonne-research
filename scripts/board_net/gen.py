@@ -112,4 +112,5 @@ def main():
             print(f"seed {j[2]} done {time.time() - t:.0f}s", flush=True)
 
 
-main()
+if __name__ == "__main__":
+    main()
