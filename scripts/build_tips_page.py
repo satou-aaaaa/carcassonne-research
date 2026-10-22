@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def line_chart(strong: dict, greedy: dict) -> str:
     """手持ちミープル数の推移（横軸=残りタイル枚数、左が序盤）。"""
-    W, H, L, R, T, B = 640, 300, 44, 16, 16, 44
+    W, H, L, R, T, B = 640, 320, 48, 16, 16, 62
     xs = sorted((int(k) for k in strong), reverse=True)
     x0, x1 = max(xs), min(xs)
 
@@ -44,7 +44,7 @@ def line_chart(strong: dict, greedy: dict) -> str:
     for v in (70, 60, 50, 40, 30, 20, 10, 2):
         x = px(v)
         out.append(
-            f'<text x="{x:.1f}" y="{H - B + 18}" text-anchor="middle" class="tick">{v}</text>'
+            f'<text x="{x:.1f}" y="{H - B + 26}" text-anchor="middle" class="tick">{v}</text>'
         )
     out.append(
         f'<text x="{(L + W - R) / 2}" y="{H - 6}" text-anchor="middle" class="axis">山札の残り枚数（左が序盤）</text>'
@@ -55,34 +55,41 @@ def line_chart(strong: dict, greedy: dict) -> str:
             for k, v in sorted(data.items(), key=lambda kv: -int(kv[0]))
         )
         out.append(f'<polyline points="{pts}" class="{cls}" fill="none"/>')
-    # 直接ラベル
-    out.append(
-        f'<text x="{px(46) + 8:.1f}" y="{py(strong["46"]) - 8:.1f}" class="lbl lbl-strong">強いAI</text>'
-    )
-    out.append(
-        f'<text x="{px(54) - 8:.1f}" y="{py(greedy["54"]) + 18:.1f}" text-anchor="end" class="lbl lbl-greedy">目先の点だけのAI</text>'
-    )
+    # 凡例は右上（線は左下に寄るので重ならない。スマホで文字を大きくしても切れない）
+    lx = W - R - 250
+    for k, (nm, cls, tcls) in enumerate(
+        (("強いAI", "s-strong", "lbl-strong"), ("目先の点だけのAI", "s-greedy", "lbl-greedy"))
+    ):
+        y = T + 14 + k * 32
+        out.append(f'<line x1="{lx}" x2="{lx + 34}" y1="{y - 6}" y2="{y - 6}" class="{cls}"/>')
+        out.append(f'<text x="{lx + 44}" y="{y}" class="lbl {tcls}">{nm}</text>')
     out.append("</svg>")
     return "".join(out)
 
 
 def bar_pairs(rows, unit, maxv, aria) -> str:
-    """rows: [(ラベル, 強いAIの値, 比較値, 比較名)] を横棒の対で描く。"""
-    W, rowh, L, R = 640, 58, 92, 64
-    H = rowh * len(rows) + 8
+    """rows: [(ラベル, 強いAIの値, 比較値, 比較名, 強いAIの名前)] を横棒の対で描く。
+
+    棒の名前は上の凡例にまとめ、棒の横には数値だけを書く（スマホで文字を大きくしても収まるように）。
+    """
+    W, rowh, L, R, top = 640, 64, 100, 96, 40
+    H = top + rowh * len(rows) + 4
+    aname, bname = rows[0][4], rows[0][3]
     out = [f'<svg viewBox="0 0 {W} {H}" class="chart" role="img" aria-label="{aria}">']
-    for i, (label, a, b, bname, aname) in enumerate(rows):
-        y = 6 + i * rowh
+    for k, (nm, cls) in enumerate(((aname, "b-strong"), (bname, "b-greedy"))):
+        x = L + k * (W - L) / 2
+        out.append(f'<rect x="{x:.0f}" y="6" width="22" height="22" rx="3" class="{cls}"/>')
+        out.append(f'<text x="{x + 30:.0f}" y="24" class="leg">{nm}</text>')
+    for i, (label, a, b, *_names) in enumerate(rows):
+        y = top + i * rowh
         out.append(
-            f'<text x="{L - 10}" y="{y + 25}" text-anchor="end" class="rowlbl">{label}</text>'
+            f'<text x="{L - 12}" y="{y + 30}" text-anchor="end" class="rowlbl">{label}</text>'
         )
-        for j, (v, cls, nm) in enumerate(((a, "b-strong", aname), (b, "b-greedy", bname))):
-            yy = y + j * 22
+        for j, (v, cls) in enumerate(((a, "b-strong"), (b, "b-greedy"))):
+            yy = y + j * 26
             w = v / maxv * (W - L - R)
-            out.append(f'<rect x="{L}" y="{yy}" width="{w:.1f}" height="18" rx="2" class="{cls}"/>')
-            out.append(
-                f'<text x="{L + w + 6:.1f}" y="{yy + 14}" class="val">{v:.1f}{unit}<tspan class="valname"> {nm}</tspan></text>'
-            )
+            out.append(f'<rect x="{L}" y="{yy}" width="{w:.1f}" height="22" rx="2" class="{cls}"/>')
+            out.append(f'<text x="{L + w + 8:.1f}" y="{yy + 18}" class="val">{v:.1f}{unit}</text>')
     out.append("</svg>")
     return "".join(out)
 

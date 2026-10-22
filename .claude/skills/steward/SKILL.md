@@ -14,11 +14,13 @@ description: このリポジトリでPRを作る・直す・CIを通す・マー
 2. `data/`、`web/*_template.html`、`scripts/build_*.py`、`scripts/site_nav.py`、`scripts/board_svg.py` を
    変えたら `python scripts/build_pages.py` で `docs/` を作り直し、同じコミットに入れる。
    `docs/*.html` は手で直さない（`docs/index.html` だけは手書き）。
-3. 本文に数値を書くページ（`docs/rules.html` など）は、組み立てスクリプトがエンジンで検算する。
+3. 公開ページ（docs/）やその元を変えたら、`.claude/skills/ui-check/SKILL.md` の手順でスマホ幅・PC幅の
+   UI 点検をする（`node scripts/ui_check.mjs --shots ui-shots` と、スクリーンショットの目視）。
+4. 本文に数値を書くページ（`docs/rules.html` など）は、組み立てスクリプトがエンジンで検算する。
    検算で止まったら、数値か局面を直す。検算を外さない。
 
 ## CI
-- `.github/workflows/test.yml` が `python scripts/check.py`（全テスト込み、約2分）を実行する。
+- `.github/workflows/test.yml` が `python scripts/check.py`（全テスト込み、約2分）と、UI 点検（`ui` ジョブ、`node scripts/ui_check.mjs`）を実行する。
 - 落ちたら、ローカルで同じ `scripts/check.py` を再現してから直す。`slow` マークのテストを
   CI で飛ばしたり、テストを無効にしたりしない。
 

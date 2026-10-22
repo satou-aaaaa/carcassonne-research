@@ -23,6 +23,7 @@ python scripts/check.py --quick   # ruff・整形・公開ページ・slow 以�
 ## 公開
 
 - GitHub Pages は `main` の `/docs` を公開する。`docs/*.html` は `scripts/build_pages.py` で作り直す（`docs/index.html` だけ手書き）。
+- ページを変えたら毎回、スマホ幅とPC幅で UI を点検して直す（`node scripts/ui_check.mjs --shots ui-shots`、手順は `.claude/skills/ui-check/SKILL.md`）。CI の test.yml `ui` ジョブも同じ点検をする。
 - 対戦ページ・コツ集・クイズのAIは、いつも最新チャンピオン（`models/eval_champion.npy`）。チャンピオンが変わると `selfplay.yml` と `ai-content.yml` が自動で作り直す。AIの成績や判断例を本文に手で書かない（集計値から組み立て、`build_tips_page.py` の check_claims で確かめる）。
 
 ## 共通のきまり

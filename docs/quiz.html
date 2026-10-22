@@ -108,6 +108,10 @@ nav.site .home { font-weight: 700; margin-right: 8px; color: var(--ink); text-de
 nav.site a.p { color: var(--muted); text-decoration: none; padding: 3px 10px; border-radius: 999px; }
 nav.site a.p:hover, nav.site a.p:focus-visible { color: var(--ink); background: var(--paper); outline: none; }
 nav.site a.p[aria-current="page"] { color: var(--paper); background: var(--field); }
+@media (pointer: coarse) { nav.site a { min-height: 44px; display: inline-flex; align-items: center; } }
+/* 共通: 見出しを語の切れ目で折り返す・開閉の見出しを押しやすく */
+h1, h2, h3 { word-break: auto-phrase; }
+summary { padding-block: 6px; }
 
 </style>
 </head>
