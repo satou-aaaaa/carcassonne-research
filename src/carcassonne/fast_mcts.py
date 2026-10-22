@@ -652,9 +652,8 @@ class FastMCTSAgent:
             1 if self.chance else 0, bool(self.rollout_farm), 1 if self.rollout_reshuffle else 0,
         )  # fmt: skip
         ks, qs = np.nonzero(a2)
-        if (
-            len(ks) == 0
-        ):  # 探索が少なくミープルの節点まで届いていない: 訪問数最多の配置をミープルなしで
+        if len(ks) == 0:
+            # 探索が少なくミープルの節点まで届いていない: 訪問数最多の配置をミープルなしで
             return int(cells[np.argmax(a1)]), int(gs[np.argmax(a1)]), -1
         order = np.argsort(-a2[ks, qs], kind="stable")[: self.reselect_k]
         ks, qs = ks[order], qs[order]
