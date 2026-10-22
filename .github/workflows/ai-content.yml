@@ -2,10 +2,11 @@ name: AI content
 
 # 学習ページ（コツ集 docs/ai_tips.html・次の一手クイズ docs/quiz.html）を、最新AI（チャンピオン）で作り直す。
 # 対戦ページのAIが差し替わったら（selfplay.yml がこのワークフローを起動する）、それに合わせて
-# 最新AI同士の対局を取り直し、クイズの答えを確かめ直して、main へ直接入れる（scripts/refresh_ai_content.py）。
+# 最新AI同士の対局を取り直し、クイズの答えを確かめ直して、PR を作ってすぐマージする（scripts/refresh_ai_content.py、
+# main は PR 必須なので scripts/merge_via_pr.sh を使う）。
 # 起動を取りこぼしても、毎日1回「古くなっていないか」を見て、古ければ作り直す。
 # 本文の言い切りが新しい集計と合わない・入れられないときはジョブを失敗にする（ci-failure-issue.yml が Issue で知らせる）。
-# クイズで答えが変わった問題はページから外し、Issue で見直しを頼む。
+# クイズで答えが変わった問題はページから外し、Issue で見直しを頼む（Issue は1件だけにして書き直し、食い違いが無くなったら閉じる）。
 
 on:
   schedule:
@@ -24,6 +25,8 @@ concurrency:
 permissions:
   contents: write
   issues: write
+  pull-requests: write
+  pages: write # マージ後に公開を起こす（GITHUB_TOKEN のコミットでは自動で走らない）
 
 jobs:
   refresh:
@@ -49,8 +52,10 @@ jobs:
       - name: 最新AIで作り直す
         if: steps.stale.outputs.run == 'true'
         run: python scripts/refresh_ai_content.py --force --workers "$(nproc)"
-      - name: main へ入れる
+      - name: PR で main へ入れる
         if: steps.stale.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           name=$(python -c "import json;print(json.load(open('models/eval_champion.json'))['name'])")
           git config user.name "github-actions[bot]"
@@ -58,11 +63,7 @@ jobs:
           git add docs data/puzzles.json
           if git diff --cached --quiet; then echo "変更なし"; exit 0; fi
           git commit -q -m "学習ページ（コツ集・クイズ）を最新AI $name で作り直す（自動）"
-          for i in 1 2 3; do
-            git pull -q --rebase origin main && git push -q origin HEAD:main && pushed=1 && break
-            sleep 5
-          done
-          [ -n "${pushed:-}" ] || exit 1
+          bash scripts/merge_via_pr.sh ai-content "学習ページ（コツ集・クイズ）を最新AI $name で作り直す（自動）"
       - name: 答えが変わったクイズを Issue で知らせる
         if: steps.stale.outputs.run == 'true'
         env:
@@ -74,6 +75,19 @@ jobs:
           for p in ps:
               print(f"- {p['id']}「{p['title']}」: {p['disputed']}")
           EOF
-          [ -s body.md ] || exit 0
+          title="次の一手クイズ: 最新AIと答えが食い違う問題があります"
+          num=$(gh api "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100" --paginate \
+            --jq ".[] | select(.pull_request == null) | select(.title == \"$title\") | .number" | head -n1)
+          if [ ! -s body.md ]; then
+            # 食い違いが無くなったら、開いている知らせを閉じる
+            [ -z "$num" ] || gh issue close "$num" --comment "最新AIで確かめ直したら、食い違う問題は無くなったので閉じます。"
+            exit 0
+          fi
           { echo; echo "これらの問題は公開ページから外しています。解説を書き直すか、問題を差し替えてください（data/puzzles.json の disputed を消すと戻ります）。"; } >> body.md
-          gh issue create --title "次の一手クイズ: 最新AIと答えが食い違う問題があります" --body-file body.md
+          if [ -n "$num" ]; then
+            # 同じ知らせを増やさず、1件を今の一覧に書き直す
+            gh issue edit "$num" --body-file body.md
+            gh issue comment "$num" --body "最新AIで確かめ直し、一覧を書き直しました。"
+          else
+            gh issue create --title "$title" --body-file body.md
+          fi
