@@ -6,7 +6,8 @@ name: selfplay
 # 状態（state.json・直近の自己対戦データ・各世代の重み・progress.md）はブランチ selfplay-state の loop/ に置く。
 # 履歴を増やさないよう、そのブランチは毎回1コミットだけの状態で上書きする（main には入れない）。
 # selfplay-state ブランチが無いときは何もしない（共有フォルダから状態を移すまで、二重に回さないため）。
-# 新しく「採用」が出たときだけ Issue を立てて知らせ、対戦ページ（docs/play.html）のAIも差し替える。
+# 新しく「採用」が出たときだけ Issue を立てて知らせ（前の採用の Issue は閉じるので、開いているのはいつも最新の1件だけ）、
+# 対戦ページ（docs/play.html）のAIも差し替える（main は PR 必須なので scripts/merge_via_pr.sh で PR を作ってすぐマージする）。
 # 差し替えたら、学習ページ（コツ集・クイズ）を同じAIで作り直す ai-content.yml を起動する。
 
 on:
@@ -26,6 +27,7 @@ concurrency:
 permissions:
   contents: write
   issues: write
+  pull-requests: write # 対戦ページのAIの差し替えを PR で main に入れる
   actions: write # 学習ページの作り直し（ai-content.yml）を起動する
 
 jobs:
@@ -88,8 +90,10 @@ jobs:
           git commit -q -m "自己対戦ループの状態 $(date -u +%Y-%m-%dT%H:%MZ)"
           git push -f origin tmp:selfplay-state
       - name: 対戦ページ（docs/play.html）のAIを最新チャンピオンに差し替える
-        # 採用が無ければ unchanged で何もしない。main へ直接入れ、入れられないときはジョブを失敗にする
+        # 採用が無ければ unchanged で何もしない。PR で main へ入れ、入れられないときはジョブを失敗にする
         if: steps.state.outputs.exists == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           result=$(python scripts/update_champion.py state/loop)
           echo "対戦ページのAI: $result"
@@ -100,12 +104,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add models/eval_champion.npy models/eval_champion.json docs
           git commit -q -m "対戦ページのAIを最新チャンピオン $name に差し替える（自動）"
-          for i in 1 2 3; do
-            git pull -q --rebase origin main && git push -q origin HEAD:main && pushed=1 && break
-            sleep 5
-          done
           # 入れられなかったらジョブを失敗にする（ci-failure-issue.yml が Issue で知らせる）
-          [ -n "${pushed:-}" ] || exit 1
+          bash scripts/merge_via_pr.sh champion "対戦ページのAIを最新チャンピオン $name に差し替える（自動）"
       - name: 学習ページ（コツ集・クイズ）を最新チャンピオンで作り直す
         # 対戦ページのAIを差し替えたときだけ。重い（約1時間）ので別のワークフローで回す
         if: steps.state.outputs.exists == 'true'
@@ -124,5 +124,9 @@ jobs:
           if [ "$after" -gt "$before" ]; then
             last=$(python -c "import json;h=[x for x in json.load(open('state/loop/state.json'))['history'] if x['promoted']][-1];print(f\"試行{h['attempt']}（勝率 {h['win_rate']:.3f}）\")")
             { echo "自己対戦ループで新しいチャンピオンが採用されました: $last"; echo; cat state/loop/progress.md; echo; echo "状態: https://github.com/${{ github.repository }}/tree/selfplay-state/loop"; } > body.md
-            gh issue create --title "自己対戦ループ: $last を採用" --body-file body.md
+            url=$(gh issue create --title "自己対戦ループ: $last を採用" --body-file body.md)
+            # 前の採用の知らせは役目を終えたので閉じる（開いたままたまらないように）
+            gh issue list --state open --limit 100 --json number,title,url \
+              --jq ".[] | select(.title | startswith(\"自己対戦ループ: \")) | select(.url != \"$url\") | .number" |
+              while read -r n; do gh issue close "$n" --comment "新しい採用が出たので閉じます: $url"; done
           fi
