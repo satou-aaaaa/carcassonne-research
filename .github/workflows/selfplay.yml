@@ -28,6 +28,7 @@ permissions:
   contents: write
   issues: write
   pull-requests: write # 対戦ページのAIの差し替えを PR で main に入れる
+  pages: write # マージ後に公開を起こす（GITHUB_TOKEN のコミットでは自動で走らない）
   actions: write # 学習ページの作り直し（ai-content.yml）を起動する
 
 jobs:

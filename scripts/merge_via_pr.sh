@@ -6,6 +6,8 @@
 # main は Ruleset で「PR 必須」なので、直接 push すると断られる（2026-10-21〜22 の selfplay の失敗、Issue #66）。
 # 今の HEAD のコミットを auto/<頭>-<日時> に push し、PR を作ってすぐ squash マージし、ブランチを消す。
 # 入れられなかったら終了コード 1（ci-failure-issue.yml が Issue で知らせる）。
+# GITHUB_TOKEN で入れたコミットでは GitHub Pages の公開が自動で走らないので、マージ後に公開を起こす（要 pages: write）。
+# この PR では CI（test.yml）が走らない（GITHUB_TOKEN の仕様）。前の直接 push と同じで、中身は生成物（重み・docs）だけ。
 set -euo pipefail
 
 prefix=${1:?ブランチ名の頭}
@@ -29,6 +31,8 @@ fi
 for i in 1 2 3; do
   if gh pr merge "$url" --squash --delete-branch; then
     echo "マージしました: $url"
+    gh api -X POST "repos/${GITHUB_REPOSITORY}/pages/builds" --jq .status ||
+      echo "::warning::公開（GitHub Pages）を起こせませんでした。次に main へ入る変更で公開されます"
     exit 0
   fi
   sleep 10

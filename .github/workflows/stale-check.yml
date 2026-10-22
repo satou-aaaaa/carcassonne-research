@@ -44,7 +44,7 @@ jobs:
             echo "放置は見つかりませんでした" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          { echo "## 放置されているもの"; echo; cat stale.md; echo; echo "対応済みなら閉じる・マージする・消す。残すものは理由をコメントすると、動きが付いて次から数えません。"; } >> "$GITHUB_STEP_SUMMARY"
+          { echo "## 放置されているもの"; echo; cat stale.md; echo; echo "対応済みなら閉じる・マージする・消す。残す Issue は理由をコメントすると、そこから14日は数えません。PR は残さず、マージするか閉じる。"; } >> "$GITHUB_STEP_SUMMARY"
           cat stale.md
           echo "::error title=放置されているものがあります::$(wc -l < stale.md) 件。一覧は実行結果の Summary"
           exit 1
