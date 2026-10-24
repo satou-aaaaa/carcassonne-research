@@ -7,7 +7,6 @@ scripts/merge_via_pr.sh（PR を作ってすぐマージする）を使う。
 
 from __future__ import annotations
 
-import re
 import shlex
 from pathlib import Path
 
@@ -19,27 +18,39 @@ FILES = sorted((ROOT / ".github" / "workflows").glob("*.yml")) + sorted(
 )
 
 
+def _words(line: str) -> list[str]:
+    """シェルの1行を語に分ける。引用符の中の # はコメントにしない。`;`・`&&`・`|` も1語にする。"""
+    lex = shlex.shlex(line, posix=True, punctuation_chars=";&|")
+    lex.whitespace_split = True
+    lex.commenters = "#"
+    try:
+        return list(lex)
+    except ValueError:  # 引用符が行をまたぐ（YAML の複数行）ときは素朴に分ける
+        return line.split("#", 1)[0].split()
+
+
 def pushes_to_main(line: str) -> bool:
-    """1行の `git push` が main へ入れるものなら True。
+    """1行の中の `git push` のどれかが main へ入れるものなら True。
 
     `HEAD:main`・`HEAD:refs/heads/main`・`origin main` のように main を指すもの、
-    行き先を書かない `git push` / `git push origin`（今のブランチ＝CI では main へ入る）を見つける。
+    `origin HEAD` や行き先を書かない `git push` / `git push origin`（今のブランチ＝CI では main へ入る）を見つける。
     """
-    code = line.split("#", 1)[0]
-    m = re.search(r"\bgit\s+push\b(.*)", code)
-    if not m:
-        return False
-    rest = re.split(r"&&|\|\||;|\|", m.group(1))[0]
-    try:
-        args = [a for a in shlex.split(rest) if not a.startswith("-")]
-    except ValueError:
-        args = rest.split()
-    if len(args) <= 1:  # 行き先が無い: 今のブランチ（main）へ入る
-        return True
-    for ref in args[1:]:
-        dst = ref.split(":", 1)[-1].lstrip("+")
-        if dst in ("main", "refs/heads/main"):
+    words = _words(line)
+    for i in range(len(words) - 1):
+        if words[i] != "git" or words[i + 1] != "push":
+            continue
+        args = []
+        for w in words[i + 2 :]:
+            if set(w) <= set(";&|"):
+                break
+            if not w.startswith("-"):
+                args.append(w)
+        if len(args) <= 1:  # 行き先が無い: 今のブランチ（main）へ入る
             return True
+        for ref in args[1:]:
+            dst = ref.split(":", 1)[-1].lstrip("+")
+            if dst in ("main", "refs/heads/main", "HEAD"):
+                return True
     return False
 
 
@@ -53,6 +64,9 @@ def pushes_to_main(line: str) -> bool:
         ("git push origin main", True),
         ("git push -q origin HEAD:refs/heads/main", True),
         ("git push", True),
+        ("git push origin HEAD", True),
+        ('echo "# start"; git push origin HEAD:main', True),
+        ("git push origin HEAD:selfplay-state && git push origin HEAD:main", True),
         ("git push -f origin tmp:selfplay-state", False),
         ('git push -q origin "HEAD:refs/heads/${branch}"', False),
         ('git push -q origin --delete "$branch" || true', False),
