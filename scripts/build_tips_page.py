@@ -188,7 +188,8 @@ def check_claims(s: dict, g: dict, lead: dict) -> None:
         (s["blocks_per_game_player"].get("opp_C", 0)
          > 1.3 * g["blocks_per_game_player"].get("opp_C", 0),
          "#block: 強いAIは相手の都市を止める手をよく指す"),
-        (lead["C"] == max(lead.values()), "#citywins: 勝敗の差がいちばん大きいのは都市"),
+        (set(sorted(lead, key=lead.get)[-2:]) == {"C", "F"},
+         "#citywins, #recap: 勝敗の差が大きい上位2つは都市と草原"),
         (s["touches_opp"] > g["touches_opp"], "#tiles: 強いAIは相手の特徴によく手を出す"),
     ]  # fmt: skip
     bad = [msg for ok, msg in claims if not ok]

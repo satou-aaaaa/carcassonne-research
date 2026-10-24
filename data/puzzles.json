@@ -749,8 +749,8 @@
      3,
      null
     ],
-    "visits": 0.8283,
-    "diff": 19.52,
+    "visits": 0.8503,
+    "diff": 19.61,
     "facts": {
      "gain_me": 20,
      "gain_opp": 0,
@@ -766,8 +766,8 @@
      1,
      null
     ],
-    "visits": 0.0166,
-    "diff": 12.8,
+    "visits": 0.0131,
+    "diff": 12.15,
     "facts": {
      "gain_me": 4,
      "gain_opp": 0,
@@ -783,8 +783,8 @@
      3,
      null
     ],
-    "visits": 0.0166,
-    "diff": 12.78,
+    "visits": 0.0143,
+    "diff": 12.48,
     "facts": {
      "gain_me": 4,
      "gain_opp": 0,
@@ -800,8 +800,8 @@
      2,
      null
     ],
-    "visits": 0.0158,
-    "diff": 12.63,
+    "visits": 0.0141,
+    "diff": 12.45,
     "facts": {
      "gain_me": 4,
      "gain_opp": 0,
@@ -827,8 +827,8 @@
   ],
   "level": "入門",
   "checked_by": {
-   "name": "gen386",
-   "date": "2026-10-21"
+   "name": "gen419",
+   "date": "2026-10-22"
   }
  },
  {
@@ -1110,8 +1110,8 @@
      1,
      0
     ],
-    "visits": 0.6317,
-    "diff": 7.14,
+    "visits": 0.6953,
+    "diff": 8.13,
     "facts": {
      "gain_me": 4,
      "gain_opp": 0,
@@ -1131,8 +1131,8 @@
      1,
      2
     ],
-    "visits": 0.0232,
-    "diff": 3.02,
+    "visits": 0.0224,
+    "diff": 3.64,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -1154,8 +1154,8 @@
      3,
      0
     ],
-    "visits": 0.0097,
-    "diff": 3.93,
+    "visits": 0.0073,
+    "diff": 4.01,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -1177,8 +1177,8 @@
      3,
      null
     ],
-    "visits": 0.007,
-    "diff": 2.89,
+    "visits": 0.0051,
+    "diff": 2.63,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -1204,8 +1204,8 @@
   ],
   "level": "入門",
   "checked_by": {
-   "name": "gen386",
-   "date": "2026-10-21"
+   "name": "gen419",
+   "date": "2026-10-22"
   }
  },
  {
@@ -1429,8 +1429,8 @@
      0,
      1
     ],
-    "visits": 0.1972,
-    "diff": 6.94,
+    "visits": 0.2103,
+    "diff": 8.13,
     "facts": {
      "gain_me": 4,
      "gain_opp": 0,
@@ -1452,8 +1452,8 @@
      0,
      null
     ],
-    "visits": 0.0726,
-    "diff": 5.56,
+    "visits": 0.0691,
+    "diff": 5.63,
     "facts": {
      "gain_me": 4,
      "gain_opp": 0,
@@ -1469,8 +1469,8 @@
      3,
      0
     ],
-    "visits": 0.2147,
-    "diff": 7.47,
+    "visits": 0.2164,
+    "diff": 7.41,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -1492,8 +1492,8 @@
      2,
      0
     ],
-    "visits": 0.0317,
-    "diff": 5.54,
+    "visits": 0.0369,
+    "diff": 5.71,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -1524,10 +1524,9 @@
    "誰もいない都市に入って3枚に伸ばす。完成はまだ先。"
   ],
   "checked_by": {
-   "name": "gen386",
-   "date": "2026-10-21"
-  },
-  "disputed": "gen386 は選択肢3を最善とした"
+   "name": "gen419",
+   "date": "2026-10-22"
+  }
  },
  {
   "id": "s0t58",
@@ -2409,8 +2408,8 @@
      2,
      2
     ],
-    "visits": 0.3189,
-    "diff": 16.59,
+    "visits": 0.2196,
+    "diff": 16.02,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -2430,8 +2429,8 @@
      2,
      null
     ],
-    "visits": 0.029,
-    "diff": 12.81,
+    "visits": 0.0285,
+    "diff": 12.6,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -2447,8 +2446,8 @@
      0,
      2
     ],
-    "visits": 0.0098,
-    "diff": 12.19,
+    "visits": 0.0103,
+    "diff": 11.73,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -2476,8 +2475,8 @@
    "周りが4マスしか埋まっていない場所。今は5点の見込み。"
   ],
   "checked_by": {
-   "name": "gen386",
-   "date": "2026-10-21"
+   "name": "gen419",
+   "date": "2026-10-22"
   }
  },
  {
@@ -2978,8 +2977,8 @@
      0,
      null
     ],
-    "visits": 0.1748,
-    "diff": 1.74,
+    "visits": 0.2356,
+    "diff": 3.01,
     "facts": {
      "gain_me": 12,
      "gain_opp": 0,
@@ -2995,8 +2994,8 @@
      1,
      0
     ],
-    "visits": 0.0152,
-    "diff": -0.92,
+    "visits": 0.0146,
+    "diff": 0.07,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -3018,8 +3017,8 @@
      2,
      0
     ],
-    "visits": 0.0114,
-    "diff": -1.59,
+    "visits": 0.0103,
+    "diff": -0.82,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -3041,8 +3040,8 @@
      1,
      0
     ],
-    "visits": 0.0101,
-    "diff": -1.9,
+    "visits": 0.0116,
+    "diff": -0.46,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -3073,8 +3072,8 @@
    "最後のミープルで新しい都市を始める。今は1点の見込み。"
   ],
   "checked_by": {
-   "name": "gen386",
-   "date": "2026-10-21"
+   "name": "gen419",
+   "date": "2026-10-22"
   }
  },
  {
@@ -3750,8 +3749,8 @@
      3,
      2
     ],
-    "visits": 0.7549,
-    "diff": 6.35,
+    "visits": 0.5501,
+    "diff": 5.82,
     "facts": {
      "gain_me": 8,
      "gain_opp": 0,
@@ -3771,8 +3770,8 @@
      3,
      null
     ],
-    "visits": 0.0182,
-    "diff": 0.68,
+    "visits": 0.0268,
+    "diff": 1.29,
     "facts": {
      "gain_me": 8,
      "gain_opp": 0,
@@ -3788,8 +3787,8 @@
      2,
      2
     ],
-    "visits": 0.0211,
-    "diff": 2.35,
+    "visits": 0.0395,
+    "diff": 3.27,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -3817,8 +3816,8 @@
    "修道院は8点の見込みだが、道は未完成のまま。"
   ],
   "checked_by": {
-   "name": "gen386",
-   "date": "2026-10-21"
+   "name": "gen419",
+   "date": "2026-10-22"
   }
  },
  {
@@ -4630,8 +4629,8 @@
      0,
      1
     ],
-    "visits": 0.1812,
-    "diff": -0.15,
+    "visits": 0.2127,
+    "diff": 0.37,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -4653,8 +4652,8 @@
      0,
      0
     ],
-    "visits": 0.0368,
-    "diff": -2.31,
+    "visits": 0.042,
+    "diff": -1.65,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -4676,8 +4675,8 @@
      0,
      null
     ],
-    "visits": 0.0168,
-    "diff": -3.75,
+    "visits": 0.015,
+    "diff": -3.58,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -4693,8 +4692,8 @@
      0,
      0
     ],
-    "visits": 0.0228,
-    "diff": -3.13,
+    "visits": 0.0239,
+    "diff": -2.55,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -4725,8 +4724,8 @@
    "別の場所の道にミープル。今は2点の見込み。"
   ],
   "checked_by": {
-   "name": "gen386",
-   "date": "2026-10-21"
+   "name": "gen419",
+   "date": "2026-10-22"
   }
  },
  {
@@ -5239,8 +5238,8 @@
      1,
      null
     ],
-    "visits": 0.5823,
-    "diff": 16.11,
+    "visits": 0.5411,
+    "diff": 15.63,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -5256,8 +5255,8 @@
      1,
      null
     ],
-    "visits": 0.0135,
-    "diff": 9.62,
+    "visits": 0.0152,
+    "diff": 9.39,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -5273,8 +5272,8 @@
      2,
      null
     ],
-    "visits": 0.0132,
-    "diff": 9.52,
+    "visits": 0.0155,
+    "diff": 9.45,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -5290,8 +5289,8 @@
      0,
      null
     ],
-    "visits": 0.0159,
-    "diff": 10.15,
+    "visits": 0.017,
+    "diff": 9.81,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -5316,8 +5315,8 @@
    "修道院の周りが1マス埋まるだけ。"
   ],
   "checked_by": {
-   "name": "gen386",
-   "date": "2026-10-21"
+   "name": "gen419",
+   "date": "2026-10-22"
   }
  },
  {
@@ -6325,8 +6324,8 @@
    "修道院は8点の見込みだが、大草原は赤のまま。"
   ],
   "checked_by": {
-   "name": "gen386",
-   "date": "2026-10-21"
+   "name": "gen419",
+   "date": "2026-10-22"
   }
  },
  {
@@ -7383,8 +7382,8 @@
    "タイルを置くだけ。点は動かない。"
   ],
   "checked_by": {
-   "name": "gen386",
-   "date": "2026-10-21"
+   "name": "gen419",
+   "date": "2026-10-22"
   }
  },
  {
@@ -7903,8 +7902,8 @@
      1,
      null
     ],
-    "visits": 0.2715,
-    "diff": 1.59,
+    "visits": 0.2441,
+    "diff": 1.52,
     "facts": {
      "gain_me": 10,
      "gain_opp": 0,
@@ -7920,8 +7919,8 @@
      3,
      null
     ],
-    "visits": 0.03,
-    "diff": -1.36,
+    "visits": 0.0321,
+    "diff": -1.17,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -7937,8 +7936,8 @@
      3,
      null
     ],
-    "visits": 0.0268,
-    "diff": -1.69,
+    "visits": 0.0291,
+    "diff": -1.39,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -7954,8 +7953,8 @@
      2,
      null
     ],
-    "visits": 0.0308,
-    "diff": -1.31,
+    "visits": 0.0341,
+    "diff": -1.06,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -7981,8 +7980,8 @@
   ],
   "level": "入門",
   "checked_by": {
-   "name": "gen386",
-   "date": "2026-10-21"
+   "name": "gen419",
+   "date": "2026-10-22"
   }
  },
  {
@@ -8539,8 +8538,8 @@
      3,
      null
     ],
-    "visits": 0.5534,
-    "diff": 0.31,
+    "visits": 0.5251,
+    "diff": 0.95,
     "facts": {
      "gain_me": 8,
      "gain_opp": 0,
@@ -8556,8 +8555,8 @@
      2,
      null
     ],
-    "visits": 0.0359,
-    "diff": -3.25,
+    "visits": 0.0371,
+    "diff": -2.18,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -8573,8 +8572,8 @@
      2,
      null
     ],
-    "visits": 0.0142,
-    "diff": -5.69,
+    "visits": 0.0128,
+    "diff": -4.93,
     "facts": {
      "gain_me": 0,
      "gain_opp": 3,
@@ -8590,8 +8589,8 @@
      3,
      null
     ],
-    "visits": 0.0165,
-    "diff": -5.16,
+    "visits": 0.0212,
+    "diff": -3.53,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -8617,8 +8616,8 @@
   ],
   "level": "入門",
   "checked_by": {
-   "name": "gen386",
-   "date": "2026-10-21"
+   "name": "gen419",
+   "date": "2026-10-22"
   }
  },
  {
@@ -9053,8 +9052,8 @@
      0,
      null
     ],
-    "visits": 0.694,
-    "diff": 6.72,
+    "visits": 0.7347,
+    "diff": 5.84,
     "facts": {
      "gain_me": 9,
      "gain_opp": 0,
@@ -9070,8 +9069,8 @@
      2,
      null
     ],
-    "visits": 0.0332,
-    "diff": 3.06,
+    "visits": 0.0269,
+    "diff": 1.81,
     "facts": {
      "gain_me": 4,
      "gain_opp": 0,
@@ -9087,8 +9086,8 @@
      3,
      null
     ],
-    "visits": 0.0422,
-    "diff": 3.52,
+    "visits": 0.0292,
+    "diff": 2.35,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -9104,8 +9103,8 @@
      2,
      null
     ],
-    "visits": 0.0207,
-    "diff": 1.98,
+    "visits": 0.0209,
+    "diff": 1.18,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -9131,8 +9130,8 @@
   ],
   "level": "入門",
   "checked_by": {
-   "name": "gen386",
-   "date": "2026-10-21"
+   "name": "gen419",
+   "date": "2026-10-22"
   }
  }
 ]
