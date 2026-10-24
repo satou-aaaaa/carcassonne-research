@@ -1,0 +1,50 @@
+name: Stale check
+
+# 放置されているものを週1回見つける（Claude は使わない）。
+# 動きの無い開いた Issue（14日）・開いた PR（3日）・自動で作った auto/ ブランチの残り（2日）があればジョブを失敗にし、
+# ci-failure-issue.yml が「CI失敗: Stale check（main）」の Issue で知らせる。片づいて次に成功すると、その Issue は自動で閉じる。
+# CI の失敗を知らせる Issue（ラベル ci-failure）は、それ自体が成功で閉じるので数えない。
+on:
+  schedule:
+    # 毎週月曜 07:41 JST（= 日曜 22:41 UTC）
+    - cron: "41 22 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 放置を探す
+        env:
+          GH_TOKEN: ${{ github.token }}
+          R: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          now=$(date -u +%s)
+          old() { echo $(( now - $1 * 86400 )); }
+          {
+            gh api "repos/$R/issues?state=open&per_page=100" --paginate \
+              --jq ".[] | select(.pull_request | not) | select([.labels[].name] | index(\"ci-failure\") | not)
+                    | select((.updated_at | fromdateiso8601) < $(old 14)) | \"- Issue #\(.number) \(.title)（最後の動き \(.updated_at[:10])）\""
+            gh api "repos/$R/pulls?state=open&per_page=100" --paginate \
+              --jq ".[] | select((.updated_at | fromdateiso8601) < $(old 3)) | \"- PR #\(.number) \(.title)（最後の動き \(.updated_at[:10])）\""
+            gh api "repos/$R/branches?per_page=100" --paginate --jq '.[] | select(.name | startswith("auto/")) | .name' |
+              while read -r b; do
+                d=$(gh api "repos/$R/commits/$b" --jq .commit.committer.date)
+                if [ "$(date -u -d "$d" +%s)" -lt "$(old 2)" ]; then echo "- ブランチ $b（自動で作ったPRのマージに失敗した残り、${d:0:10}）"; fi
+              done
+          } > stale.md
+          if [ ! -s stale.md ]; then
+            echo "放置は見つかりませんでした" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          { echo "## 放置されているもの"; echo; cat stale.md; echo; echo "対応済みなら閉じる・マージする・消す。残す Issue は理由をコメントすると、そこから14日は数えません。PR は残さず、マージするか閉じる。"; } >> "$GITHUB_STEP_SUMMARY"
+          cat stale.md
+          echo "::error title=放置されているものがあります::$(wc -l < stale.md) 件。一覧は実行結果の Summary"
+          exit 1
