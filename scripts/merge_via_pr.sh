@@ -15,6 +15,13 @@ title=${2:?PRのタイトル}
 body_file=${3:-}
 
 git pull -q --rebase origin main
+# 待っているあいだに、同じ中身が先に main へ入っていることがある（selfplay は同時に1本しか回らず、
+# 待たされた回は古い main を取り出したまま走る）。rebase で空になったら入れる物は無いので、成功で終える。
+# ここで止めないと、差の無い PR を作ろうとして失敗する（Issue #92、2026-10-28）。
+if git diff --quiet FETCH_HEAD HEAD; then
+  echo "同じ中身がもう main に入っていました。PR は作りません"
+  exit 0
+fi
 branch="auto/${prefix}-$(date -u +%Y%m%d-%H%M%S)"
 git push -q origin "HEAD:refs/heads/${branch}"
 
@@ -24,7 +31,7 @@ if [ -z "$body_file" ]; then
 fi
 
 if ! url=$(gh pr create --base main --head "$branch" --title "$title" --body-file "$body_file"); then
-  echo "::error title=PRを作れませんでした::Settings → Actions → General の「Allow GitHub Actions to create and approve pull requests」が切れていると作れません"
+  echo "::error title=PRを作れませんでした::上の gh のメッセージを見る。よくある原因は Settings → Actions → General の「Allow GitHub Actions to create and approve pull requests」が切れていると作れません"
   git push -q origin --delete "$branch" || true
   exit 1
 fi
