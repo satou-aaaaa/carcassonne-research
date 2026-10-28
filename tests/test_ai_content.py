@@ -52,6 +52,17 @@ def test_claims_stop_the_build_when_the_trend_flips():
         build_tips_page.check_claims(flipped, g, lead)
 
 
+def test_claims_ignore_order_within_noise():
+    """2位以下の得点源の差（数点）が入れ替わっただけでは止めない（gen576 で草原と道が逆になり失敗、#83）。"""
+    summ = json.loads((ROOT / "docs/results/habits_summary.json").read_text(encoding="utf-8"))
+    s, g = summ["habits_strong"], summ["habits_greedy"]
+    # 集計の更新に左右されないよう、得点源ごとの差は固定値にする（都市が1位、草原と道は僅差で入れ替わる）
+    swapped = {"C": 6.0, "F": 3.0, "R": 3.5, "M": 2.0}
+    build_tips_page.check_claims(s, g, swapped)
+    with pytest.raises(SystemExit, match="#citywins"):
+        build_tips_page.check_claims(s, g, dict(swapped, R=7.0))
+
+
 def test_disputed_puzzle_is_marked_and_left_out_of_the_page():
     puzzles = json.loads((ROOT / "data/puzzles.json").read_text(encoding="utf-8"))[:2]
     res = [

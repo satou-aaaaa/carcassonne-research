@@ -7,6 +7,7 @@ scripts/merge_via_pr.sh（PR を作ってすぐマージする）を使う。
 
 from __future__ import annotations
 
+import json
 import shlex
 from pathlib import Path
 
@@ -88,3 +89,30 @@ def test_no_direct_push_to_main() -> None:
         "main は PR 必須なので直接 push は断られます。scripts/merge_via_pr.sh を使ってください:\n"
         + "\n".join(found)
     )
+
+
+def test_dispatched_workflows_are_watched_by_the_sweep() -> None:
+    """ほかのワークフローが `gh workflow run` で起こすワークフローは、CI失敗の見張りに入れ、見回り（schedule）も持たせる。
+
+    GITHUB_TOKEN で起こした実行は workflow_run を起こさないので、見回りが無いと失敗が Issue にならず、
+    成功しても Issue が閉じない（AI content、#83、2026-10-26〜28）。
+    """
+    import re
+
+    wf_dir = ROOT / ".github" / "workflows"
+    names = {f.name: re.search(r"^name:\s*(.+)$", f.read_text(encoding="utf-8"), re.MULTILINE).group(1).strip().strip("\"'")
+             for f in wf_dir.glob("*.yml")}  # fmt: skip
+    watch = (wf_dir / "ci-failure-issue.yml").read_text(encoding="utf-8")
+    m = re.search(r"^\s*workflows:\s*(\[.*\])\s*$", watch, re.MULTILINE)
+    assert m, "ci-failure-issue.yml の workflows: は見回りが読めるよう1行で書く"
+    watched = set(json.loads(m.group(1)))
+    assert re.search(r"^  schedule:", watch, re.MULTILINE), (
+        "ci-failure-issue.yml に見回りの schedule が要る"
+    )
+    for f in FILES:
+        for target in re.findall(
+            r"gh workflow run\s+([\w.-]+\.ya?ml)", f.read_text(encoding="utf-8")
+        ):
+            assert names.get(target) in watched, (
+                f"{f.name} が起こす {target} を ci-failure-issue.yml の workflows に入れる"
+            )
