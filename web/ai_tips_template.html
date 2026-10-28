@@ -148,7 +148,7 @@ a { color: var(--field); }
   <ol>
     <li><span class="grp">ミープル</span><br><a href="#keep">序盤に一気に使い切らない</a><br><a href="#road">道には「すぐ終わる道」だけ</a><br><a href="#city">都市は自分で新しく始める</a><br><a href="#farm">農民は数を絞り、置く場所を選ぶ</a></li>
     <li><span class="grp">タイル</span><br><a href="#merge">相手の都市に合流して分け合う</a><br><a href="#block">相手の都市を「完成しない形」にする（上級）</a><br><a href="#monastery">修道院は周りを自分で埋める</a></li>
-    <li><span class="grp">得点</span><br><a href="#citywins">勝ち負けを分けるのは都市と草原</a><br><a href="#recap">まとめ</a></li>
+    <li><span class="grp">得点</span><br><a href="#citywins">勝ち負けを一番分けるのは都市</a><br><a href="#recap">まとめ</a></li>
   </ol>
 </nav>
 
@@ -263,8 +263,8 @@ a { color: var(--field); }
 <section class="group" id="score">
   <h2><span class="tag">得点</span>何で差がつくか</h2>
   <article class="tip" id="citywins">
-    <h3>勝ち負けを分けるのは都市と草原</h3>
-    <p>勝った側と負けた側の点を得点源ごとに比べると、差が大きいのは都市と草原でした。勝った側から見た差は、都市 {{lead_C_signed}}点、草原 {{lead_F_signed}}点、修道院 {{lead_M_signed}}点、道 {{lead_R_signed}}点です。草原の点は完成した都市から生まれるので、根っこは同じです。迷ったら、自分の都市を完成させる手と、完成した都市に接する草原を押さえる手を優先しましょう。</p>
+    <h3>勝ち負けを一番分けるのは都市</h3>
+    <p>勝った側と負けた側の点を得点源ごとに比べると、差が一番大きいのは都市でした。勝った側から見た差は、都市 {{lead_C_signed}}点、草原 {{lead_F_signed}}点、修道院 {{lead_M_signed}}点、道 {{lead_R_signed}}点です。草原の点も完成した都市から生まれるので、根っこは都市です。迷ったら、自分の都市を完成させる手と、完成した都市に接する草原を押さえる手を優先しましょう。</p>
     <div class="chartbox">
       <p class="cap">強いAI同士の対局で、勝った側と負けた側が得点源ごとに取った平均点</p>
       {{chart_winner}}
@@ -277,7 +277,7 @@ a { color: var(--field); }
   <ol>
     <li>ミープルは序盤に一気に使い切らない。序盤の終わりに1〜2個残っているくらいがよい。</li>
     <li>道に乗せるのは、すぐ終わりそうな道だけ。</li>
-    <li>都市は自分で新しく始めて育てる。勝敗の差が大きく出るのは都市と、それに接する草原。</li>
+    <li>都市は自分で新しく始めて育てる。勝敗の差が一番大きく出るのは都市（草原の点も完成した都市から生まれる）。</li>
     <li>農民は数を絞る。終盤に余ったミープルは、完成した都市にたくさん接する草原へ。</li>
     <li>相手の大きな都市には合流して分け合う。慣れてきたら、完成しない形にする手も考える。</li>
     <li>修道院の周りは自分で埋めて、ミープルを早く取り戻す。</li>

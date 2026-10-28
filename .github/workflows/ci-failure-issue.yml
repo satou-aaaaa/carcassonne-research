@@ -7,6 +7,11 @@ on:
   workflow_run:
     workflows: ["test", "selfplay", "Link check", "Secret scan", "Site watch", "Setup check", "AI content", "Stale check"]
     types: [completed]
+  # 見回り: GITHUB_TOKEN で起こした実行（selfplay が起こす AI content）は workflow_run を起こさないので、
+  # 6時間ごとに見張る名前の main の最新の実行を見て、Issue を立てる・閉じる（上の workflows: は1行で書く。#83）
+  schedule:
+    - cron: "29 */6 * * *"
+  workflow_dispatch:
 
 permissions:
   issues: write
