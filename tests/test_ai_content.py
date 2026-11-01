@@ -53,14 +53,42 @@ def test_claims_stop_the_build_when_the_trend_flips():
 
 
 def test_claims_ignore_order_within_noise():
-    """2位以下の得点源の差（数点）が入れ替わっただけでは止めない（gen576 で草原と道が逆になり失敗、#83）。"""
+    """得点源の順位が数点の差で入れ替わっただけでは止めない。
+
+    gen576 で草原と道が逆になり（#83）、gen836 で都市が3位になって（#105）止まった。
+    """
     summ = json.loads((ROOT / "docs/results/habits_summary.json").read_text(encoding="utf-8"))
     s, g = summ["habits_strong"], summ["habits_greedy"]
-    # 集計の更新に左右されないよう、得点源ごとの差は固定値にする（都市が1位、草原と道は僅差で入れ替わる）
-    swapped = {"C": 6.0, "F": 3.0, "R": 3.5, "M": 2.0}
-    build_tips_page.check_claims(s, g, swapped)
+    # 集計の更新に左右されないよう、得点源ごとの差は固定値にする
+    for lead in (
+        {"C": 6.0, "F": 3.0, "R": 3.5, "M": 2.0},
+        {"C": 5.7, "F": 6.4, "R": 1.4, "M": 0.8},
+        {"C": 4.1, "F": 5.6, "R": 2.4, "M": 5.2},
+    ):
+        build_tips_page.check_claims(s, g, lead)
+    # 勝った側が都市で負けているなら、本文の言い切りは成り立たない
     with pytest.raises(SystemExit, match="#citywins"):
-        build_tips_page.check_claims(s, g, dict(swapped, R=7.0))
+        build_tips_page.check_claims(s, g, {"C": -1.0, "F": 6.0, "R": 3.0, "M": 5.0})
+
+
+HISTORY = sorted((ROOT / "tests/data/habits_history").glob("*.json"))
+
+
+@pytest.mark.parametrize("path", HISTORY, ids=[p.stem for p in HISTORY])
+def test_claims_hold_on_every_past_generation(path):
+    """本文の言い切りは、過去の世代の集計でもすべて成り立つこと（48局のぶれで止まらない言い方か）。
+
+    言い切りを足す・変えるときは、ここが通る言い方にする。学習ページを作り直した世代は
+    tests/data/habits_history/ に足していく（AI content の PR に入れなくてよい。止まったときに足す）。
+    """
+    d = json.loads(path.read_text(encoding="utf-8"))
+    s, g = d["habits_strong"], d["habits_greedy"]
+    lead = {k: s["winner_points_by_kind"][k] - s["loser_points_by_kind"][k] for k in "CRMF"}
+    build_tips_page.check_claims(s, g, lead)
+
+
+def test_history_has_enough_generations():
+    assert len(HISTORY) >= 8
 
 
 def test_disputed_puzzle_is_marked_and_left_out_of_the_page():
