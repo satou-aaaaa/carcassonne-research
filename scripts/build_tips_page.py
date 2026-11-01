@@ -188,9 +188,10 @@ def check_claims(s: dict, g: dict, lead: dict) -> None:
         (s["blocks_per_game_player"].get("opp_C", 0)
          > 1.3 * g["blocks_per_game_player"].get("opp_C", 0),
          "#block: 強いAIは相手の都市を止める手をよく指す"),
-        # 2位以下（草原・道・修道院）の差は数点で、対局数が少ないと順位が入れ替わる（gen576 で草原と道が逆になり
-        # 失敗した、2026-10-26）。言い切るのは誤差より大きい「都市が一番」だけにする。
-        (max(lead, key=lead.get) == "C", "#citywins, #recap: 勝敗の差が一番大きいのは都市"),
+        # 得点源ごとの差は 48 局だと数点ぶれ、AI が強くなると比重も変わる。順位や割合で言い切ると入れ替わって
+        # 止まる（gen576 で草原と道、2026-10-26。gen836 で都市が3位、2026-11-01）。言い切るのは、過去の全世代で
+        # 数点以上の余裕がある「勝った側は都市でも多く取る」だけにする（tests/data/habits_history/ の全世代で確かめる）。
+        (lead["C"] > 0, "#citywins, #recap: 勝った側は都市でも多く取る"),
         (s["touches_opp"] > g["touches_opp"], "#tiles: 強いAIは相手の特徴によく手を出す"),
     ]  # fmt: skip
     bad = [msg for ok, msg in claims if not ok]
