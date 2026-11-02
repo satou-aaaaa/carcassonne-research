@@ -116,3 +116,25 @@ def test_dispatched_workflows_are_watched_by_the_sweep() -> None:
             assert names.get(target) in watched, (
                 f"{f.name} が起こす {target} を ci-failure-issue.yml の workflows に入れる"
             )
+
+
+def test_issue_and_pr_bodies_are_capped() -> None:
+    """CI が `--body-file` で渡す本文は、先に scripts/cap_body.py で上限（65536 文字）に収める。
+
+    回を重ねると伸びる中身（selfplay の成績表）をそのまま入れると、ある日から上限を超えて
+    知らせが作れず失敗する（Issue #110、2026-11-02）。
+    """
+    import re
+
+    missing = []
+    for f in FILES:
+        lines = f.read_text(encoding="utf-8").splitlines()
+        for i, line in enumerate(lines):
+            m = re.search(r"--body-file\s+\"?([\w.$/{}-]+)", line)
+            if not m or line.lstrip().startswith("#"):
+                continue
+            name = m.group(1)
+            before = "\n".join(lines[:i])
+            if not re.search(r"cap_body\.py\"?\s+\"?" + re.escape(name), before):
+                missing.append(f"{f.relative_to(ROOT)}:{i + 1}: {line.strip()}")
+    assert not missing, "本文を scripts/cap_body.py に通してから渡す:\n" + "\n".join(missing)
