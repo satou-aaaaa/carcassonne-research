@@ -30,6 +30,7 @@ if [ -z "$body_file" ]; then
   echo "CI が自動で作った変更です（${GITHUB_SERVER_URL:-https://github.com}/${GITHUB_REPOSITORY:-}/actions/runs/${GITHUB_RUN_ID:-}）。" > "$body_file"
 fi
 
+python3 "$(dirname "$0")/cap_body.py" "$body_file"  # 本文の上限（65536 文字）に収める（#110）
 if ! url=$(gh pr create --base main --head "$branch" --title "$title" --body-file "$body_file"); then
   echo "::error title=PRを作れませんでした::上の gh のメッセージを見る。よくある原因は Settings → Actions → General の「Allow GitHub Actions to create and approve pull requests」が切れていると作れません"
   git push -q origin --delete "$branch" || true

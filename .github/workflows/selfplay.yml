@@ -125,6 +125,8 @@ jobs:
           if [ "$after" -gt "$before" ]; then
             last=$(python -c "import json;h=[x for x in json.load(open('state/loop/state.json'))['history'] if x['promoted']][-1];print(f\"試行{h['attempt']}（勝率 {h['win_rate']:.3f}）\")")
             { echo "自己対戦ループで新しいチャンピオンが採用されました: $last"; echo; cat state/loop/progress.md; echo; echo "状態: https://github.com/${{ github.repository }}/tree/selfplay-state/loop"; } > body.md
+            # 成績表は試行ごとに伸びるので、本文の上限（65536 文字）に収める（#110、2026-11-02）
+            python scripts/cap_body.py body.md --note "全文は下の「状態」のリンクの progress.md"
             url=$(gh issue create --title "自己対戦ループ: $last を採用" --body-file body.md)
             # 前の採用の知らせは役目を終えたので閉じる（開いたままたまらないように）
             gh api "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100" --paginate \

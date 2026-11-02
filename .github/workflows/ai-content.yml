@@ -84,6 +84,7 @@ jobs:
             exit 0
           fi
           { echo; echo "これらの問題は公開ページから外しています。解説を書き直すか、問題を差し替えてください（data/puzzles.json の disputed を消すと戻ります）。"; } >> body.md
+          python scripts/cap_body.py body.md --note "全部は data/puzzles.json の disputed"
           if [ -n "$num" ]; then
             # 同じ知らせを増やさず、1件を今の一覧に書き直す
             gh issue edit "$num" --body-file body.md
