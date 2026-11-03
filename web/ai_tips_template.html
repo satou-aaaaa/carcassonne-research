@@ -148,7 +148,7 @@ a { color: var(--field); }
   <ol>
     <li><span class="grp">ミープル</span><br><a href="#keep">序盤に一気に使い切らない</a><br><a href="#road">道には「すぐ終わる道」だけ</a><br><a href="#city">都市は自分で新しく始める</a><br><a href="#farm">農民は数を絞り、置く場所を選ぶ</a></li>
     <li><span class="grp">タイル</span><br><a href="#merge">相手の都市に合流して分け合う</a><br><a href="#block">相手の都市を「完成しない形」にする（上級）</a><br><a href="#monastery">修道院は周りを自分で埋める</a></li>
-    <li><span class="grp">得点</span><br><a href="#citywins">勝った側は都市と草原で積み上げる</a><br><a href="#recap">まとめ</a></li>
+    <li><span class="grp">得点</span><br><a href="#citywins">勝った側は都市で積み上げる</a><br><a href="#recap">まとめ</a></li>
   </ol>
 </nav>
 
@@ -209,7 +209,7 @@ a { color: var(--field); }
   <article class="tip" id="farm">
     <h3>農民は数を絞り、完成した都市の多い草原へ</h3>
     <p>農民（草原のミープル）は終局まで戻ってきませんが、1個あたり平均{{farm_points}}点と、どの置き方より多く稼ぎます。それでも強いAIが1局に置く農民は平均{{farm_per_player}}個で、目先の点だけのAI（{{farm_per_player_greedy}}個）より少なめです。序盤・中盤・終盤に平均{{farm_early_strong}}個・{{farm_mid_strong}}個・{{farm_late_strong}}個と分けて置き、終盤は手元に戻ってきたミープルを、完成した都市にたくさん接する草原へ置きます。</p>
-    <p>数は少ないのに、勝った側は草原で負けた側より平均{{lead_F}}点多く取っていました。農民は数より場所です。序盤に置きすぎて都市に使うミープルが足りなくならないようにしつつ、完成した都市が集まりそうな草原を見つけたら置きましょう。</p>
+    <p>農民は数より場所です。勝った側と負けた側の草原の点の差は平均{{lead_F_signed}}点で、AIの世代や対局の運で大きくも小さくもなります（<a href="#citywins">何で差がつくか</a>）。序盤に置きすぎて都市に使うミープルが足りなくならないようにしつつ、完成した都市が集まりそうな草原を見つけたら置きましょう。</p>
     <div class="pair">
       <div class="s"><span class="who">農民1個の平均得点</span><span class="n">{{farm_points}}<small>点</small></span></div>
       <div><span class="who">0点に終わった農民</span><span class="n">{{farm_zero}}<small>%</small></span></div>
@@ -263,8 +263,8 @@ a { color: var(--field); }
 <section class="group" id="score">
   <h2><span class="tag">得点</span>何で差がつくか</h2>
   <article class="tip" id="citywins">
-    <h3>勝った側は都市と草原で積み上げる</h3>
-    <p>勝った側と負けた側の点を得点源ごとに比べると、勝った側は都市でも草原でも多く取っていました。勝った側から見た差は、都市 {{lead_C_signed}}点、草原 {{lead_F_signed}}点、修道院 {{lead_M_signed}}点、道 {{lead_R_signed}}点です。どれが一番かはAIの世代や対局の運で入れ替わる程度の差で、1つの決め手より積み重ねで勝っています。草原の点も完成した都市から生まれるので、その土台は都市です。迷ったら、自分の都市を完成させる手と、完成した都市に接する草原を押さえる手を優先しましょう。</p>
+    <h3>勝った側は都市で積み上げる</h3>
+    <p>勝った側と負けた側の点を得点源ごとに比べると、勝った側は都市でも多く取っていました。勝った側から見た差は、都市 {{lead_C_signed}}点、草原 {{lead_F_signed}}点、修道院 {{lead_M_signed}}点、道 {{lead_R_signed}}点です。都市以外の差は、AIの世代や対局の運で順位が入れ替わったり逆になったりする程度で、1つの決め手より積み重ねで勝っています。草原の点も完成した都市から生まれるので、その土台は都市です。迷ったら、自分の都市を完成させる手と、完成した都市に接する草原を押さえる手を優先しましょう。</p>
     <div class="chartbox">
       <p class="cap">強いAI同士の対局で、勝った側と負けた側が得点源ごとに取った平均点</p>
       {{chart_winner}}
@@ -277,7 +277,7 @@ a { color: var(--field); }
   <ol>
     <li>ミープルは序盤に一気に使い切らない。序盤の終わりに1〜2個残っているくらいがよい。</li>
     <li>道に乗せるのは、すぐ終わりそうな道だけ。</li>
-    <li>都市は自分で新しく始めて育てる。勝った側は都市でも草原でも多く取る（草原の点も完成した都市から生まれる）。</li>
+    <li>都市は自分で新しく始めて育てる。勝った側は都市でも多く取る（草原の点も完成した都市から生まれる）。</li>
     <li>農民は数を絞る。終盤に余ったミープルは、完成した都市にたくさん接する草原へ。</li>
     <li>相手の大きな都市には合流して分け合う。慣れてきたら、完成しない形にする手も考える。</li>
     <li>修道院の周りは自分で埋めて、ミープルを早く取り戻す。</li>
@@ -294,6 +294,7 @@ a { color: var(--field); }
     <li>再現方法: <code>scripts/record_habits.py</code> で記録、<code>scripts/summarize_habits.py</code> で集計、<code>scripts/pick_examples.py</code> と <code>scripts/build_tips_page.py</code> でこのページを作成。</li>
   </ul>
 </aside>
+{{site_support}}
 </div>
 </body>
 </html>

@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from board_svg import tile_svg
 from i18n import to_english_page, write_pair
-from site_nav import NAV_CSS, nav_html
+from site_nav import NAV_CSS, nav_html, support_html
 
 from carcassonne.tiles import CITY, FIELD, ROAD, load_tileset
 
@@ -158,6 +158,7 @@ def build() -> str:
     sub = {
         "__NAV_CSS__": NAV_CSS,
         "__NAV__": nav_html("strategy.html"),
+        "__SUPPORT__": support_html(),
         "__TOTAL__": str(total),
         "__PLACED__": str(placed),
         "__TURN_LO__": str(placed // 2),
@@ -475,6 +476,7 @@ __NAV__
   <h2>このページについて</h2>
   <p class="note">基本セット（72枚）の現行ルールで、2人対戦を想定しています。タイルの枚数と「穴に合うタイルの枚数」は、このプロジェクトのタイル定義（data/tiles.json）から数えています。向きを回して辺の種類（都市・道・草原）が合えば「合う」としていて、都市が穴の中でつながるかどうかは区別していません（scripts/build_strategy_page.py）。</p>
 </section>
+__SUPPORT__
 </div>
 </body>
 </html>

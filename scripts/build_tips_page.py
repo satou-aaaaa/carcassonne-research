@@ -18,7 +18,7 @@ import re
 from pathlib import Path
 
 from i18n import to_english_page, translate, write_pair
-from site_nav import NAV_CSS, nav_html
+from site_nav import NAV_CSS, nav_html, support_html
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -277,8 +277,8 @@ def captions(ex: dict) -> dict:
     return out
 
 
-def check_claims(s: dict, g: dict, lead: dict) -> None:
-    """テンプレートの言い切りが集計値と合っているか確かめる。合わなければ止める。"""
+def failed_claims(s: dict, g: dict, lead: dict) -> list[str]:
+    """テンプレートの言い切りのうち、集計値と合わないもの（無ければ空）。"""
     farm_early = farms_in_phase(s, "序盤")
     claims = [
         (s["skip_meeple_with_supply"] > g["skip_meeple_with_supply"],
@@ -294,19 +294,30 @@ def check_claims(s: dict, g: dict, lead: dict) -> None:
         (farm_early <= 2.2, "#farm: 農民を序盤に置きすぎない"),
         (s["farm_per_player_game"] < g["farm_per_player_game"],
          "#farm: 強いAIの農民は目先の点だけのAIより少ない"),
-        (lead["F"] > 0, "#farm: 勝った側は草原でも多く取る"),
         (s["meeple_life"]["F"]["points"] >= max(s["meeple_life"][k]["points"] for k in "CRM"),
          "#farm: 農民は1個あたりどの置き方より多く稼ぐ"),
         (s["blocks_per_game_player"].get("opp_C", 0)
          > 1.3 * g["blocks_per_game_player"].get("opp_C", 0),
          "#block: 強いAIは相手の都市を止める手をよく指す"),
         # 得点源ごとの差は 48 局だと数点ぶれ、AI が強くなると比重も変わる。順位や割合で言い切ると入れ替わって
-        # 止まる（gen576 で草原と道、2026-10-26。gen836 で都市が3位、2026-11-01）。言い切るのは、過去の全世代で
+        # 止まる（gen576 で草原と道、2026-10-26。gen836 で都市が3位、2026-11-01。gen926 で草原の差が0以下、2026-11-03）。言い切るのは、過去の全世代で
         # 数点以上の余裕がある「勝った側は都市でも多く取る」だけにする（tests/data/habits_history/ の全世代で確かめる）。
         (lead["C"] > 0, "#citywins, #recap: 勝った側は都市でも多く取る"),
         (s["touches_opp"] > g["touches_opp"], "#tiles: 強いAIは相手の特徴によく手を出す"),
     ]  # fmt: skip
-    bad = [msg for ok, msg in claims if not ok]
+    return [msg for ok, msg in claims if not ok]
+
+
+def summary_failed_claims(summ: dict) -> list[str]:
+    """habits_summary.json の形（habits_strong・habits_greedy）の集計で、合わない言い切り。"""
+    s, g = summ["habits_strong"], summ["habits_greedy"]
+    lead = {k: s["winner_points_by_kind"][k] - s["loser_points_by_kind"][k] for k in "CRMF"}
+    return failed_claims(s, g, lead)
+
+
+def check_claims(s: dict, g: dict, lead: dict) -> None:
+    """テンプレートの言い切りが集計値と合っているか確かめる。合わなければ止める。"""
+    bad = failed_claims(s, g, lead)
     if bad:
         raise SystemExit(
             "集計値が本文の言い切りと合いません。web/ai_tips_template.html の文を直してください:\n  "
@@ -431,10 +442,12 @@ def main() -> None:
         "block_ratio": f"{blk_s / blk_g:.1f}" if blk_g else "many",
         "ai_name": ai.get("name", "the strongest AI setting"),
         "ai_when": f", adopted {ai['date']}" if ai.get("date") else "",
+        "site_support": support_html("en"),
     }
     nums.update(captions(ex))
     nums.update(charts("ja"))
     nums["site_nav"] = nav_html("ai_tips.html")
+    nums["site_support"] = support_html()
     tpl = (ROOT / "web" / "ai_tips_template.html").read_text(encoding="utf-8")
 
     def fill(text: str, values: dict) -> str:

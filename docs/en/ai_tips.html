@@ -137,6 +137,10 @@ nav.site a.lang { margin-left: auto; border: 1px solid var(--line); }
 /* 共通: 見出しを語の切れ目で折り返す・開閉の見出しを押しやすく */
 h1, h2, h3 { word-break: auto-phrase; }
 summary { padding-block: 6px; }
+/* 共通: ページ下の支援リンク（Ko-fi）。目立ちすぎないよう枠線だけのボタンにする */
+.support { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.support a.kofi { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); text-decoration: none; font-weight: 600; }
+.support a.kofi:hover, .support a.kofi:focus-visible { border-color: var(--field); }
 
 </style>
 <link rel="alternate" hreflang="ja" href="https://satou-aaaaa.github.io/carcassonne-research/ai_tips.html"><link rel="alternate" hreflang="en" href="https://satou-aaaaa.github.io/carcassonne-research/en/ai_tips.html"><link rel="alternate" hreflang="x-default" href="https://satou-aaaaa.github.io/carcassonne-research/en/ai_tips.html">
@@ -161,7 +165,7 @@ summary { padding-block: 6px; }
   <ol>
     <li><span class="grp">Meeples</span><br><a href="#keep">Don't use them all up early</a><br><a href="#road">Only roads that end soon</a><br><a href="#city">Start your own new cities</a><br><a href="#farm">Few farmers, well placed</a></li>
     <li><span class="grp">Tiles</span><br><a href="#merge">Join your opponent's city and share it</a><br><a href="#block">Make your opponent's city uncompletable (advanced)</a><br><a href="#monastery">Fill around your monastery yourself</a></li>
-    <li><span class="grp">Scoring</span><br><a href="#citywins">Winners pile up points in cities and fields</a><br><a href="#recap">Summary</a></li>
+    <li><span class="grp">Scoring</span><br><a href="#citywins">Winners pile up points in cities</a><br><a href="#recap">Summary</a></li>
   </ol>
 </nav>
 
@@ -222,7 +226,7 @@ summary { padding-block: 6px; }
   <article class="tip" id="farm">
     <h3>Few farmers, in fields with many completed cities</h3>
     <p>Farmers (meeples in fields) stay until the end, but at 10.6 points each on average they earn more than any other placement. Even so, the strong AI places only 2.5 farmers per game on average, fewer than the greedy AI (3.3). It spreads them out, 0.9, 0.8 and 0.8 on average in the opening, middle and end game, and late on it puts returning meeples into fields that touch many completed cities.</p>
-    <p>Despite the small numbers, winners scored 4 more points on average from fields than losers. With farmers, location matters more than count. Don't place so many early that you run short for cities, but when you find a field where completed cities are likely to gather, claim it.</p>
+    <p>With farmers, location matters more than count. The average gap in field points between winners and losers is +4, and it grows or shrinks with the AI version and the luck of the games (<a href="#citywins">where the gap comes from</a>). Don't place so many early that you run short for cities, but when you find a field where completed cities are likely to gather, claim it.</p>
     <div class="pair">
       <div class="s"><span class="who">Average points per farmer</span><span class="n">10.6<small>pts</small></span></div>
       <div><span class="who">Farmers that scored 0</span><span class="n">7<small>%</small></span></div>
@@ -276,8 +280,8 @@ summary { padding-block: 6px; }
 <section class="group" id="score">
   <h2><span class="tag">Scoring</span>Where the gap comes from</h2>
   <article class="tip" id="citywins">
-    <h3>Winners pile up points in cities and fields</h3>
-    <p>Comparing winners and losers by source of points, winners scored more in both cities and fields. From the winner's side, the gaps are cities +8, fields +4, monasteries +2 and roads +3. Which is biggest changes with the AI version and the luck of the games, so wins come from many small gains rather than one decisive factor. Field points also come from completed cities, so cities are the foundation. When in doubt, prefer moves that complete your own cities and that claim fields touching completed cities.</p>
+    <h3>Winners pile up points in cities</h3>
+    <p>Comparing winners and losers by source of points, winners also scored more in cities. From the winner's side, the gaps are cities +8, fields +4, monasteries +2 and roads +3. Apart from cities, the gaps change order or even flip with the AI version and the luck of the games, so wins come from many small gains rather than one decisive factor. Field points also come from completed cities, so cities are the foundation. When in doubt, prefer moves that complete your own cities and that claim fields touching completed cities.</p>
     <div class="chartbox">
       <p class="cap">Average points by source for the winner and loser in strong-AI games</p>
       <svg viewBox="0 0 640 300" class="chart" role="img" aria-label="Average points by source for winner and loser"><rect x="100" y="6" width="22" height="22" rx="3" class="b-strong"/><text x="130" y="24" class="leg">Winner</text><rect x="370" y="6" width="22" height="22" rx="3" class="b-greedy"/><text x="400" y="24" class="leg">Loser</text><text x="88" y="70" text-anchor="end" class="rowlbl">City</text><rect x="100" y="40" width="400.0" height="22" rx="2" class="b-strong"/><text x="508.0" y="58" class="val">45.0</text><rect x="100" y="66" width="326.0" height="22" rx="2" class="b-greedy"/><text x="434.0" y="84" class="val">36.7</text><text x="88" y="134" text-anchor="end" class="rowlbl">Road</text><rect x="100" y="104" width="175.8" height="22" rx="2" class="b-strong"/><text x="283.8" y="122" class="val">19.8</text><rect x="100" y="130" width="152.6" height="22" rx="2" class="b-greedy"/><text x="260.6" y="148" class="val">17.2</text><text x="88" y="198" text-anchor="end" class="rowlbl">Monastery</text><rect x="100" y="168" width="129.5" height="22" rx="2" class="b-strong"/><text x="237.5" y="186" class="val">14.6</text><rect x="100" y="194" width="107.7" height="22" rx="2" class="b-greedy"/><text x="215.7" y="212" class="val">12.1</text><text x="88" y="262" text-anchor="end" class="rowlbl">Field</text><rect x="100" y="232" width="175.9" height="22" rx="2" class="b-strong"/><text x="283.9" y="250" class="val">19.8</text><rect x="100" y="258" width="142.1" height="22" rx="2" class="b-greedy"/><text x="250.1" y="276" class="val">16.0</text></svg>
@@ -290,7 +294,7 @@ summary { padding-block: 6px; }
   <ol>
     <li>Don't use up your meeples early. Having 1–2 left at the end of the opening is about right.</li>
     <li>Only claim roads that look like they'll end soon.</li>
-    <li>Start your own new cities and grow them. Winners score more in both cities and fields (field points also come from completed cities).</li>
+    <li>Start your own new cities and grow them. Winners score more in cities (field points also come from completed cities).</li>
     <li>Keep farmers few. Late in the game, put spare meeples in fields that touch many completed cities.</li>
     <li>Join your opponent's big cities and share them. Once you're comfortable, also look for moves that make them uncompletable.</li>
     <li>Fill in around your monastery yourself to get the meeple back quickly.</li>
@@ -307,6 +311,7 @@ summary { padding-block: 6px; }
     <li>To reproduce: record with <code>scripts/record_habits.py</code>, aggregate with <code>scripts/summarize_habits.py</code>, and build this page with <code>scripts/pick_examples.py</code> and <code>scripts/build_tips_page.py</code>.</li>
   </ul>
 </aside>
+<div class="support">If this site helped you, you can support the author.<a class="kofi" href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>Support on Ko-fi</a></div>
 </div>
 </body>
 </html>

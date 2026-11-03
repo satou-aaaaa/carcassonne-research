@@ -44,6 +44,10 @@ nav.site a.p[aria-current="page"] { color: var(--paper); background: var(--field
 nav.site a.lang { margin-left: auto; border: 1px solid var(--line); }
 @media (pointer: coarse) { nav.site a { min-height: 44px; display: inline-flex; align-items: center; } }
 h1, h2, h3 { word-break: auto-phrase; }
+/* 共通: ページ下の支援リンク（Ko-fi）。目立ちすぎないよう枠線だけのボタンにする */
+.support { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.support a.kofi { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); text-decoration: none; font-weight: 600; }
+.support a.kofi:hover, .support a.kofi:focus-visible { border-color: var(--field); }
 
 </style>
 <link rel="alternate" hreflang="ja" href="https://satou-aaaaa.github.io/carcassonne-research/"><link rel="alternate" hreflang="en" href="https://satou-aaaaa.github.io/carcassonne-research/en/"><link rel="alternate" hreflang="x-default" href="https://satou-aaaaa.github.io/carcassonne-research/en/">
@@ -65,6 +69,7 @@ h1, h2, h3 { word-break: auto-phrase; }
 </ol>
 <p class="more">Suggested path: learn to play with the Rules page, read "Five things to learn first" in the Strategy guide, solve the beginner quiz problems, then play the AI in beginner mode and review your costly moves. Once you're comfortable, move on to Lessons from the AI and the advanced quiz problems.</p>
 <p class="more">Playing the AI needs no installation; the AI thinks inside your browser (the strongest setting can take a few seconds per move). The rules are the current rules of the base game (72 tiles).</p>
+<div class="support">If this site helped you, you can support the author.<a class="kofi" href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>Support on Ko-fi</a></div>
 </div>
 </body>
 </html>

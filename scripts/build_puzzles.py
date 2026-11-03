@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from i18n import to_english_page, translate, write_pair
-from site_nav import NAV_CSS, nav_html
+from site_nav import NAV_CSS, nav_html, support_html
 
 from carcassonne.webplay import tile_library
 
@@ -111,6 +111,7 @@ def main() -> None:
         body = body.replace("__QUIZ_DATA__", blob).replace("__AI_NOTE__", ai_note(raw, lang))
         nav = "" if args.fragment else nav_html("quiz.html", lang)
         body = body.replace("__SITE_NAV_CSS__", NAV_CSS).replace("__SITE_NAV__", nav)
+        body = body.replace("__SITE_SUPPORT__", "" if args.fragment else support_html(lang))
         if not args.fragment:
             body = (
                 f'<!doctype html>\n<html lang="{lang}">\n<head>\n<meta charset="utf-8">\n'

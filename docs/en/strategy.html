@@ -94,6 +94,10 @@ nav.site a.lang { margin-left: auto; border: 1px solid var(--line); }
 /* 共通: 見出しを語の切れ目で折り返す・開閉の見出しを押しやすく */
 h1, h2, h3 { word-break: auto-phrase; }
 summary { padding-block: 6px; }
+/* 共通: ページ下の支援リンク（Ko-fi）。目立ちすぎないよう枠線だけのボタンにする */
+.support { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.support a.kofi { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); text-decoration: none; font-weight: 600; }
+.support a.kofi:hover, .support a.kofi:focus-visible { border-color: var(--field); }
 
 </style>
 <link rel="alternate" hreflang="ja" href="https://satou-aaaaa.github.io/carcassonne-research/strategy.html"><link rel="alternate" hreflang="en" href="https://satou-aaaaa.github.io/carcassonne-research/en/strategy.html"><link rel="alternate" hreflang="x-default" href="https://satou-aaaaa.github.io/carcassonne-research/en/strategy.html">
@@ -294,6 +298,7 @@ summary { padding-block: 6px; }
   <h2>About this page</h2>
   <p class="note">This page uses the current rules of the base game (72 tiles) and assumes two players. Tile counts and "tiles that fit a hole" are counted from this project's tile definitions (data/tiles.json). A tile "fits" if some rotation matches the edge types (city, road, field); whether the city connects inside the hole is not distinguished (scripts/build_strategy_page.py).</p>
 </section>
+<div class="support">If this site helped you, you can support the author.<a class="kofi" href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>Support on Ko-fi</a></div>
 </div>
 </body>
 </html>

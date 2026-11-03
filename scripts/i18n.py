@@ -203,6 +203,9 @@ def to_english_page(html: str, page: str, name: str, nav_ja: str = "", nav_en: s
             raise SystemExit(f"{page}: ナビが見つかりません")
         html = html.replace(nav_ja, nav_en)
     html = html.replace('<html lang="ja">', '<html lang="en">', 1)
+    from site_nav import support_html  # site_nav が i18n を使うので、ここで読み込む
+
+    html = html.replace(support_html("ja"), support_html("en"))
     return translate(html, name)
 
 

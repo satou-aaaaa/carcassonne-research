@@ -37,7 +37,14 @@ nav.site a.lang { margin-left: auto; border: 1px solid var(--line); }
 /* 共通: 見出しを語の切れ目で折り返す・開閉の見出しを押しやすく */
 h1, h2, h3 { word-break: auto-phrase; }
 summary { padding-block: 6px; }
+/* 共通: ページ下の支援リンク（Ko-fi）。目立ちすぎないよう枠線だけのボタンにする */
+.support { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.support a.kofi { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); text-decoration: none; font-weight: 600; }
+.support a.kofi:hover, .support a.kofi:focus-visible { border-color: var(--field); }
 """
+
+# 作者の Ko-fi ページ（2026-11-03 satou さん設定）。外部スクリプト・外部画像は読み込まない
+KOFI_URL = "https://ko-fi.com/satouaaaaa"
 
 
 def nav_html(current: str, lang: str = "ja") -> str:
@@ -55,4 +62,18 @@ def nav_html(current: str, lang: str = "ja") -> str:
         + "".join(links)
         + lang_link(current, lang, "p lang")
         + "</nav>"
+    )
+
+
+def support_html(lang: str = "ja") -> str:
+    """ページ下に置く支援リンク。全ページで同じものを使う（docs/index.html・web/play.html は手で合わせる）。"""
+    text, label = (
+        ("このサイトが役に立ったら、作者を応援できます。", "Ko-fiで応援する")
+        if lang == "ja"
+        else ("If this site helped you, you can support the author.", "Support on Ko-fi")
+    )
+    return (
+        f'<div class="support">{text}'
+        f'<a class="kofi" href="{KOFI_URL}" target="_blank" rel="noopener">'
+        f'<span aria-hidden="true">☕</span>{label}</a></div>'
     )
