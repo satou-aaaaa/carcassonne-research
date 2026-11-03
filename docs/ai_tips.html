@@ -158,7 +158,7 @@ summary { padding-block: 6px; }
   <ol>
     <li><span class="grp">ミープル</span><br><a href="#keep">序盤に一気に使い切らない</a><br><a href="#road">道には「すぐ終わる道」だけ</a><br><a href="#city">都市は自分で新しく始める</a><br><a href="#farm">農民は数を絞り、置く場所を選ぶ</a></li>
     <li><span class="grp">タイル</span><br><a href="#merge">相手の都市に合流して分け合う</a><br><a href="#block">相手の都市を「完成しない形」にする（上級）</a><br><a href="#monastery">修道院は周りを自分で埋める</a></li>
-    <li><span class="grp">得点</span><br><a href="#citywins">勝った側は都市と草原で積み上げる</a><br><a href="#recap">まとめ</a></li>
+    <li><span class="grp">得点</span><br><a href="#citywins">勝った側は都市で積み上げる</a><br><a href="#recap">まとめ</a></li>
   </ol>
 </nav>
 
@@ -219,7 +219,7 @@ summary { padding-block: 6px; }
   <article class="tip" id="farm">
     <h3>農民は数を絞り、完成した都市の多い草原へ</h3>
     <p>農民（草原のミープル）は終局まで戻ってきませんが、1個あたり平均10.6点と、どの置き方より多く稼ぎます。それでも強いAIが1局に置く農民は平均2.5個で、目先の点だけのAI（3.3個）より少なめです。序盤・中盤・終盤に平均0.9個・0.8個・0.8個と分けて置き、終盤は手元に戻ってきたミープルを、完成した都市にたくさん接する草原へ置きます。</p>
-    <p>数は少ないのに、勝った側は草原で負けた側より平均4点多く取っていました。農民は数より場所です。序盤に置きすぎて都市に使うミープルが足りなくならないようにしつつ、完成した都市が集まりそうな草原を見つけたら置きましょう。</p>
+    <p>農民は数より場所です。勝った側と負けた側の草原の点の差は平均+4点で、AIの世代や対局の運で大きくも小さくもなります（<a href="#citywins">何で差がつくか</a>）。序盤に置きすぎて都市に使うミープルが足りなくならないようにしつつ、完成した都市が集まりそうな草原を見つけたら置きましょう。</p>
     <div class="pair">
       <div class="s"><span class="who">農民1個の平均得点</span><span class="n">10.6<small>点</small></span></div>
       <div><span class="who">0点に終わった農民</span><span class="n">7<small>%</small></span></div>
@@ -273,8 +273,8 @@ summary { padding-block: 6px; }
 <section class="group" id="score">
   <h2><span class="tag">得点</span>何で差がつくか</h2>
   <article class="tip" id="citywins">
-    <h3>勝った側は都市と草原で積み上げる</h3>
-    <p>勝った側と負けた側の点を得点源ごとに比べると、勝った側は都市でも草原でも多く取っていました。勝った側から見た差は、都市 +8点、草原 +4点、修道院 +2点、道 +3点です。どれが一番かはAIの世代や対局の運で入れ替わる程度の差で、1つの決め手より積み重ねで勝っています。草原の点も完成した都市から生まれるので、その土台は都市です。迷ったら、自分の都市を完成させる手と、完成した都市に接する草原を押さえる手を優先しましょう。</p>
+    <h3>勝った側は都市で積み上げる</h3>
+    <p>勝った側と負けた側の点を得点源ごとに比べると、勝った側は都市でも多く取っていました。勝った側から見た差は、都市 +8点、草原 +4点、修道院 +2点、道 +3点です。都市以外の差は、AIの世代や対局の運で順位が入れ替わったり逆になったりする程度で、1つの決め手より積み重ねで勝っています。草原の点も完成した都市から生まれるので、その土台は都市です。迷ったら、自分の都市を完成させる手と、完成した都市に接する草原を押さえる手を優先しましょう。</p>
     <div class="chartbox">
       <p class="cap">強いAI同士の対局で、勝った側と負けた側が得点源ごとに取った平均点</p>
       <svg viewBox="0 0 640 300" class="chart" role="img" aria-label="勝った側と負けた側の、得点源ごとの平均点"><rect x="100" y="6" width="22" height="22" rx="3" class="b-strong"/><text x="130" y="24" class="leg">勝った側</text><rect x="370" y="6" width="22" height="22" rx="3" class="b-greedy"/><text x="400" y="24" class="leg">負けた側</text><text x="88" y="70" text-anchor="end" class="rowlbl">都市</text><rect x="100" y="40" width="400.0" height="22" rx="2" class="b-strong"/><text x="508.0" y="58" class="val">45.0点</text><rect x="100" y="66" width="326.0" height="22" rx="2" class="b-greedy"/><text x="434.0" y="84" class="val">36.7点</text><text x="88" y="134" text-anchor="end" class="rowlbl">道</text><rect x="100" y="104" width="175.8" height="22" rx="2" class="b-strong"/><text x="283.8" y="122" class="val">19.8点</text><rect x="100" y="130" width="152.6" height="22" rx="2" class="b-greedy"/><text x="260.6" y="148" class="val">17.2点</text><text x="88" y="198" text-anchor="end" class="rowlbl">修道院</text><rect x="100" y="168" width="129.5" height="22" rx="2" class="b-strong"/><text x="237.5" y="186" class="val">14.6点</text><rect x="100" y="194" width="107.7" height="22" rx="2" class="b-greedy"/><text x="215.7" y="212" class="val">12.1点</text><text x="88" y="262" text-anchor="end" class="rowlbl">草原</text><rect x="100" y="232" width="175.9" height="22" rx="2" class="b-strong"/><text x="283.9" y="250" class="val">19.8点</text><rect x="100" y="258" width="142.1" height="22" rx="2" class="b-greedy"/><text x="250.1" y="276" class="val">16.0点</text></svg>
@@ -287,7 +287,7 @@ summary { padding-block: 6px; }
   <ol>
     <li>ミープルは序盤に一気に使い切らない。序盤の終わりに1〜2個残っているくらいがよい。</li>
     <li>道に乗せるのは、すぐ終わりそうな道だけ。</li>
-    <li>都市は自分で新しく始めて育てる。勝った側は都市でも草原でも多く取る（草原の点も完成した都市から生まれる）。</li>
+    <li>都市は自分で新しく始めて育てる。勝った側は都市でも多く取る（草原の点も完成した都市から生まれる）。</li>
     <li>農民は数を絞る。終盤に余ったミープルは、完成した都市にたくさん接する草原へ。</li>
     <li>相手の大きな都市には合流して分け合う。慣れてきたら、完成しない形にする手も考える。</li>
     <li>修道院の周りは自分で埋めて、ミープルを早く取り戻す。</li>
