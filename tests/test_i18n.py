@@ -55,7 +55,7 @@ def test_no_japanese_left_in_english_scripts():
 def test_english_scripts_parse(page, tmp_path):
     html = (DOCS / "en" / page).read_text(encoding="utf-8")
     scripts = re.findall(
-        r"<script\b([^>]*)>(.*?)</script\s*>", html, flags=re.DOTALL | re.IGNORECASE
+        r"<script\b([^>]*)>(.*?)</script\b[^>]*>", html, flags=re.DOTALL | re.IGNORECASE
     )
     for i, (attrs, src) in enumerate(scripts):
         if "application/json" in attrs:  # データの埋め込みはスクリプトではない
