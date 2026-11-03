@@ -24,6 +24,14 @@ description: このリポジトリでPRを作る・直す・CIを通す・マー
 - 落ちたら、ローカルで同じ `scripts/check.py` を再現してから直す。`slow` マークのテストを
   CI で飛ばしたり、テストを無効にしたりしない。
 
+## 自動の PR（auto/*）
+- selfplay・AI content が作る PR は `scripts/merge_via_pr.sh` が作る。GITHUB_TOKEN の PR では pull_request の実行が承認待ちになるので、
+  コミットに CI を飛ばす印を付けて承認待ちを作らせず、test・Secret scan を workflow_dispatch で回して、通ったときだけマージする。
+  入れてよいのは生成物だけ（`AUTO_PATHS`）。
+- 人が書くコミットの題・本文には、CI を飛ばす印（`[skip ci]` など）を書かない。書くとその push・PR の CI が全部動かなくなる。
+- CI から gh を呼ぶときは `source scripts/gh_retry.sh` して `ghr gh ...`（5xx をやり直す）。Issue を作るのは `gh_issue_create_once`。
+- コツ集の言い切りが新しい集計と合わないと `data/tips_blocked.json` と Issue ができる。直し方は Issue に書いてある。
+
 ## マージ
 - 共通の手順（`routines/pr.md`）どおり、CI が緑で未解決のレビューが無ければ squash マージしてよい（satou さん 2026-10-10 にマージを任されている）。
 

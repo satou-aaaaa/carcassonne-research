@@ -29,7 +29,7 @@ permissions:
   issues: write
   pull-requests: write # 対戦ページのAIの差し替えを PR で main に入れる
   pages: write # マージ後に公開を起こす（GITHUB_TOKEN のコミットでは自動で走らない）
-  actions: write # 学習ページの作り直し（ai-content.yml）を起動する
+  actions: write # 学習ページの作り直し（ai-content.yml）と、マージ前の検査（merge_via_pr.sh）を起動する
 
 jobs:
   loop:
@@ -114,7 +114,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           [ "$(python scripts/refresh_ai_content.py --check)" = "stale" ] || exit 0
-          gh workflow run ai-content.yml --ref main
+          source scripts/gh_retry.sh
+          ghr gh workflow run ai-content.yml --ref main
       - name: 新しく採用が出たら Issue で知らせる
         if: steps.state.outputs.exists == 'true'
         env:
@@ -127,9 +128,11 @@ jobs:
             { echo "自己対戦ループで新しいチャンピオンが採用されました: $last"; echo; cat state/loop/progress.md; echo; echo "状態: https://github.com/${{ github.repository }}/tree/selfplay-state/loop"; } > body.md
             # 成績表は試行ごとに伸びるので、本文の上限（65536 文字）に収める（#110、2026-11-02）
             python scripts/cap_body.py body.md --note "全文は下の「状態」のリンクの progress.md"
-            url=$(gh issue create --title "自己対戦ループ: $last を採用" --body-file body.md)
+            # API の一時的な失敗（504 など、2026-11-03）はやり直す。やり直しで Issue を2件にしない
+            source scripts/gh_retry.sh
+            url=$(gh_issue_create_once "自己対戦ループ: $last を採用" body.md)
             # 前の採用の知らせは役目を終えたので閉じる（開いたままたまらないように）
-            gh api "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100" --paginate \
+            ghr gh api "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100" --paginate \
               --jq ".[] | select(.pull_request == null) | select(.title | startswith(\"自己対戦ループ: \")) | select(.html_url != \"$url\") | .number" |
-              while read -r n; do gh issue close "$n" --comment "新しい採用が出たので閉じます: $url"; done
+              while read -r n; do ghr gh issue close "$n" --comment "新しい採用が出たので閉じます: $url"; done
           fi

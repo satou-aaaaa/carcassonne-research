@@ -20,23 +20,29 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: scripts/gh_retry.sh
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
       - name: 放置を探す
         env:
           GH_TOKEN: ${{ github.token }}
           R: ${{ github.repository }}
         run: |
           set -euo pipefail
+          source scripts/gh_retry.sh  # API の一時的な失敗（5xx）では赤にしない
           now=$(date -u +%s)
           old() { echo $(( now - $1 * 86400 )); }
           {
-            gh api "repos/$R/issues?state=open&per_page=100" --paginate \
+            ghr gh api "repos/$R/issues?state=open&per_page=100" --paginate \
               --jq ".[] | select(.pull_request | not) | select([.labels[].name] | index(\"ci-failure\") | not)
                     | select((.updated_at | fromdateiso8601) < $(old 14)) | \"- Issue #\(.number) \(.title)（最後の動き \(.updated_at[:10])）\""
-            gh api "repos/$R/pulls?state=open&per_page=100" --paginate \
+            ghr gh api "repos/$R/pulls?state=open&per_page=100" --paginate \
               --jq ".[] | select((.updated_at | fromdateiso8601) < $(old 3)) | \"- PR #\(.number) \(.title)（最後の動き \(.updated_at[:10])）\""
-            gh api "repos/$R/branches?per_page=100" --paginate --jq '.[] | select(.name | startswith("auto/")) | .name' |
+            ghr gh api "repos/$R/branches?per_page=100" --paginate --jq '.[] | select(.name | startswith("auto/")) | .name' |
               while read -r b; do
-                d=$(gh api "repos/$R/commits/$b" --jq .commit.committer.date)
+                d=$(ghr gh api "repos/$R/commits/$b" --jq .commit.committer.date)
                 if [ "$(date -u -d "$d" +%s)" -lt "$(old 2)" ]; then echo "- ブランチ $b（自動で作ったPRのマージに失敗した残り、${d:0:10}）"; fi
               done
           } > stale.md
