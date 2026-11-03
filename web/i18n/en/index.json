@@ -1,0 +1,13 @@
+{
+ "カルカソンヌ入門": "Carcassonne Primer",
+ "ボードゲーム「カルカソンヌ」のルール入門、戦略ガイド、強いAIの対局から学ぶコツ、次の一手クイズ、強いAIとの対戦。": "Learn the board game Carcassonne: a rules primer, a strategy guide, lessons from a strong AI's games, a next-move quiz, and games against a strong AI.",
+ "はじめての<span>カルカソンヌ</span>": "Your first <span>Carcassonne</span>",
+ "タイルをつなげて地図を作るボードゲーム「カルカソンヌ」を、ルールを知らないところから一歩ずつ。このプロジェクトで作った強いAIの対局をもとにしたコツと練習問題もあります。": "Learn Carcassonne, the board game where you build a map out of tiles, step by step from zero. There are also tips and practice problems based on games played by the strong AI built in this project.",
+ "<a href=\"rules.html\"><b>ルール入門</b><small>手番の流れ、タイルとミープルの置き方、点の数え方を図で説明します。</small></a>": "<a href=\"rules.html\"><b>Rules</b><small>How a turn works, placing tiles and meeples, and scoring, explained with diagrams.</small></a>",
+ "<a href=\"strategy.html\"><b>戦略ガイド</b><small>ルールを覚えたら次はここ。点差で考える土台、タイルの内訳、埋まりにくい穴、序盤・中盤・終盤の方針、よくある失敗、用語集。</small></a>": "<a href=\"strategy.html\"><b>Strategy</b><small>Next stop once you know the rules: thinking in point differences, the tile mix, hard-to-fill holes, plans for each stage of the game, common mistakes and a glossary.</small></a>",
+ "<a href=\"ai_tips.html\"><b>強いAIに学ぶコツ</b><small>強いAI同士の対局を集計して分かった、初心者がまねしやすい打ち方。</small></a>": "<a href=\"ai_tips.html\"><b>Lessons from the AI</b><small>Easy-to-copy habits found by analysing games between strong AIs.</small></a>",
+ "<a href=\"quiz.html\"><b>次の一手クイズ</b><small>入門編から実戦編まで。AIならどこに置くかを当てて、解説を読みます。</small></a>": "<a href=\"quiz.html\"><b>Next-Move Quiz</b><small>From beginner to advanced. Guess where the AI would place, then read the explanation.</small></a>",
+ "<a href=\"play.html\"><b>AIと対戦</b><small>このプロジェクトでいちばん強いAIと1対1で遊べます。初心者モードでは自分の手が何点損だったかも分かります。</small></a>": "<a href=\"play.html\"><b>Play the AI</b><small>Play one-on-one against this project's strongest AI. Beginner mode also shows how many points each of your moves lost.</small></a>",
+ "おすすめの進め方: ルール入門で遊び方を覚えたら、戦略ガイドの「まず覚える5つ」を読み、クイズの入門編を解いてから、AIと対戦（初心者モード）で損した手を振り返ってください。慣れてきたら、強いAIのコツとクイズの実戦編へ。": "Suggested path: learn to play with the Rules page, read \"Five things to learn first\" in the Strategy guide, solve the beginner quiz problems, then play the AI in beginner mode and review your costly moves. Once you're comfortable, move on to Lessons from the AI and the advanced quiz problems.",
+ "AIとの対戦はインストール不要で、AIはお使いのブラウザの中で考えます（最強設定は1手に数秒かかることがあります）。ルールは基本セット（72枚）の現行ルールです。": "Playing the AI needs no installation; the AI thinks inside your browser (the strongest setting can take a few seconds per move). The rules are the current rules of the base game (72 tiles)."
+}

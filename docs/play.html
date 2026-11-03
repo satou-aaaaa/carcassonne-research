@@ -103,6 +103,8 @@
     #featInfo { height:54px; min-height:0; overflow-y:auto; font-size:12px; line-height:1.45; }
   }
 </style>
+<link rel="alternate" hreflang="ja" href="https://satou-aaaaa.github.io/carcassonne-research/play.html"><link rel="alternate" hreflang="en" href="https://satou-aaaaa.github.io/carcassonne-research/en/play.html"><link rel="alternate" hreflang="x-default" href="https://satou-aaaaa.github.io/carcassonne-research/en/play.html">
+<script>(function(){var K="site-lang",cur="ja",alt="en/play.html",s=null;try{s=localStorage.getItem(K)}catch(e){}if(!/bot|crawl|spider|slurp|lighthouse/i.test(navigator.userAgent)){var l=(navigator.languages&&navigator.languages[0])||navigator.language||'';var want=s||(/^ja\b/i.test(l)?'ja':'en');if(want!==cur){location.replace(alt+location.search+location.hash);return}}document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[data-lang]');if(a)try{localStorage.setItem(K,a.getAttribute('data-lang'))}catch(e){}})})();</script>
 </head>
 <body>
 <div id="stage">
@@ -120,7 +122,7 @@
   </div>
 </div>
 <aside>
-  <div id="home" class="local-only"><nav aria-label="サイト内のページ"><a href="index.html">← カルカソンヌ入門</a><a href="rules.html">ルール入門</a><a href="strategy.html">戦略ガイド</a><a href="ai_tips.html">強いAIのコツ</a><a href="quiz.html">次の一手クイズ</a></nav>AIはこのブラウザの中で考えます。<br><a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>&nbsp;Ko-fiでこのサイトを応援する</a></div>
+  <div id="home" class="local-only"><nav aria-label="サイト内のページ"><a href="index.html">← カルカソンヌ入門</a><a href="rules.html">ルール入門</a><a href="strategy.html">戦略ガイド</a><a href="ai_tips.html">強いAIのコツ</a><a href="quiz.html">次の一手クイズ</a><a class="lang" href="en/play.html" hreflang="en" lang="en" data-lang="en" title="Switch to English">English</a></nav>AIはこのブラウザの中で考えます。<br><a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>&nbsp;Ko-fiでこのサイトを応援する</a></div>
   <div class="row">
     <button class="primary" id="btnNew">新しい対局</button>
     <button id="btnRematch" hidden>同じ山札で席替え再戦</button>

@@ -11,6 +11,7 @@ AIは Python 版（src/carcassonne/fast*.py）を JavaScript に移したもの�
 - docs/play_data.js         タイル定義・エンジン用テーブル・評価関数の重み
 - docs/carcassonne_engine.js, docs/play_features.js, docs/play_local.js, docs/play_worker.js, docs/tile_art.js
                             web/ からの複写
+- docs/en/ に同じものの英語版（画面の文は web/i18n/en/play.json・play_local.json で訳す）
 
 評価関数は EVAL（自己対戦ループの最新チャンピオンの複写）を使う。models/best.json は追わない
 （JavaScript 版は線形の評価関数しか扱えないため）。新しいチャンピオンが採用されると、
@@ -25,6 +26,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
+
+from i18n import lang_link, leftover, translate, write_pair
 
 from carcassonne.fast import build_tables
 from carcassonne.fast_eval import NF, load_eval
@@ -56,6 +59,11 @@ LEVELS = {
     "standard": {"label": "標準（探索を減らした版。すぐ指す）", "sims": 2000, "depth": 0},
     "greedy": {"label": "やさしい（目先の点だけを見る練習相手）"},
 }
+LABELS_EN = {
+    "strong": "Strongest (latest self-play AI {name}{adopted}; 1 to a few seconds per move)",
+    "standard": "Standard (lighter search; moves instantly)",
+    "greedy": "Easy (practice opponent that only looks at immediate points)",
+}
 INJECT = """<style>.server-only { display: none !important; } .local-only { display: block !important; }</style>
 <script src="play_data.js"></script>
 <script src="carcassonne_engine.js"></script>
@@ -63,7 +71,7 @@ INJECT = """<style>.server-only { display: none !important; } .local-only { disp
 """
 
 
-def play_data() -> dict:
+def play_data(lang: str = "ja") -> dict:
     ts = load_tileset()
     T = build_tables(ts)
     w, mode = load_eval(str(ROOT / EVAL))
@@ -75,6 +83,10 @@ def play_data() -> dict:
     levels["strong"]["label"] = (
         f"最強（自己対戦で学んだ最新AI {info['name']}{adopted}。1手1〜数秒）"
     )
+    if lang == "en":
+        adopted = f", adopted {info['date']}" if info.get("date") else ""
+        for k, v in LABELS_EN.items():
+            levels[k]["label"] = v.format(name=info["name"], adopted=adopted)
     tables = {name: arr.reshape(-1).tolist() for name, arr in zip(TABLE_NAMES, T)}
     return {
         "tables": {
@@ -89,16 +101,28 @@ def play_data() -> dict:
     }
 
 
-def build() -> None:
-    data = json.dumps(play_data(), ensure_ascii=False, separators=(",", ":"))
-    (DOCS / "play_data.js").write_text(
+def write_scripts(out: Path, lang: str) -> None:
+    out.mkdir(exist_ok=True)
+    data = json.dumps(play_data(lang), ensure_ascii=False, separators=(",", ":"))
+    (out / "play_data.js").write_text(
         "// scripts/build_play_page.py が生成（手で直さない）\n"
         f"var PLAY_DATA = {data};\n"
         'if (typeof module !== "undefined" && module.exports) module.exports = PLAY_DATA;\n',
         encoding="utf-8",
     )
     for name in COPIES:
-        (DOCS / name).write_text((WEB / name).read_text(encoding="utf-8"), encoding="utf-8")
+        js = (WEB / name).read_text(encoding="utf-8")
+        if lang == "en":
+            if name == "play_local.js":
+                js = translate(js, "play_local", "js")
+            elif leftover(js, "js"):
+                raise SystemExit(
+                    f"web/{name} に日本語の文があります（英語版の対訳表を用意してください）"
+                )
+        (out / name).write_text(js, encoding="utf-8")
+
+
+def page(lang: str) -> str:
     html = (WEB / "play.html").read_text(encoding="utf-8")
     marker = "<script>\n"
     if html.count(marker) != 1:
@@ -107,8 +131,22 @@ def build() -> None:
     html = html.replace(
         "<title>カルカソンヌ 人間 vs AI</title>", "<title>AIと対戦 | カルカソンヌ入門</title>"
     )
-    (DOCS / "play.html").write_text(html, encoding="utf-8")
-    print("wrote docs/play.html and its scripts")
+    # 画面上部のページ一覧の最後に、もう一方の言語へのリンク
+    nav_end = "</a></nav>AIはこのブラウザの中で考えます。"
+    if html.count(nav_end) != 1:
+        raise SystemExit("web/play.html のページ一覧の位置が分かりません")
+    html = html.replace(nav_end, "</a>__LANG__</nav>AIはこのブラウザの中で考えます。")
+    if lang == "en":
+        html = html.replace('<html lang="ja">', '<html lang="en">', 1)
+        html = translate(html, "play")
+    return html.replace("__LANG__", lang_link("play.html", lang, "lang"))
+
+
+def build() -> None:
+    write_scripts(DOCS, "ja")
+    write_scripts(DOCS / "en", "en")
+    write_pair("play.html", page("ja"), page("en"))
+    print("wrote docs/play.html, docs/en/play.html and their scripts")
 
 
 if __name__ == "__main__":

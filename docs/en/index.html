@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carcassonne Primer</title>
+<meta name="description" content="Learn the board game Carcassonne: a rules primer, a strategy guide, lessons from a strong AI's games, a next-move quiz, and games against a strong AI.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* このファイルは手書き。共通ナビは scripts/site_nav.py と同じ見た目にそろえる。 */
+:root {
+  --bg: #f1f3ee; --paper: #ffffff; --ink: #1d2620; --muted: #5c6a60; --line: #d5dccf; --field: #2f6b3a;
+  --font-display: "Dela Gothic One", "Zen Kaku Gothic New", "Hiragino Sans", sans-serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #141a16; --paper: #1c241f; --ink: #e6ece6; --muted: #9aa89d; --line: #2e3a32; --field: #7cc48a; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #141a16; --paper: #1c241f; --ink: #e6ece6; --muted: #9aa89d; --line: #2e3a32; --field: #7cc48a; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.8; padding-inline: 16px; padding-block: 0 64px; }
+.wrap { max-width: 760px; margin: 0 auto; }
+header { padding-block: 44px 24px; display: grid; gap: 12px; }
+h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(32px, 7vw, 48px); line-height: 1.2; margin: 0; }
+h1 span { color: var(--field); }
+.lede { margin: 0; max-width: 34em; }
+ol.cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; counter-reset: step; }
+ol.cards li { counter-increment: step; }
+ol.cards a { display: grid; grid-template-columns: 44px 1fr; gap: 4px 14px; padding: 16px 18px; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); text-decoration: none; }
+ol.cards a:hover, ol.cards a:focus-visible { border-color: var(--field); outline: none; }
+ol.cards a::before { content: counter(step); grid-row: span 2; width: 36px; height: 36px; border-radius: 50%; background: var(--field); color: var(--paper); display: grid; place-items: center; font-weight: 700; }
+ol.cards b { font-size: 18px; }
+ol.cards small { color: var(--muted); font-size: 14px; }
+.more { margin-top: 28px; font-size: 14.5px; color: var(--muted); }
+.more a { color: var(--field); }
+
+nav.site { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+nav.site .home { font-weight: 700; margin-right: 8px; color: var(--ink); text-decoration: none; }
+nav.site a.p { color: var(--muted); text-decoration: none; padding: 3px 10px; border-radius: 999px; }
+nav.site a.p:hover, nav.site a.p:focus-visible { color: var(--ink); background: var(--paper); outline: none; }
+nav.site a.p[aria-current="page"] { color: var(--paper); background: var(--field); }
+nav.site a.lang { margin-left: auto; border: 1px solid var(--line); }
+@media (pointer: coarse) { nav.site a { min-height: 44px; display: inline-flex; align-items: center; } }
+h1, h2, h3 { word-break: auto-phrase; }
+/* 共通: ページ下の支援リンク（Ko-fi）。目立ちすぎないよう枠線だけのボタンにする */
+.support { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.support a.kofi { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); text-decoration: none; font-weight: 600; }
+.support a.kofi:hover, .support a.kofi:focus-visible { border-color: var(--field); }
+
+</style>
+<link rel="alternate" hreflang="ja" href="https://satou-aaaaa.github.io/carcassonne-research/"><link rel="alternate" hreflang="en" href="https://satou-aaaaa.github.io/carcassonne-research/en/"><link rel="alternate" hreflang="x-default" href="https://satou-aaaaa.github.io/carcassonne-research/en/">
+<script>(function(){var K="site-lang",cur="en",alt="../index.html",s=null;try{s=localStorage.getItem(K)}catch(e){}if(!/bot|crawl|spider|slurp|lighthouse/i.test(navigator.userAgent)){var l=(navigator.languages&&navigator.languages[0])||navigator.language||'';var want=s||(/^ja\b/i.test(l)?'ja':'en');if(want!==cur){location.replace(alt+location.search+location.hash);return}}document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[data-lang]');if(a)try{localStorage.setItem(K,a.getAttribute('data-lang'))}catch(e){}})})();</script>
+</head>
+<body>
+<div class="wrap">
+<nav class="site" aria-label="Site pages"><a class="home" href="index.html">Carcassonne Primer</a><a class="p" href="rules.html">Rules</a><a class="p" href="strategy.html">Strategy</a><a class="p" href="ai_tips.html">Lessons from the AI</a><a class="p" href="quiz.html">Next-Move Quiz</a><a class="p" href="play.html">Play the AI</a><a class="p lang" href="../index.html" hreflang="ja" lang="ja" data-lang="ja" title="日本語に切り替え">日本語</a></nav>
+<header>
+  <h1>Your first <span>Carcassonne</span></h1>
+  <p class="lede">Learn Carcassonne, the board game where you build a map out of tiles, step by step from zero. There are also tips and practice problems based on games played by the strong AI built in this project.</p>
+</header>
+<ol class="cards">
+  <li><a href="rules.html"><b>Rules</b><small>How a turn works, placing tiles and meeples, and scoring, explained with diagrams.</small></a></li>
+  <li><a href="strategy.html"><b>Strategy</b><small>Next stop once you know the rules: thinking in point differences, the tile mix, hard-to-fill holes, plans for each stage of the game, common mistakes and a glossary.</small></a></li>
+  <li><a href="ai_tips.html"><b>Lessons from the AI</b><small>Easy-to-copy habits found by analysing games between strong AIs.</small></a></li>
+  <li><a href="quiz.html"><b>Next-Move Quiz</b><small>From beginner to advanced. Guess where the AI would place, then read the explanation.</small></a></li>
+  <li><a href="play.html"><b>Play the AI</b><small>Play one-on-one against this project's strongest AI. Beginner mode also shows how many points each of your moves lost.</small></a></li>
+</ol>
+<p class="more">Suggested path: learn to play with the Rules page, read "Five things to learn first" in the Strategy guide, solve the beginner quiz problems, then play the AI in beginner mode and review your costly moves. Once you're comfortable, move on to Lessons from the AI and the advanced quiz problems.</p>
+<p class="more">Playing the AI needs no installation; the AI thinks inside your browser (the strongest setting can take a few seconds per move). The rules are the current rules of the base game (72 tiles).</p>
+<div class="support">If this site helped you, you can support the author.<a class="kofi" href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>Support on Ko-fi</a></div>
+</div>
+</body>
+</html>

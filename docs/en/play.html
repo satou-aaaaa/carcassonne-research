@@ -1,0 +1,980 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Play the AI | Carcassonne Primer</title>
+<style>
+  .local-only { display:none; }
+  :root { --bg:#f4f1ea; --panel:#fff; --ink:#2b2b2b; --muted:#777; --line:#ddd6c7; --p0:#d64541; --p1:#2f6fd6; --accent:#2e7d32; --coach:#8e44ad; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#1d1f1c; --panel:#2a2d29; --ink:#e8e6df; --muted:#9a9a90; --line:#43463f; --accent:#6fbf73; --coach:#c08ad8; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.5 system-ui, "Hiragino Sans", "Yu Gothic UI", sans-serif; background:var(--bg); color:var(--ink); height:100vh; display:flex; }
+  #stage { flex:1; position:relative; min-width:0; }
+  canvas#board { width:100%; height:100%; display:block; cursor:grab; touch-action:none; }
+  #hint { position:absolute; left:12px; top:12px; background:var(--panel); border:1px solid var(--line); padding:6px 10px; border-radius:8px; max-width:calc(100% - 200px); z-index:1; }
+  #hint.busy::before { content:""; display:inline-block; width:10px; height:10px; margin-right:8px; border-radius:50%; border:2px solid var(--accent); border-right-color:transparent; animation:spin .8s linear infinite; vertical-align:-1px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  #viewBtns { position:absolute; right:12px; top:12px; display:flex; gap:6px; z-index:1; }
+  #viewBtns button { background:var(--panel); padding:4px 10px; }
+  /* 仮置きしたタイルのすぐ下に出す操作（Rotate・Cancel・Confirm）。盤から目と指を離さずに置ける */
+  #tileBar { position:absolute; z-index:2; display:flex; gap:6px; padding:5px; background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,.25); }
+  #tileBar[hidden] { display:none; }
+  #tileBar button { min-width:40px; min-height:36px; font-size:15px; padding:4px 10px; }
+  #tileBar button.primary { font-weight:600; }
+  aside { width:340px; background:var(--panel); border-left:1px solid var(--line); padding:12px; overflow-y:auto; display:flex; flex-direction:column; gap:12px; }
+  h2 { font-size:13px; margin:0 0 6px; color:var(--muted); font-weight:600; }
+  .score { display:flex; gap:8px; }
+  .score > div { flex:1; border:1px solid var(--line); border-radius:8px; padding:6px 8px; position:relative; }
+  .score .me { border-left:5px solid var(--p0); } .score .ai { border-left:5px solid var(--p1); }
+  .score b { font-size:22px; }
+  .score small { color:var(--muted); display:block; }
+  .score .pr { color:var(--muted); font-size:12px; margin-left:4px; }
+  .score .mp { display:block; height:14px; line-height:0; }
+  .score .mp svg { width:11px; height:13px; margin-right:1px; }
+  .score .pop { position:absolute; right:10px; top:6px; font-weight:700; font-size:18px; animation:pop 1.4s ease-out forwards; pointer-events:none; }
+  @keyframes pop { 0% { opacity:0; transform:translateY(6px); } 15% { opacity:1; transform:translateY(0); } 70% { opacity:1; } 100% { opacity:0; transform:translateY(-14px); } }
+  .turn { outline:2px solid var(--accent); }
+  button { font:inherit; padding:6px 12px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--ink); cursor:pointer; }
+  button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  button:disabled { opacity:.45; cursor:default; }
+  button.sel { outline:2px solid var(--accent); font-weight:600; }
+  kbd { font:11px/1 system-ui, sans-serif; border:1px solid var(--line); border-radius:3px; padding:1px 4px; margin-left:4px; color:var(--muted); }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  #tilebox { display:flex; gap:12px; align-items:flex-start; }
+  #cur { flex:none; }
+  #tileCtl { display:flex; flex-direction:column; gap:6px; min-width:0; }
+  #pieceBtns { gap:4px; min-height:29px; } #pieceBtns button { padding:3px 8px; font-size:13px; }
+  #featInfo { font-size:12.5px; min-height:38px; color:var(--ink); margin-top:6px; }
+  #featInfo:empty::before { content:"　"; }
+  #log { height:150px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:6px 8px; font-size:12.5px; }
+  #log div.p0 { color:var(--p0); } #log div.p1 { color:var(--p1); }
+  #log div.coach { color:var(--coach); }
+  #log div[data-x] { cursor:pointer; } #log div[data-x]:hover { text-decoration:underline; }
+  #remain { display:flex; flex-wrap:wrap; gap:4px; }
+  #remain div { text-align:center; font-size:11px; color:var(--muted); width:38px; }
+  #remain div.zero { opacity:.3; }
+  #remain div.fit { outline:2px solid #ff9800; border-radius:3px; color:var(--ink); font-weight:600; }
+  #remain canvas { width:34px; height:34px; display:block; }
+  label { display:block; margin:6px 0 2px; color:var(--muted); font-size:12px; }
+  input, select { width:100%; font:inherit; padding:5px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--ink); }
+  dialog { border:1px solid var(--line); border-radius:12px; background:var(--panel); color:var(--ink); max-width:420px; }
+  dialog::backdrop { background:rgba(0,0,0,.4); }
+  dialog details { margin-top:10px; }
+  details { font-size:12.5px; color:var(--muted); }
+  #coachBox { font-size:13.5px; padding:8px 10px; border:2px dashed var(--coach); border-radius:8px; }
+  label.chk { display:flex; gap:6px; align-items:center; margin-top:10px; }
+  label.chk input { width:auto; flex:none; }
+  #result { font-size:14px; padding:8px; border:2px solid var(--accent); border-radius:8px; }
+  #result .title { font-size:15px; font-weight:600; margin-bottom:6px; }
+  #result table { width:100%; border-collapse:collapse; font-size:13px; }
+  #result td, #result th { padding:2px 4px; border-bottom:1px solid var(--line); text-align:right; }
+  #result td:first-child, #result th:first-child { text-align:left; font-weight:normal; color:var(--muted); }
+  #result tr.sum td { font-weight:700; color:var(--ink); border-bottom:0; }
+  #home { font-size:12.5px; color:var(--muted); }
+  #home nav { display:flex; flex-wrap:wrap; gap:0 12px; margin-bottom:2px; }
+  #home a { color:inherit; display:inline-flex; align-items:center; min-height:28px; }
+  @media (pointer: coarse) { #home a { min-height:44px; } }
+  summary { padding-block:6px; cursor:pointer; }
+  .touch .kbd-only { display:none; }
+  @media (pointer: coarse) {
+    #tileBar button { min-width:48px; min-height:44px; font-size:17px; }
+    #tileCtl button, #viewBtns button { min-height:40px; }
+  }
+  @media (max-width: 760px) {
+    body { flex-direction:column; height:auto; }
+    /* 盤と操作欄（得点・引いたタイル）で1画面に収める。高さは操作欄に合わせて画面側で決める */
+    #stage { height:calc(100vh - var(--barh, 220px)); height:calc(100dvh - var(--barh, 220px)); min-height:240px; flex:none; display:flex; flex-direction:column; }
+    #hint { position:static; max-width:none; border-radius:0; border-width:0 0 1px; padding:4px 10px; font-size:13px; }
+    canvas#board { flex:1; min-height:0; }
+    #viewBtns { top:auto; bottom:8px; right:8px; }
+    aside { width:auto; border-left:0; border-top:1px solid var(--line); overflow:visible; padding:8px 10px; gap:8px; }
+    #scoreSec { order:-3; } #tileSec { order:-2; } #result { order:-1; } #home { order:10; }
+    #scoreSec h2, #coachBox { display:none; }
+    .score b { font-size:18px; }
+    .score > div { padding:3px 8px; }
+    .score small { display:inline; margin-right:4px; }
+    #tileSec h2 { margin-bottom:4px; }
+    #cur { width:76px !important; height:76px !important; }
+    /* スマホではRotate・Confirmは盤の上（#tileBar）で行うので、操作欄の同じボタンは隠して盤を広く取る */
+    .dupctl { display:none !important; }
+    #featInfo { height:54px; min-height:0; overflow-y:auto; font-size:12px; line-height:1.45; }
+  }
+</style>
+<link rel="alternate" hreflang="ja" href="https://satou-aaaaa.github.io/carcassonne-research/play.html"><link rel="alternate" hreflang="en" href="https://satou-aaaaa.github.io/carcassonne-research/en/play.html"><link rel="alternate" hreflang="x-default" href="https://satou-aaaaa.github.io/carcassonne-research/en/play.html">
+<script>(function(){var K="site-lang",cur="en",alt="../play.html",s=null;try{s=localStorage.getItem(K)}catch(e){}if(!/bot|crawl|spider|slurp|lighthouse/i.test(navigator.userAgent)){var l=(navigator.languages&&navigator.languages[0])||navigator.language||'';var want=s||(/^ja\b/i.test(l)?'ja':'en');if(want!==cur){location.replace(alt+location.search+location.hash);return}}document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[data-lang]');if(a)try{localStorage.setItem(K,a.getAttribute('data-lang'))}catch(e){}})})();</script>
+</head>
+<body>
+<div id="stage">
+  <div id="hint">Loading…</div>
+  <canvas id="board"></canvas>
+  <div id="viewBtns">
+    <button id="btnZoomIn" title="Zoom in" aria-label="Zoom in">+</button>
+    <button id="btnZoomOut" title="Zoom out" aria-label="Zoom out">−</button>
+    <button id="btnFit">Fit board</button>
+  </div>
+  <div id="tileBar" hidden>
+    <button id="tbRot" type="button" title="Rotate (R)" aria-label="Rotate">⟳</button>
+    <button id="tbCancel" type="button" title="Cancel placement (Esc)" aria-label="Cancel">✕</button>
+    <button id="tbOk" type="button" class="primary" title="Confirm this placement (Enter)">✓ Confirm</button>
+  </div>
+</div>
+<aside>
+  <div id="home" class="local-only"><nav aria-label="Site pages"><a href="index.html">← Carcassonne Primer</a><a href="rules.html">Rules</a><a href="strategy.html">Strategy</a><a href="ai_tips.html">Lessons from the AI</a><a href="quiz.html">Next-Move Quiz</a><a class="lang" href="../play.html" hreflang="ja" lang="ja" data-lang="ja" title="日本語に切り替え">日本語</a></nav>The AI thinks inside your browser.<br><a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>&nbsp;Support this site on Ko-fi</a></div>
+  <div class="row">
+    <button class="primary" id="btnNew">New game</button>
+    <button id="btnRematch" hidden>Rematch, same tiles, seats swapped</button>
+  </div>
+  <div id="result" hidden></div>
+  <div id="coachBox" hidden></div>
+  <div id="scoreSec">
+    <h2>Score (“proj.” = points if the game ended now)</h2>
+    <div class="score">
+      <div class="me" id="boxMe"><small id="nameMe">You</small><b id="scMe">0</b><span class="pr" id="prMe"></span><span class="mp" id="spMe"></span></div>
+      <div class="ai" id="boxAi"><small>AI</small><b id="scAi">0</b><span class="pr" id="prAi"></span><span class="mp" id="spAi"></span></div>
+    </div>
+  </div>
+  <div id="tileSec">
+    <h2>Tile drawn (<span id="deckLeft">-</span> left in the bag)</h2>
+    <div id="tilebox">
+      <canvas id="cur" width="192" height="192" style="width:96px;height:96px"></canvas>
+      <div id="tileCtl">
+        <div class="row dupctl">
+          <button id="btnRot">Rotate<kbd class="kbd-only">R</kbd></button>
+          <button id="btnUndo" disabled>Cancel<kbd class="kbd-only">Esc</kbd></button>
+        </div>
+        <div class="row" id="pieceBtns"></div>
+        <div class="row dupctl"><button class="primary" id="btnOk" disabled>Confirm<kbd class="kbd-only" style="color:inherit">Enter</kbd></button></div>
+        <div class="row">
+          <button id="btnHint" disabled title="Preview where the AI would place">Hint</button>
+          <button id="btnBack" disabled title="Undo your last move and the AI's reply">Undo (one move)</button>
+        </div>
+      </div>
+    </div>
+    <div id="featInfo"></div>
+  </div>
+  <div>
+    <h2>Move log (tap a row to show it on the board)</h2>
+    <div id="log"></div>
+  </div>
+  <div>
+    <h2>Tiles left in the bag (public information)</h2>
+    <div id="remain"></div>
+  </div>
+  <details>
+    <summary>Rules used by this engine (editions differ)</summary>
+    <ul style="padding-left:18px;margin:6px 0">
+      <li>Base game, 72 tiles, two players. 7 meeples each.</li>
+      <li>Completed: city = tiles × 2 + shields × 2, road = tiles, monastery = 9.</li>
+      <li>End of game: unfinished cities and roads score 1 per tile (city shields 1 each), monasteries 1 + filled neighbours, farmers 3 per adjacent completed city.</li>
+      <li>The side with the most meeples scores (ties: both score in full).</li>
+      <li>A tile that fits nowhere is discarded and redrawn (same player's turn).</li>
+      <li>Controls: tap a green square to place the tile → rotate with ⟳ just below the tile or by tapping the tile again (it cycles through legal rotations only) → pick a meeple spot with a circle or button → ✓ Confirm (tapping the chosen circle again also confirms). ✕ cancels the placement.</li>
+      <li>“Hint” previews how the AI would place. “Undo” takes back your last move (the local version records how often, and those games are left out of strength statistics).</li>
+      <li>Hover over an empty square (tap on a phone) to see how many tiles left in the bag fit it.</li>
+      <li>Drag to move the board; zoom with the wheel (on a phone, pinch with two fingers, and move them to pan at the same time) or the +/− buttons. Hover over a placed meeple (tap on a phone) to see its feature and points.</li>
+    </ul>
+  </details>
+</aside>
+
+<dialog id="dlg">
+  <form method="dialog" id="newForm">
+    <h3 style="margin-top:0">New game</h3>
+    <label class="server-only">Your name (for the record)</label><input class="server-only" id="fName" placeholder="e.g. Alex">
+    <label>Seat</label>
+    <select id="fSeat"><option value="0">First (red)</option><option value="1">Second (blue)</option></select>
+    <label>AI strength</label><select id="fLevel"></select>
+    <label class="chk"><input type="checkbox" id="fCoach" checked> Beginner mode: after each move, show where the AI would have placed and how many points you lost</label>
+    <details>
+      <summary>Advanced settings</summary>
+      <label>Tile order seed (same number = same tile order; pair matches play two games with seats swapped)</label>
+      <div class="row"><input id="fSeed" type="number" min="0" style="flex:1"><button type="button" id="btnRand">Random</button></div>
+    </details>
+    <div class="row" style="margin-top:14px;justify-content:flex-end">
+      <button type="button" id="btnCancel">Cancel</button>
+      <button class="primary" value="ok">Start</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="play_features.js"></script>
+<script src="tile_art.js"></script>
+<style>.server-only { display: none !important; } .local-only { display: block !important; }</style>
+<script src="play_data.js"></script>
+<script src="carcassonne_engine.js"></script>
+<script src="play_local.js"></script>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const KIND_JA = {C:"City", R:"Road", F:"Field", M:"Monastery"};
+const PCOL = ["#d64541", "#2f6fd6"];
+const COACH = "#8e44ad";
+const TOUCH = matchMedia("(hover: none)").matches;
+if (TOUCH) document.documentElement.classList.add("touch");
+let LIB = [], LEVELS = {}, G = null;
+let view = {ox: 0, oy: 0, s: 72};
+let selV = 0, pending = null, hover = null, busy = false, lastForm = null;
+let inspect = null, inflight = null, hoverPiece = null, cellInfo = null;
+const cache = new Map();
+
+// ---------- タイル描画 ----------
+const EM = [[.5,0],[1,.5],[.5,1],[0,.5]];            // 辺の中点 N,E,S,W（画面座標 0..1）
+const HP = [[.25,0],[.75,0],[1,.25],[1,.75],[.75,1],[.25,1],[0,.75],[0,.25]]; // 半辺
+const D = 0.28;
+function cityShapes(sides) {
+  const trap = {
+    0: [[0,0],[1,0],[.8,D],[.2,D]],
+    1: [[1,0],[1,1],[1-D,.8],[1-D,.2]],
+    2: [[0,1],[1,1],[.8,1-D],[.2,1-D]],
+    3: [[0,0],[0,1],[D,.8],[D,.2]],
+  };
+  const inner = {0:[[.2,D],[.8,D]], 1:[[1-D,.2],[1-D,.8]], 2:[[.2,1-D],[.8,1-D]], 3:[[D,.2],[D,.8]]};
+  const shapes = sides.map(s => trap[s]);
+  if (sides.length > 1) shapes.push(hull(sides.flatMap(s => inner[s])));
+  return shapes;
+}
+function hull(pts) {
+  pts = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cr = (o, a, b) => (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0]);
+  const lo = [], up = [];
+  for (const p of pts) { while (lo.length >= 2 && cr(lo[lo.length-2], lo[lo.length-1], p) <= 0) lo.pop(); lo.push(p); }
+  for (const p of pts.slice().reverse()) { while (up.length >= 2 && cr(up[up.length-2], up[up.length-1], p) <= 0) up.pop(); up.push(p); }
+  return lo.slice(0, -1).concat(up.slice(0, -1));
+}
+function anchorOf(p, variant) {
+  if (p.kind === "M") return [.5, .5];
+  if (p.kind === "C") {
+    const inner = {0:[.5,D*.7], 1:[1-D*.7,.5], 2:[.5,1-D*.7], 3:[D*.7,.5]};
+    const pts = p.sides.map(s => inner[s]);
+    return [pts.reduce((a,q)=>a+q[0],0)/pts.length, pts.reduce((a,q)=>a+q[1],0)/pts.length];
+  }
+  if (p.kind === "R") {
+    if (p.sides.length >= 2) {
+      const pts = p.sides.map(s => EM[s]);
+      const m = [pts.reduce((a,q)=>a+q[0],0)/pts.length, pts.reduce((a,q)=>a+q[1],0)/pts.length];
+      return [m[0]*.5 + .25, m[1]*.5 + .25];
+    }
+    const e = EM[p.sides[0]]; return [e[0] + (.5-e[0])*.6, e[1] + (.5-e[1])*.6];
+  }
+  const pts = p.halves.map(h => HP[h]);
+  const c = [pts.reduce((a,q)=>a+q[0],0)/pts.length, pts.reduce((a,q)=>a+q[1],0)/pts.length];
+  return [c[0] + (.5-c[0])*.3, c[1] + (.5-c[1])*.3];
+}
+const anchorCache = new Map();
+// 各断片のミープル位置。Fieldが他の断片と重なる場合は、Fieldの辺上の点に退避させる
+function anchors(t, v) {
+  const key = t + ":" + v;
+  if (anchorCache.has(key)) return anchorCache.get(key);
+  const vr = LIB[t].variants[v], res = vr.pieces.map(p => anchorOf(p, vr));
+  const dist = (a, b) => Math.hypot(a[0]-b[0], a[1]-b[1]);
+  vr.pieces.forEach((p, i) => {
+    if (p.kind !== "F") return;
+    const others = res.filter((_, j) => j !== i);
+    if (others.every(o => dist(o, res[i]) > .3)) return;  // 円どうしが重ならない間隔（スマホの指でも押し分けられる）
+    let best = res[i], bs = -1;
+    for (const h of p.halves) {
+      const c = [HP[h][0] + (.5-HP[h][0])*.2, HP[h][1] + (.5-HP[h][1])*.2];
+      const sc = Math.min(...others.map(o => dist(o, c)));
+      if (sc > bs) { bs = sc; best = c; }
+    }
+    res[i] = best;
+  });
+  anchorCache.set(key, res); return res;
+}
+function tileCanvas(t, v) {
+  const key = t + ":" + v;
+  if (cache.has(key)) return cache.get(key);
+  // 256px で描く（Zoom in・高解像度の画面でもにじまない）。絵柄は tile_art.js
+  const S = 256, c = document.createElement("canvas"); c.width = c.height = S;
+  const vr = LIB[t].variants[v];
+  TileArt.paint(c.getContext("2d"), S, vr, { EM, cityShapes, anchor: p => anchorOf(p, vr) }, t * 4 + v);
+  cache.set(key, c); return c;
+}
+
+
+// ---------- 盤面描画 ----------
+const cv = $("board"), ctx = cv.getContext("2d");
+const cellLeft = x => view.ox + x*view.s, cellTop = y => view.oy - y*view.s;
+const keyOf = (x, y) => x + "," + y;
+function resize() {
+  layoutMobile();
+  const r = cv.getBoundingClientRect(); cv.width = r.width * devicePixelRatio; cv.height = r.height * devicePixelRatio; draw();
+}
+function cellAt(px, py) { return [Math.floor((px - view.ox)/view.s), -Math.floor((py - view.oy)/view.s)]; }
+function myTurn() { return G && !G.over && G.player === G.human_seat && !busy; }
+function curVariants() { return G && G.current !== null ? LIB[G.current].variants.length : 0; }
+// そのマスに置ける向き（置き方）の一覧
+function cellPlacements(x, y) { return G.placements.filter(p => p.x === x && p.y === y); }
+function placeCells() {
+  const seen = new Map();
+  for (const p of G.placements) if (!seen.has(keyOf(p.x, p.y))) seen.set(keyOf(p.x, p.y), p);
+  return [...seen.values()];
+}
+// マスを押したときの向き: 今の向きで置ければそれ、だめなら置ける最初の向き
+function preferred(x, y) { const ps = cellPlacements(x, y); return ps.find(p => p.v === selV) || ps[0]; }
+function boardWith(extra) { return extra ? G.board.concat([extra]) : G.board; }
+function pieceOf(x, y, pi) {
+  if (pending && pending.x === x && pending.y === y) return LIB[G.current].variants[pending.v].pieces[pi];
+  const b = G.board.find(q => q.x === x && q.y === y);
+  return b ? LIB[b.t].variants[b.v].pieces[pi] : null;
+}
+
+// ---- 演出（タイルの出現・得点の表示・完成した特徴の点滅） ----
+let anims = [], rafOn = false, viewAnim = null;
+function requestDraw() {
+  if (rafOn) return;
+  rafOn = true;
+  requestAnimationFrame(() => { rafOn = false; draw(); if (anims.length || viewAnim) requestDraw(); });
+}
+function addAnim(a) { anims.push({t0: performance.now(), ...a}); requestDraw(); }
+
+// 特徴の範囲を塗る（City=城壁の形、Road=Road筋、Monastery=建物、Field=半辺から中心への扇形）
+function fillPart(x, y, p, color, alpha) {
+  const s = view.s, L = cellLeft(x), T = cellTop(y);
+  const pt = q => [L + q[0]*s, T + q[1]*s];
+  ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = color; ctx.strokeStyle = color;
+  const poly = pts => { ctx.beginPath(); pts.forEach((q, i) => { const [a, b] = pt(q); i ? ctx.lineTo(a, b) : ctx.moveTo(a, b); }); ctx.closePath(); ctx.fill(); };
+  if (p.kind === "C") for (const sh of cityShapes(p.sides)) poly(sh);
+  else if (p.kind === "M") poly([[.3,.28],[.7,.28],[.7,.7],[.3,.7]]);
+  else if (p.kind === "R") {
+    ctx.lineWidth = s*.2; ctx.lineCap = "round"; ctx.beginPath();
+    const a = pt(EM[p.sides[0]]), m = pt([.5, .5]);
+    ctx.moveTo(a[0], a[1]); ctx.lineTo(m[0], m[1]);
+    if (p.sides[1] !== undefined) { const b = pt(EM[p.sides[1]]); ctx.lineTo(b[0], b[1]); }
+    ctx.stroke();
+  } else {
+    const seg = [[[0,0],[.5,0]],[[.5,0],[1,0]],[[1,0],[1,.5]],[[1,.5],[1,1]],[[1,1],[.5,1]],[[.5,1],[0,1]],[[0,1],[0,.5]],[[0,.5],[0,0]]];
+    for (const h of p.halves) poly([seg[h][0], seg[h][1], [.5, .5]]);
+  }
+  ctx.restore();
+}
+function drawFeature(f, color, alpha) {
+  for (const q of f.parts) { const p = pieceOf(q.x, q.y, q.piece); if (p) fillPart(q.x, q.y, p, color, alpha); }
+}
+function tag(x, y, text, color) {
+  const L = cellLeft(x) + 3, T = cellTop(y) + 3;
+  ctx.font = "bold 11px system-ui, sans-serif";
+  const w = ctx.measureText(text).width + 8;
+  ctx.fillStyle = color; ctx.fillRect(L, T, w, 16);
+  ctx.fillStyle = "#fff"; ctx.fillText(text, L + 4, T + 12);
+}
+
+function draw() {
+  const now = performance.now();
+  if (viewAnim) {
+    const k = Math.min(1, (now - viewAnim.t0) / 260), e = 1 - (1 - k)**3;
+    for (const n of ["ox", "oy", "s"]) view[n] = viewAnim.from[n] + (viewAnim.to[n] - viewAnim.from[n]) * e;
+    if (k >= 1) viewAnim = null;
+  }
+  anims = anims.filter(a => now - a.t0 < a.dur);
+  const W = cv.width / devicePixelRatio, H = cv.height / devicePixelRatio;
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  ctx.fillStyle = getComputedStyle(document.body).backgroundColor; ctx.fillRect(0, 0, W, H);
+  placeTileBar();
+  if (!G) return;
+  const s = view.s;
+  const drops = new Map(anims.filter(a => a.type === "drop").map(a => [keyOf(a.x, a.y), a]));
+  for (const b of G.board) {
+    const d = drops.get(keyOf(b.x, b.y));
+    if (d) {
+      const k = Math.max(0, Math.min(1, (now - d.t0) / d.dur)), sc = 1.35 - .35 * (1 - (1 - k)**3);
+      ctx.globalAlpha = k; const ns = s * sc;
+      ctx.drawImage(tileCanvas(b.t, b.v), cellLeft(b.x) - (ns - s)/2, cellTop(b.y) - (ns - s)/2, ns, ns);
+      ctx.globalAlpha = 1;
+    } else ctx.drawImage(tileCanvas(b.t, b.v), cellLeft(b.x), cellTop(b.y), s, s);
+  }
+  // ConfirmしてAIの返事を待つ間も、置いたタイルを表示しておく
+  if (inflight) ctx.drawImage(tileCanvas(inflight.t, inflight.v), cellLeft(inflight.x), cellTop(inflight.y), s, s);
+  // 完成した特徴の点滅
+  for (const a of anims.filter(a => a.type === "flash")) {
+    const k = (now - a.t0) / a.dur, alpha = .55 * Math.abs(Math.sin(k * Math.PI * 3)) * (1 - k * .5);
+    drawFeature(a.feature, a.color, alpha);
+  }
+  if (G.last_ai) {
+    const ai = 1 - G.human_seat;
+    ctx.strokeStyle = PCOL[ai]; ctx.lineWidth = 4; ctx.strokeRect(cellLeft(G.last_ai.x)+2, cellTop(G.last_ai.y)+2, s-4, s-4);
+    if (s >= 40) tag(G.last_ai.x, G.last_ai.y, "AI", PCOL[ai]);
+  }
+  // 調べている特徴（置いたミープルにカーソル／タップ）
+  if (inspect && !pending) drawFeature(inspect.feature, inspect.color, .45);
+  if (cellInfo && !pending) { ctx.strokeStyle = "#ff9800"; ctx.lineWidth = 3; ctx.setLineDash([5, 4]); ctx.strokeRect(cellLeft(cellInfo.x)+2, cellTop(cellInfo.y)+2, s-4, s-4); ctx.setLineDash([]); }
+  for (const m of G.meeples) drawMeeple(cellLeft(m.x), cellTop(m.y), m.piece, m.player, G.board.find(b => b.x === m.x && b.y === m.y));
+  if (inflight && inflight.piece !== null) drawMeeple(cellLeft(inflight.x), cellTop(inflight.y), inflight.piece, G.human_seat, inflight);
+  if (myTurn() && G.current !== null) {
+    if (!pending) {
+      ctx.fillStyle = "rgba(46,125,50,.28)"; ctx.strokeStyle = "rgba(46,125,50,.9)"; ctx.lineWidth = 2;
+      for (const p of placeCells()) { ctx.fillRect(cellLeft(p.x), cellTop(p.y), s, s); ctx.strokeRect(cellLeft(p.x)+1, cellTop(p.y)+1, s-2, s-2); }
+      if (hover) {
+        const p = cellPlacements(hover[0], hover[1]).length ? preferred(hover[0], hover[1]) : null;
+        if (p) { ctx.globalAlpha = .8; ctx.drawImage(tileCanvas(G.current, p.v), cellLeft(p.x), cellTop(p.y), s, s); ctx.globalAlpha = 1; }
+      }
+    } else {
+      ctx.drawImage(tileCanvas(G.current, pending.v), cellLeft(pending.x), cellTop(pending.y), s, s);
+      ctx.strokeStyle = "#2e7d32"; ctx.lineWidth = 3; ctx.strokeRect(cellLeft(pending.x)+1.5, cellTop(pending.y)+1.5, s-3, s-3);
+      const shown = pending.piece !== null ? pending.piece : hoverPiece;
+      if (shown !== null) { const f = pendingFeature(shown); if (f) drawFeature(f, "#ffeb3b", .55); }
+      const an = anchors(G.current, pending.v), rr = spotRadius();
+      for (const pi of pending.pieces) {
+        const [ax, ay] = an[pi];
+        const x = cellLeft(pending.x) + ax*s, y = cellTop(pending.y) + ay*s;
+        if (pi === pending.piece) { drawMeeple(cellLeft(pending.x), cellTop(pending.y), pi, G.human_seat, {t: G.current, v: pending.v}); continue; }
+        ctx.beginPath(); ctx.arc(x, y, rr, 0, 7); ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.fill();
+        ctx.strokeStyle = PCOL[G.human_seat]; ctx.lineWidth = 2.5; ctx.setLineDash([4, 3]); ctx.stroke(); ctx.setLineDash([]);
+      }
+    }
+  }
+  // 初心者モード: 直前の自分の手番でAIが選んだマス（紫の点線）
+  // 置く前のHint（紫の点線+「Hint」）
+  if (G.hint && myTurn()) {
+    const c = G.hint;
+    ctx.strokeStyle = COACH; ctx.lineWidth = 4; ctx.setLineDash([7, 5]); ctx.strokeRect(cellLeft(c.x)+2, cellTop(c.y)+2, s-4, s-4); ctx.setLineDash([]);
+    if (s >= 40) tag(c.x, c.y, "Hint", COACH);
+  } else if (G.last_coach && (G.last_coach.loss === null || G.last_coach.loss >= 1) && !G.over && !pending) {
+    const c = G.last_coach.best;
+    ctx.strokeStyle = COACH; ctx.lineWidth = 4; ctx.setLineDash([7, 5]); ctx.strokeRect(cellLeft(c.x)+2, cellTop(c.y)+2, s-4, s-4); ctx.setLineDash([]);
+    if (s >= 40) tag(c.x, c.y, "recommended", COACH);
+  }
+  // 得点の浮き上がり・棋譜ログから示したマス
+  for (const a of anims) {
+    const k = (now - a.t0) / a.dur;
+    if (a.type === "pop") {
+      ctx.save(); ctx.globalAlpha = k < .7 ? 1 : (1 - k) / .3;
+      ctx.font = `bold ${Math.max(16, s*.32)}px system-ui, sans-serif`; ctx.textAlign = "center";
+      const x = cellLeft(a.x) + s/2, y = cellTop(a.y) + s*.45 - k * s*.5;
+      ctx.lineWidth = 4; ctx.strokeStyle = "#fff"; ctx.strokeText(a.text, x, y); ctx.fillStyle = a.color; ctx.fillText(a.text, x, y);
+      ctx.restore();
+    } else if (a.type === "ping") {
+      ctx.save(); ctx.globalAlpha = 1 - k; ctx.strokeStyle = "#ff9800"; ctx.lineWidth = 4;
+      const g = (k * 3 % 1) * s * .35;
+      ctx.strokeRect(cellLeft(a.x) - g, cellTop(a.y) - g, s + 2*g, s + 2*g); ctx.restore();
+    }
+  }
+}
+// 仮置きしたタイルの下（入らなければ上）に操作バーを出す。盤の外にはみ出さないよう寄せる
+function placeTileBar() {
+  const bar = $("tileBar"), show = !!(G && pending && myTurn());
+  if (bar.hidden === show) bar.hidden = !show;
+  if (!show) return;
+  // 盤に重なる案内文・Zoom inボタンの場所（safeArea）は避ける
+  const a = safeArea(), s = view.s, W = a.w, bw = bar.offsetWidth, bh = bar.offsetHeight, gap = 8;
+  const L = cellLeft(pending.x), T = cellTop(pending.y);
+  let x = L + s/2 - bw/2, y = T + s + gap;
+  if (y + bh > a.bottom - 4) y = T - bh - gap;
+  x = Math.max(4, Math.min(W - bw - 4, x)); y = Math.max(a.top + 4, Math.min(a.bottom - bh - 4, y));
+  bar.style.left = (cv.offsetLeft + x) + "px"; bar.style.top = (cv.offsetTop + y) + "px";
+}
+function drawMeeple(left, top, pi, player, b) {
+  const [ax, ay] = anchors(b.t, b.v)[pi], s = view.s;
+  const x = left + ax*s, y = top + ay*s, r = s*.1;
+  ctx.fillStyle = PCOL[player]; ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(x, y - r*.9, r*.75, 0, 7); ctx.fill(); ctx.stroke();       // 頭
+  ctx.beginPath(); ctx.moveTo(x - r*1.15, y + r*1.2); ctx.lineTo(x, y - r*.2); ctx.lineTo(x + r*1.15, y + r*1.2); ctx.closePath(); ctx.fill(); ctx.stroke(); // 胴
+}
+
+// ---------- 特徴の範囲と点数 ----------
+function pendingBoard() { return CarcFeatures.build(LIB, boardWith({x: pending.x, y: pending.y, t: G.current, v: pending.v})); }
+function pendingFeature(pi) { return pendingBoard().feature(pending.x, pending.y, pi); }
+function featureText(f, B, meeples, placing) {
+  const name = KIND_JA[f.kind], cv = CarcFeatures.completeValue(f), ev = CarcFeatures.endValue(f);
+  let t;
+  if (f.kind === "C" || f.kind === "R") {
+    const size = `${f.cells.size} tiles${f.pennants ? ` · ${f.pennants} shields` : ""}`;
+    t = f.complete ? `${name} (${size}) is completed by this tile and scores ${cv} at once. The meeple comes back.`
+                   : `${name} (${size}): ${cv} if completed, ${ev} if unfinished at the end.`;
+    if (!placing && !f.complete) t = `${name} (${size}): ${cv} if completed, ${ev} if the game ended now.`;
+  } else if (f.kind === "M") {
+    t = `Monastery: ${f.around}/8 neighbours filled. 9 if all are filled, ${ev} if the game ended now.`;
+  } else {
+    const open = f.cities.length - f.doneCities;
+    t = `Field: touches ${f.doneCities} completed cities (${open} unfinished). ${ev} if the game ended now. Farmers stay until the end.`;
+  }
+  if (!placing) {
+    const m = CarcFeatures.owners(B, f, meeples), h = G.human_seat;
+    const who = m[h] > m[1-h] ? "You" : m[h] < m[1-h] ? "AI" : "both (tied)";
+    t += ` Owner: ${who} (you ${m[h]}, AI ${m[1-h]}).`;
+  }
+  return t;
+}
+function setInspect(x, y, pi) {
+  if (pi === null) { if (inspect) { inspect = null; refreshInfo(); requestDraw(); } return; }
+  if (inspect && inspect.x === x && inspect.y === y && inspect.piece === pi) return;
+  const B = CarcFeatures.build(LIB, G.board), f = B.feature(x, y, pi);
+  if (!f) return;
+  const m = CarcFeatures.owners(B, f, G.meeples);
+  const color = m[0] === m[1] ? "#ffeb3b" : PCOL[m[0] > m[1] ? 0 : 1];
+  inspect = {x, y, piece: pi, feature: f, color, text: featureText(f, B, G.meeples, false)};
+  refreshInfo(); requestDraw();
+}
+// 置いてあるミープルのうち、画面上の点に近いもの
+function meepleNear(px, py, r) {
+  let best = null, bd = r;
+  for (const m of G.meeples) {
+    const b = G.board.find(q => q.x === m.x && q.y === m.y), [ax, ay] = anchors(b.t, b.v)[m.piece];
+    const d = Math.hypot(cellLeft(m.x) + ax*view.s - px, cellTop(m.y) + ay*view.s - py);
+    if (d < bd) { bd = d; best = m; }
+  }
+  return best;
+}
+// ミープル候補の円の半径。候補が詰まっているタイル（十字路など）では円が重ならない大きさにする
+function spotRadius() {
+  const an = anchors(G.current, pending.v), ps = pending.pieces;
+  let md = 1;
+  for (let i = 0; i < ps.length; i++) for (let j = i + 1; j < ps.length; j++) md = Math.min(md, Math.hypot(an[ps[i]][0] - an[ps[j]][0], an[ps[i]][1] - an[ps[j]][1]));
+  return view.s * Math.min(TOUCH ? .16 : .13, md * .45);
+}
+function candidateNear(px, py) {
+  const an = anchors(G.current, pending.v);
+  let best = null, bd = view.s * (TOUCH ? .26 : .2);  // 一番近い円を選ぶので、円の外側を押しても届く
+  for (const pi of pending.pieces) {
+    const [ax, ay] = an[pi];
+    const d = Math.hypot(cellLeft(pending.x) + ax*view.s - px, cellTop(pending.y) + ay*view.s - py);
+    if (d < bd) { bd = d; best = pi; }
+  }
+  return best;
+}
+
+// ---------- 空きマスに合うタイル ----------
+const DIRS = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+// (x, y) に置けるタイルの種類と、山札に残る枚数（向きを問わず辺が合うもの）
+function fitsAt(x, y) {
+  const at = new Map(G.board.map(b => [keyOf(b.x, b.y), b]));
+  if (at.has(keyOf(x, y))) return null;
+  const need = DIRS.map(([dx, dy], s) => { const b = at.get(keyOf(x + dx, y + dy)); return b ? LIB[b.t].variants[b.v].edges[(s + 2) % 4] : null; });
+  if (need.every(e => e === null)) return null;  // 盤に接していないマス
+  const types = [];
+  let n = 0;
+  LIB.forEach((t, i) => {
+    if (!G.remaining[i]) return;
+    if (t.variants.some(vr => need.every((e, s) => e === null || vr.edges[s] === e))) { types.push(i); n += G.remaining[i]; }
+  });
+  return {types, n};
+}
+function setCellInfo(x, y) {
+  if (x === null || !G) { if (cellInfo) { cellInfo = null; refreshInfo(); markFits(); requestDraw(); } return; }
+  if (cellInfo && cellInfo.x === x && cellInfo.y === y) return;
+  const f = fitsAt(x, y);
+  if (!f) { setCellInfo(null); return; }
+  const total = G.remaining.reduce((a, b) => a + b, 0);
+  const text = f.n ? `${f.n} tiles left in the bag fit this square (of ${total} in all). They are the tiles with an orange frame.`
+                   : "No tile left in the bag fits this square. It will stay empty until the end.";
+  cellInfo = {x, y, text, types: f.types};
+  refreshInfo(); markFits(); requestDraw();
+}
+function markFits() {
+  const set = new Set(cellInfo && !pending ? cellInfo.types : []);
+  [...$("remain").children].forEach((d, i) => d.classList.toggle("fit", set.has(i)));
+}
+
+// ---------- 視点 ----------
+function bounds(cells) {
+  const xs = cells.map(c => c.x), ys = cells.map(c => c.y);
+  return {x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys)};
+}
+// 盤の上に重なるボタン・案内文の分だけ、上（PC）か下（スマホ）を空けて使う
+function safeArea() {
+  const r = cv.getBoundingClientRect(), mob = matchMedia("(max-width: 760px)").matches;
+  return {w: r.width, top: mob ? 0 : 52, bottom: r.height - (mob ? 44 : 0)};
+}
+// 盤と置けるマスが全部見えるようにZoom in率と位置を決める
+function fitTarget() {
+  const a = safeArea(), cells = G.board.concat(G.placements || []);
+  const b = bounds(cells), w = b.x1 - b.x0 + 1, h = b.y1 - b.y0 + 1, H = a.bottom - a.top;
+  const s = Math.max(24, Math.min(TOUCH ? 84 : 96, Math.min(a.w / (w + .8), H / (h + .8))));
+  return {s, ox: a.w/2 - (b.x0 + w/2) * s, oy: a.top + H/2 + (b.y0 + h/2 - 1) * s};
+}
+function fitAll(animate) {
+  if (!G || !G.board.length) return;
+  const to = fitTarget();
+  if (animate) { viewAnim = {from: {...view}, to, t0: performance.now()}; requestDraw(); }
+  else { Object.assign(view, to); draw(); }
+}
+// 指定のマスが画面外なら全体表示に戻す
+function ensureVisible(cells) {
+  const a = safeArea(), m = 4;
+  const out = cells.some(c => cellLeft(c.x) < m || cellTop(c.y) < a.top + m || cellLeft(c.x) + view.s > a.w - m || cellTop(c.y) + view.s > a.bottom - m);
+  if (out) fitAll(true);
+}
+
+// ---------- 操作 ----------
+let drag = null;
+// ポインタ操作（マウス・タッチ共通）。2本指はピンチでZoom inZoom out
+const touches = new Map();
+let pinch = null;
+cv.addEventListener("pointerdown", e => {
+  touches.set(e.pointerId, [e.clientX, e.clientY]);
+  viewAnim = null;
+  if (touches.size === 2) {
+    const [a, b] = [...touches.values()];
+    const r = cv.getBoundingClientRect(), mx = (a[0]+b[0])/2 - r.left, my = (a[1]+b[1])/2 - r.top;
+    // 2本指の中点の下にある盤の点が、指についてくるようにする（Zoom inZoom outと移動を同時に）
+    pinch = {d: Math.hypot(a[0]-b[0], a[1]-b[1]), s: view.s, wx: (mx - view.ox) / view.s, wy: (my - view.oy) / view.s}; drag = null; return;
+  }
+  drag = {x: e.clientX, y: e.clientY, ox: view.ox, oy: view.oy, moved: false, slop: e.pointerType === "mouse" ? 5 : 12}; cv.style.cursor = "grabbing";
+});
+window.addEventListener("pointerup", e => {
+  touches.delete(e.pointerId);
+  if (pinch) { if (!touches.size) pinch = null; return; }
+  cv.style.cursor = "grab";
+  if (drag && !drag.moved && e.target === cv && e.button === 0) onClick(e);
+  drag = null;
+});
+window.addEventListener("pointercancel", e => { touches.delete(e.pointerId); pinch = null; drag = null; });
+window.addEventListener("pointermove", e => {
+  if (touches.has(e.pointerId)) touches.set(e.pointerId, [e.clientX, e.clientY]);
+  if (pinch && touches.size === 2) {
+    const [a, b] = [...touches.values()], r = cv.getBoundingClientRect();
+    const mx = (a[0]+b[0])/2 - r.left, my = (a[1]+b[1])/2 - r.top;
+    const ns = Math.max(24, Math.min(160, pinch.s * Math.hypot(a[0]-b[0], a[1]-b[1]) / pinch.d));
+    viewAnim = null; view.s = ns; view.ox = mx - pinch.wx * ns; view.oy = my - pinch.wy * ns; draw();
+    return;
+  }
+  if (drag) {
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > drag.slop) drag.moved = true;
+    if (drag.moved) { view.ox = drag.ox + dx; view.oy = drag.oy + dy; draw(); }
+  } else if (e.target === cv && e.pointerType === "mouse" && G) {
+    const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+    hover = cellAt(px, py);
+    if (pending && myTurn()) {
+      const pi = candidateNear(px, py);
+      if (pi !== hoverPiece) { hoverPiece = pi; refreshInfo(); }
+    } else {
+      const m = meepleNear(px, py, view.s * .2);
+      setInspect(m && m.x, m && m.y, m ? m.piece : null);
+      if (!m) setCellInfo(hover[0], hover[1]); else setCellInfo(null);
+    }
+    draw();
+  }
+});
+cv.addEventListener("pointerleave", () => { hover = null; if (hoverPiece !== null) { hoverPiece = null; refreshInfo(); } setCellInfo(null); draw(); });
+cv.addEventListener("contextmenu", e => { e.preventDefault(); cancelPending(); });
+cv.addEventListener("wheel", e => {
+  e.preventDefault();
+  const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+  // トラックパッドの細かい量にも合わせて滑らかにZoom inZoom outする（マウスホイール1目盛り ≒ 1.16倍）
+  const k = Math.exp(-e.deltaY * (e.deltaMode === 1 ? .05 : .0015));
+  zoomAt(px, py, view.s * Math.max(.5, Math.min(2, k)));
+}, {passive: false});
+function zoomAt(px, py, size) {
+  viewAnim = null;
+  const ns = Math.max(24, Math.min(160, size)), f = ns / view.s;
+  view.ox = px - (px - view.ox)*f; view.oy = py - (py - view.oy)*f; view.s = ns; draw();
+}
+function zoomCenter(f) { const r = cv.getBoundingClientRect(); zoomAt(r.width/2, r.height/2, view.s * f); }
+$("btnZoomIn").onclick = () => zoomCenter(1.25);
+$("btnZoomOut").onclick = () => zoomCenter(1/1.25);
+$("btnFit").onclick = () => fitAll(true);
+window.addEventListener("keydown", e => {
+  if ($("dlg").open) return;
+  if (e.target.tagName === "BUTTON" && (e.key === " " || e.key === "Enter")) return;
+  if (e.key === "r" || e.key === "R" || e.key === " ") { e.preventDefault(); rotate(); }
+  if (e.key === "Escape") cancelPending();
+  if (e.key === "Enter" && pending && myTurn()) { e.preventDefault(); confirmMove(); }
+});
+function startPending(p, piece = null) {
+  pending = {x: p.x, y: p.y, v: p.v, pieces: p.pieces, piece}; selV = p.v; hoverPiece = null; inspect = null; cellInfo = null;
+  // スマホで盤が小さいときは、仮置きしたマスに寄ってZoom inする（ミープルの円を押しやすくする）
+  if (TOUCH && view.s < 72) {
+    const r = cv.getBoundingClientRect(), ns = 84;
+    viewAnim = {from: {...view}, to: {s: ns, ox: r.width/2 - (p.x + .5)*ns, oy: r.height/2 + (p.y - .5)*ns}, t0: performance.now()};
+    requestDraw();
+  }
+  refresh();
+}
+function onClick(e) {
+  if (!G) return;
+  const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+  const [cx, cy] = cellAt(px, py);
+  const mine = myTurn() && G.current !== null;
+  if (mine && pending) {
+    if (cx === pending.x && cy === pending.y) {
+      const pi = candidateNear(px, py);
+      if (pi !== null) {
+        if (pending.piece === pi) return confirmMove();  // 選んだ円をもう一度押すとConfirm
+        pending.piece = pi; return refresh();
+      }
+      return rotate();  // タイル自体を押すと向きを変える
+    }
+    if (cellPlacements(cx, cy).length) return startPending(preferred(cx, cy));
+    return cancelPending();
+  }
+  if (mine && cellPlacements(cx, cy).length) return startPending(preferred(cx, cy));
+  // 置いてあるミープルを押すと、その特徴の範囲と点数を出す。空きマスなら合うタイルの残り枚数
+  const m = meepleNear(px, py, view.s * (TOUCH ? .3 : .2));
+  setInspect(m && m.x, m && m.y, m ? m.piece : null);
+  setCellInfo(m ? null : cx, cy);
+}
+function cancelPending() { if (pending) { pending = null; hoverPiece = null; refresh(); } }
+function rotate() {
+  if (!G || G.current === null || !myTurn()) return;
+  if (pending) {
+    const ps = cellPlacements(pending.x, pending.y);
+    if (ps.length <= 1) return;
+    const i = ps.findIndex(p => p.v === pending.v);
+    return startPending(ps[(i + 1) % ps.length]);
+  }
+  selV = (selV + 1) % curVariants(); refresh();
+}
+function confirmMove() {
+  if (!pending || !myTurn()) return;
+  sendMove(pending.x, pending.y, pending.v, pending.piece);
+}
+$("btnRot").onclick = rotate;
+$("btnUndo").onclick = cancelPending;
+$("btnOk").onclick = confirmMove;
+$("tbRot").onclick = rotate;
+$("tbCancel").onclick = cancelPending;
+$("tbOk").onclick = confirmMove;
+// 置く前のHint: AIの最善手を受け取り、その手を仮置きにする
+$("btnHint").onclick = async () => {
+  if (!myTurn()) return;
+  busy = true; pending = null; refresh(); setHint("The AI is thinking… (hint)");
+  try { G = await api("/api/hint", {}); }
+  catch (err) { alert(err.message); }
+  busy = false;
+  const h = G.hint, p = h && G.placements.find(q => q.x === h.x && q.y === h.y && q.v === h.v);
+  if (p) { ensureVisible([p]); startPending(p, h.piece); } else refresh();
+};
+// 待った: Undo your last move and the AI's reply
+$("btnBack").onclick = async () => {
+  if (!G || !G.can_undo || busy) return;
+  busy = true; pending = null; refresh();
+  try { setState(await api("/api/undo", {})); }
+  catch (err) { alert(err.message); }
+  busy = false; refresh();
+};
+
+async function api(path, body) {
+  if (window.LOCAL_API) return window.LOCAL_API(path, body);  // 公開ページ（docs/play.html）: ブラウザ内で対局する
+  const r = await fetch(path, body ? {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)} : undefined);
+  const j = await r.json(); if (j && j.error) throw new Error(j.error); return j;
+}
+async function sendMove(x, y, v, piece) {
+  inflight = {x, y, v, t: G.current, piece};
+  busy = true; pending = null; hoverPiece = null; refresh(); setHint("The AI is thinking…");
+  try { setState(await api("/api/move", {x, y, variant: v, piece})); }
+  catch (err) { alert(err.message); inflight = null; }
+  busy = false; refresh();
+}
+// 自分の手を置いた直後の盤面（AIの思考中に表示する）
+window.onInterimState = v => setState(v);
+// 新しい盤面を受け取る。前の盤面との差分（新しいタイル・得点・回収されたミープル）を演出する
+function setState(next) {
+  const prev = G, sent = inflight;
+  G = next; inflight = null; pending = null; inspect = null; hoverPiece = null; cellInfo = null;
+  selV = 0;
+  if (G && G.current !== null && G.placements.length) selV = G.placements[0].v;
+  if (prev && G && prev.seed === G.seed && prev.human_seat === G.human_seat && G.board.length >= prev.board.length) animateDiff(prev, G, sent);
+  refresh();
+  if (G && G.over && (!prev || !prev.over) && matchMedia("(max-width: 760px)").matches) $("result").scrollIntoView({behavior: "smooth", block: "center"});
+}
+function animateDiff(prev, next, sent) {
+  const had = new Set(prev.board.map(b => keyOf(b.x, b.y)));
+  const fresh = next.board.filter(b => !had.has(keyOf(b.x, b.y)));
+  let delay = 0;
+  for (const b of fresh) {
+    if (sent && sent.x === b.x && sent.y === b.y) continue;  // 自分の手はすでに表示している
+    addAnim({type: "drop", x: b.x, y: b.y, dur: 380, t0: performance.now() + delay}); delay += 200;
+  }
+  const at = fresh.length ? fresh[fresh.length - 1] : null;
+  // 回収されたミープル = 完成した特徴（終局の一括回収は内訳表で示す）
+  if (!next.over) {
+    const ids = new Set(next.meeples.map(m => m.id)), B = CarcFeatures.build(LIB, next.board), done = new Set();
+    for (const m of prev.meeples.concat(sent && sent.piece !== null ? [{x: sent.x, y: sent.y, piece: sent.piece, player: next.human_seat, id: -1}] : [])) {
+      if (ids.has(m.id)) continue;
+      const f = B.feature(m.x, m.y, m.piece);
+      if (!f || done.has(f) || !f.complete) continue;
+      done.add(f);
+      addAnim({type: "flash", feature: f, color: "#ffd600", dur: 1500});
+    }
+  }
+  // 終局の一括得点は結果欄の内訳で示すので、浮き上がり表示はしない
+  for (const p of next.over ? [] : [0, 1]) {
+    const d = next.scores[p] - prev.scores[p];
+    if (d <= 0) continue;
+    if (at) addAnim({type: "pop", x: at.x, y: at.y + (p === next.human_seat ? 0 : .3), text: `+${d}`, color: PCOL[p], dur: 1500});
+    const box = $(p === next.human_seat ? "boxMe" : "boxAi"), el = document.createElement("span");
+    el.className = "pop"; el.style.color = PCOL[p]; el.textContent = `+${d}`;
+    box.appendChild(el); setTimeout(() => el.remove(), 1500);
+  }
+  ensureVisible(fresh.concat(next.placements || []));
+}
+
+// ---------- パネル ----------
+function setHint(t) { $("hint").textContent = t; $("hint").classList.toggle("busy", busy); }
+const MEEPLE_SVG = c => `<svg viewBox="0 0 11 13"><circle cx="5.5" cy="3" r="2.6" fill="${c}"/><path d="M0.6 12.6 L5.5 4.6 L10.4 12.6 Z" fill="${c}"/></svg>`;
+function meepleIcons(n, col) { return MEEPLE_SVG(col).repeat(n) + MEEPLE_SVG("rgba(128,128,128,.3)").repeat(Math.max(0, 7 - n)); }
+function pieceLabel(pi, all) {
+  const k = LIB[G.current].variants[pending.v].pieces[pi].kind;
+  const same = all.filter(q => LIB[G.current].variants[pending.v].pieces[q].kind === k);
+  return KIND_JA[k] + (same.length > 1 ? "①②③④"[same.indexOf(pi)] : "");
+}
+function lastCoachText() { return G && G.last_coach ? (G.events.filter(e => e.text.startsWith("Hint")).slice(-1)[0]?.text ?? "") : ""; }
+// 操作欄の説明: 選んだミープル候補 → 調べている特徴 → 直前のHint（スマホ）の順
+function refreshInfo() {
+  let t = "";
+  if (pending && myTurn()) {
+    const shown = pending.piece !== null ? pending.piece : hoverPiece;
+    if (shown !== null) { const B = pendingBoard(); t = featureText(B.feature(pending.x, pending.y, shown), B, G.meeples, true); }
+    const h = G.hint;
+    if (h && h.x === pending.x && h.y === pending.y && h.v === pending.v && h.piece === pending.piece)
+      t = `Hint: the AI would place it like this (${h.kind ? "meeple on " + h.kind + "" : "no meeple"}). You can confirm it as is or change it.` + (t ? " " + t : "");
+    else if (pending.pieces.length) t = "To place a meeple, pick a circle or button. The yellow area then becomes yours.";
+    else t = G.supply[G.human_seat] ? "There is nowhere to place a meeple on this tile." : "You have no meeples in hand.";
+  } else if (inspect) t = inspect.text;
+  else if (cellInfo) t = cellInfo.text;
+  else if (!G.over && matchMedia("(max-width: 760px)").matches) t = lastCoachText();
+  $("featInfo").textContent = t;
+}
+function refresh() {
+  if (!G) { draw(); return; }
+  const h = G.human_seat, a = 1 - h;
+  $("scMe").textContent = G.scores[h]; $("scAi").textContent = G.scores[a];
+  $("prMe").textContent = G.over ? "" : `proj. ${G.projected[h]}`; $("prAi").textContent = G.over ? "" : `proj. ${G.projected[a]}`;
+  $("spMe").innerHTML = meepleIcons(G.supply[h], PCOL[h]); $("spAi").innerHTML = meepleIcons(G.supply[a], PCOL[a]);
+  $("spMe").title = `meeples ${G.supply[h]}`; $("spAi").title = `meeples ${G.supply[a]}`;
+  const mob = matchMedia("(max-width: 760px)").matches;
+  $("nameMe").textContent = mob ? (G.name || "You") : `${G.name || "You"} (${h === 0 ? "first, red" : "second, blue"})`;
+  $("boxMe").style.borderLeftColor = PCOL[h]; $("boxAi").style.borderLeftColor = PCOL[a];
+  $("boxMe").classList.toggle("turn", !G.over && G.player === h); $("boxAi").classList.toggle("turn", !G.over && G.player === a);
+  $("deckLeft").textContent = G.deck_left;
+  const log = $("log"); log.innerHTML = "";
+  for (const ev of G.events) {
+    const d = document.createElement("div");
+    d.className = ev.text.startsWith("Hint") ? "coach" : ev.player === h ? "p" + h : "p" + a;
+    d.textContent = ev.text;
+    if (ev.x !== undefined) { d.dataset.x = ev.x; d.dataset.y = ev.y; d.title = "Show on the board"; }
+    log.appendChild(d);
+  }
+  log.scrollTop = log.scrollHeight;
+  // 引いたタイル（仮置き中はその向き、そうでなければ次に置くときの向き）
+  const cc = $("cur").getContext("2d"); cc.clearRect(0, 0, 192, 192);
+  const tileShown = G.current !== null && !inflight;
+  if (tileShown) cc.drawImage(tileCanvas(G.current, pending ? pending.v : selV), 0, 0, 192, 192);
+  const mine = myTurn();
+  $("btnRot").disabled = !mine || (pending ? cellPlacements(pending.x, pending.y).length <= 1 : curVariants() <= 1);
+  $("btnUndo").disabled = !(mine && pending);
+  $("btnOk").disabled = !(mine && pending);
+  $("btnHint").disabled = !mine || G.current === null;
+  $("btnBack").disabled = !(G.can_undo && !busy && G.player === h);
+  $("tbRot").disabled = $("btnRot").disabled;
+  $("tbOk").title = pending ? (pending.piece !== null ? `Confirm (meeple on ${pieceLabel(pending.piece, pending.pieces)})` : "Confirm (no meeple)") : "Confirm";
+  $("btnOk").firstChild.textContent = pending ? (pending.piece !== null ? `Confirm (meeple on ${pieceLabel(pending.piece, pending.pieces)})` : "Confirm (no meeple)") : "Confirm";
+  const pb = $("pieceBtns"); pb.innerHTML = "";
+  if (mine && pending && pending.pieces.length) {
+    for (const pi of [...pending.pieces, null]) {
+      const b = document.createElement("button");
+      b.type = "button"; b.textContent = pi === null ? "None" : pieceLabel(pi, pending.pieces);
+      if (pending.piece === pi) b.className = "sel";
+      b.onclick = () => { pending.piece = pi; refresh(); };
+      if (pi !== null) { b.onmouseenter = () => { hoverPiece = pi; refreshInfo(); draw(); }; b.onmouseleave = () => { hoverPiece = null; refreshInfo(); draw(); }; }
+      pb.appendChild(b);
+    }
+  }
+  // 残りタイル
+  const rem = $("remain"); rem.innerHTML = "";
+  LIB.forEach((t, i) => {
+    const d = document.createElement("div"); if (!G.remaining[i]) d.className = "zero";
+    const c = document.createElement("canvas"); c.width = c.height = 68; c.getContext("2d").drawImage(tileCanvas(i, 0), 0, 0, 68, 68);
+    d.appendChild(c); d.appendChild(document.createTextNode("×" + G.remaining[i])); rem.appendChild(d);
+  });
+  markFits();
+  // Hint・結果
+  const res = $("result");
+  const keys = TOUCH ? "" : " (R: rotate, Enter: confirm, Esc: cancel)";
+  if (G.over) {
+    res.hidden = false; res.innerHTML = resultHtml();
+    setHint("Game over. The score breakdown is in the results section");
+  } else { res.hidden = true;
+    if (busy) setHint("The AI is thinking…");
+    else if (G.player !== h) setHint("AI's turn");
+    else if (pending) setHint(`Rotate with ⟳ or by tapping the tile. Tap a circle to pick a meeple spot, then ✓ Confirm${keys}`);
+    else setHint("Tap a green square to place the tile (you can rotate it afterwards)");
+  }
+  const cb = $("coachBox");
+  cb.hidden = !G.last_coach;
+  if (G.last_coach) cb.textContent = lastCoachText();
+  $("btnRematch").hidden = !G.over;
+  refreshInfo();
+  layoutMobile();
+  draw();
+}
+// 終局の得点内訳: Points from features completed during the game + 終局時の得点（未完成のCity・Road、Monastery、Field）
+function resultHtml() {
+  const h = G.human_seat, a = 1 - h, d = G.scores[h] - G.scores[a];
+  const E = CarcFeatures.endScores(LIB, G.board, G.end_meeples || []);
+  const rows = [
+    ["Points from features completed during the game", p => G.scores[p] - E.total[p]],
+    ["End: unfinished cities", p => E.kinds[p].C],
+    ["End: unfinished roads", p => E.kinds[p].R],
+    ["End: monasteries", p => E.kinds[p].M],
+    ["End: fields (farmers)", p => E.kinds[p].F],
+  ];
+  const tr = (label, f, cls) => `<tr${cls ? ` class="${cls}"` : ""}><td>${label}</td><td>${f(h)}</td><td>${f(a)}</td></tr>`;
+  const verdict = d > 0 ? "You win" : d < 0 ? "AI wins" : "Draw";
+  return `<div class="title">Final: ${G.scores[h]} − ${G.scores[a]} (${verdict})</div>` +
+    `<table><tr><th></th><th style="color:${PCOL[h]}">You</th><th style="color:${PCOL[a]}">AI</th></tr>` +
+    rows.map(([l, f]) => tr(l, f)).join("") + tr("Total", p => G.scores[p], "sum") + "</table>" +
+    (G.saved === false ? "" : `<div style="font-size:12px;color:var(--muted);margin-top:4px">Record saved.</div>`);
+}
+// スマホ: 盤の高さを「画面 − 操作欄（得点・引いたタイル）」にする
+function layoutMobile() {
+  const mob = matchMedia("(max-width: 760px)").matches;
+  const barh = mob ? $("scoreSec").offsetHeight + $("tileSec").offsetHeight + 30 : 0;
+  const cur = document.documentElement.style.getPropertyValue("--barh");
+  if (mob && cur !== barh + "px") {
+    document.documentElement.style.setProperty("--barh", barh + "px");
+    const r = cv.getBoundingClientRect();
+    if (cv.width !== Math.round(r.width * devicePixelRatio) || cv.height !== Math.round(r.height * devicePixelRatio)) { cv.width = r.width * devicePixelRatio; cv.height = r.height * devicePixelRatio; }
+  }
+}
+// 棋譜ログの行を押すと、そのマスを示す
+$("log").addEventListener("click", e => {
+  const d = e.target.closest("div[data-x]");
+  if (!d || !G) return;
+  const x = +d.dataset.x, y = +d.dataset.y;
+  const r = cv.getBoundingClientRect();
+  if (cellLeft(x) < 0 || cellTop(y) < 0 || cellLeft(x) + view.s > r.width || cellTop(y) + view.s > r.height)
+    { viewAnim = {from: {...view}, to: {s: view.s, ox: r.width/2 - (x + .5)*view.s, oy: r.height/2 + (y - .5)*view.s}, t0: performance.now()}; }
+  addAnim({type: "ping", x, y, dur: 1600});
+  if (matchMedia("(max-width: 760px)").matches) $("stage").scrollIntoView({behavior: "smooth"});
+});
+
+// ---------- 新規対局 ----------
+const dlg = $("dlg");
+const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 保存できなくても続ける */ } } };
+$("btnNew").onclick = () => { $("fSeed").value = Math.floor(Math.random()*1e6); dlg.showModal(); };
+$("btnRand").onclick = () => $("fSeed").value = Math.floor(Math.random()*1e6);
+$("btnCancel").onclick = () => dlg.close();
+$("newForm").addEventListener("submit", () => {
+  lastForm = {name: $("fName").value, seed: +$("fSeed").value, human_seat: +$("fSeat").value, level: $("fLevel").value, coach: $("fCoach").checked};
+  store.set("cc_name", lastForm.name); store.set("cc_level", lastForm.level); store.set("cc_coach", lastForm.coach ? "1" : "0");
+  start(lastForm);
+});
+$("btnRematch").onclick = () => start({...lastForm, human_seat: 1 - lastForm.human_seat});
+async function start(form) {
+  lastForm = form; busy = true; G = null; inflight = null; anims = []; setHint("Preparing the game… (if the AI goes first, it is choosing its first move)"); draw();
+  try { setState(await api("/api/new", form)); fitAll(false); }
+  catch (err) { alert(err.message); }
+  busy = false; refresh();
+  $("fSeat").value = String(lastForm.human_seat);
+}
+async function init() {
+  const lib = await api("/api/tiles"); LIB = lib.tiles; LEVELS = lib.levels;
+  for (const [k, v] of Object.entries(LEVELS)) { const o = document.createElement("option"); o.value = k; o.textContent = v; $("fLevel").appendChild(o); }
+  // 初めての人向けに「やさしい」と初心者モードを既定にする（前回の選択があればそれ）
+  const lv = store.get("cc_level");
+  $("fLevel").value = lv && LEVELS[lv] ? lv : (LEVELS.greedy ? "greedy" : Object.keys(LEVELS)[0]);
+  if (store.get("cc_coach") !== null) $("fCoach").checked = store.get("cc_coach") === "1";
+  $("fName").value = store.get("cc_name") || "";
+  const st = await api("/api/state");
+  if (st) { lastForm = {name: st.name, seed: st.seed, human_seat: st.human_seat, level: st.level, coach: st.coach}; setState(st); fitAll(false); }
+  else { setHint("Press “New game”"); $("btnNew").click(); }
+}
+window.addEventListener("resize", resize);
+resize(); init();
+</script>
+</body>
+</html>

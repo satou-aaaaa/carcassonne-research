@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from board_svg import tile_svg
+from i18n import to_english_page, write_pair
 from site_nav import NAV_CSS, nav_html, support_html
 
 from carcassonne.tiles import CITY, FIELD, ROAD, load_tileset
@@ -486,9 +487,15 @@ def main() -> None:
     html = build()
     if "__" in html.replace("__init__", ""):
         raise SystemExit("置き換え忘れのプレースホルダがあります")
-    out = ROOT / "docs" / "strategy.html"
-    out.write_text(html, encoding="utf-8")
-    print(f"{out} を書き出しました（{len(html) // 1024} KB）")
+    en = to_english_page(
+        html,
+        "strategy.html",
+        "strategy",
+        nav_html("strategy.html"),
+        nav_html("strategy.html", "en"),
+    )
+    write_pair("strategy.html", html, en)
+    print(f"docs/strategy.html と docs/en/strategy.html を書き出しました（{len(html) // 1024} KB）")
 
 
 if __name__ == "__main__":

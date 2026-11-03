@@ -132,6 +132,7 @@ nav.site .home { font-weight: 700; margin-right: 8px; color: var(--ink); text-de
 nav.site a.p { color: var(--muted); text-decoration: none; padding: 3px 10px; border-radius: 999px; }
 nav.site a.p:hover, nav.site a.p:focus-visible { color: var(--ink); background: var(--paper); outline: none; }
 nav.site a.p[aria-current="page"] { color: var(--paper); background: var(--field); }
+nav.site a.lang { margin-left: auto; border: 1px solid var(--line); }
 @media (pointer: coarse) { nav.site a { min-height: 44px; display: inline-flex; align-items: center; } }
 /* 共通: 見出しを語の切れ目で折り返す・開閉の見出しを押しやすく */
 h1, h2, h3 { word-break: auto-phrase; }
@@ -142,11 +143,13 @@ summary { padding-block: 6px; }
 .support a.kofi:hover, .support a.kofi:focus-visible { border-color: var(--field); }
 
 </style>
+<link rel="alternate" hreflang="ja" href="https://satou-aaaaa.github.io/carcassonne-research/ai_tips.html"><link rel="alternate" hreflang="en" href="https://satou-aaaaa.github.io/carcassonne-research/en/ai_tips.html"><link rel="alternate" hreflang="x-default" href="https://satou-aaaaa.github.io/carcassonne-research/en/ai_tips.html">
+<script>(function(){var K="site-lang",cur="ja",alt="en/ai_tips.html",s=null;try{s=localStorage.getItem(K)}catch(e){}if(!/bot|crawl|spider|slurp|lighthouse/i.test(navigator.userAgent)){var l=(navigator.languages&&navigator.languages[0])||navigator.language||'';var want=s||(/^ja\b/i.test(l)?'ja':'en');if(want!==cur){location.replace(alt+location.search+location.hash);return}}document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[data-lang]');if(a)try{localStorage.setItem(K,a.getAttribute('data-lang'))}catch(e){}})})();</script>
 </head>
 <body>
 
 <div class="wrap">
-<nav class="site" aria-label="サイト内のページ"><a class="home" href="index.html">カルカソンヌ入門</a><a class="p" href="rules.html">ルール入門</a><a class="p" href="strategy.html">戦略ガイド</a><a class="p" href="ai_tips.html" aria-current="page">強いAIのコツ</a><a class="p" href="quiz.html">次の一手クイズ</a><a class="p" href="play.html">AIと対戦</a></nav>
+<nav class="site" aria-label="サイト内のページ"><a class="home" href="index.html">カルカソンヌ入門</a><a class="p" href="rules.html">ルール入門</a><a class="p" href="strategy.html">戦略ガイド</a><a class="p" href="ai_tips.html" aria-current="page">強いAIのコツ</a><a class="p" href="quiz.html">次の一手クイズ</a><a class="p" href="play.html">AIと対戦</a><a class="p lang" href="en/ai_tips.html" hreflang="en" lang="en" data-lang="en" title="Switch to English">English</a></nav>
 <header class="hero">
   <span class="eyebrow">カルカソンヌ ・ 基本ルール ・ 2人対戦</span>
   <h1>強いAIは、<span class="accent">どこに置いているか</span></h1>
