@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carcassonne Rules Primer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+:root {
+  --bg: #f1f3ee; --paper: #ffffff; --ink: #1d2620; --muted: #5c6a60; --line: #d5dccf;
+  --field: #2f6b3a; --city: #9a6436; --red: #d64541; --blue: #2f6fd6; --board-bg: #e6e2d6;
+  --font-display: "Dela Gothic One", "Zen Kaku Gothic New", "Hiragino Sans", sans-serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141a16; --paper: #1c241f; --ink: #e6ece6; --muted: #9aa89d; --line: #2e3a32;
+    --field: #7cc48a; --city: #d9a571; --red: #f06a62; --blue: #6c9cf0; --board-bg: #2a312c; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141a16; --paper: #1c241f; --ink: #e6ece6; --muted: #9aa89d; --line: #2e3a32;
+  --field: #7cc48a; --city: #d9a571; --red: #f06a62; --blue: #6c9cf0; --board-bg: #2a312c; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.85; padding-inline: 16px; padding-block: 0 64px; }
+.wrap { max-width: 760px; margin: 0 auto; }
+header.hero { padding-block: 40px 20px; display: grid; gap: 12px; }
+.eyebrow { font-size: 13px; letter-spacing: .12em; color: var(--muted); font-weight: 700; }
+h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 6vw, 44px); line-height: 1.25; margin: 0; }
+h1 .accent { color: var(--field); }
+.lede { margin: 0; max-width: 36em; }
+section { padding-block: 28px 4px; border-top: 1px solid var(--line); margin-top: 20px; display: grid; gap: 14px; }
+h2 { font-family: var(--font-display); font-weight: 400; font-size: 22px; margin: 0; display: flex; gap: 12px; align-items: baseline; }
+h2 .no { font-family: var(--font-body); font-weight: 700; font-size: 12px; letter-spacing: .1em; color: var(--paper); background: var(--field); padding: 2px 8px; border-radius: 3px; }
+h3 { font-size: 18px; margin: 6px 0 0; }
+p { margin: 0; max-width: 38em; }
+ol.steps { margin: 0; padding-left: 1.4em; display: grid; gap: 6px; }
+figure { margin: 0; display: grid; grid-template-columns: minmax(0, 240px) minmax(0, 1fr); gap: 18px; align-items: start; }
+figure .board { border-radius: 6px; overflow: hidden; border: 1px solid var(--line); background: var(--board-bg); }
+figure .board svg { display: block; width: 100%; height: auto; }
+figcaption { font-size: 14.5px; line-height: 1.75; }
+figcaption .k { display: block; font-size: 12px; letter-spacing: .1em; color: var(--muted); font-weight: 700; }
+@media (max-width: 560px) { figure { grid-template-columns: 1fr; } figure .board { max-width: 280px; } }
+.red { color: var(--red); font-weight: 700; }
+.blue { color: var(--blue); font-weight: 700; }
+.gold { color: #b98500; font-weight: 700; }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 480px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; font-size: 15px; }
+th, td { padding: 8px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+@media (max-width: 560px) { table { min-width: 0; font-size: 14px; } th, td { padding: 8px 6px; } }
+th { font-size: 13px; color: var(--muted); font-weight: 700; }
+tbody th { color: var(--ink); font-size: 15px; white-space: nowrap; }
+tr:last-child td, tr:last-child th { border-bottom: 0; }
+.box { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 14px 18px; }
+.box ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+.next { display: flex; flex-wrap: wrap; gap: 10px; }
+.next a { display: inline-block; padding: 8px 16px; border-radius: 6px; background: var(--field); color: var(--paper); text-decoration: none; font-weight: 700; }
+.next a.sub { background: var(--paper); color: var(--ink); border: 1px solid var(--line); }
+a { color: var(--field); }
+:focus-visible { outline: 2px solid var(--field); outline-offset: 2px; }
+
+nav.site { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+nav.site .home { font-weight: 700; margin-right: 8px; color: var(--ink); text-decoration: none; }
+nav.site a.p { color: var(--muted); text-decoration: none; padding: 3px 10px; border-radius: 999px; }
+nav.site a.p:hover, nav.site a.p:focus-visible { color: var(--ink); background: var(--paper); outline: none; }
+nav.site a.p[aria-current="page"] { color: var(--paper); background: var(--field); }
+nav.site a.lang { margin-left: auto; border: 1px solid var(--line); }
+@media (pointer: coarse) { nav.site a { min-height: 44px; display: inline-flex; align-items: center; } }
+/* 共通: 見出しを語の切れ目で折り返す・開閉の見出しを押しやすく */
+h1, h2, h3 { word-break: auto-phrase; }
+summary { padding-block: 6px; }
+
+</style>
+<link rel="alternate" hreflang="ja" href="https://satou-aaaaa.github.io/carcassonne-research/rules.html"><link rel="alternate" hreflang="en" href="https://satou-aaaaa.github.io/carcassonne-research/en/rules.html"><link rel="alternate" hreflang="x-default" href="https://satou-aaaaa.github.io/carcassonne-research/en/rules.html">
+<script>(function(){var K="site-lang",cur="en",alt="../rules.html",s=null;try{s=localStorage.getItem(K)}catch(e){}if(!/bot|crawl|spider|slurp|lighthouse/i.test(navigator.userAgent)){var l=(navigator.languages&&navigator.languages[0])||navigator.language||'';var want=s||(/^ja\b/i.test(l)?'ja':'en');if(want!==cur){location.replace(alt+location.search+location.hash);return}}document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[data-lang]');if(a)try{localStorage.setItem(K,a.getAttribute('data-lang'))}catch(e){}})})();</script>
+</head>
+<body>
+<div class="wrap">
+<nav class="site" aria-label="Site pages"><a class="home" href="index.html">Carcassonne Primer</a><a class="p" href="rules.html" aria-current="page">Rules</a><a class="p" href="strategy.html">Strategy</a><a class="p" href="ai_tips.html">Lessons from the AI</a><a class="p" href="quiz.html">Next-Move Quiz</a><a class="p" href="play.html">Play the AI</a><a class="p lang" href="../rules.html" hreflang="ja" lang="ja" data-lang="ja" title="日本語に切り替え">日本語</a></nav>
+<header class="hero">
+  <span class="eyebrow">Carcassonne · Base game rules · 2–5 players</span>
+  <h1>Your first game of <span class="accent">Carcassonne</span></h1>
+  <p class="lede">Players add tiles one at a time to grow a shared map, and score with the pieces (meeples) they place on the cities and roads they build. This page explains, with diagrams, all the rules you need to play.</p>
+</header>
+
+<section id="flow">
+  <h2><span class="no">1</span>What you do on your turn</h2>
+  <ol class="steps">
+    <li><b>Draw a tile and place it.</b> Put it next to a tile already on the table so that the edges match.</li>
+    <li><b>You may place a meeple.</b> You can put one of your meeples on one city, road, monastery or field on the tile you just placed. You don't have to.</li>
+    <li><b>Score what is completed.</b> When a city, road or monastery is completed, the player with meeples on it scores, and the meeples go back to their owners.</li>
+  </ol>
+  <p>The game ends when the tiles run out. Then you score unfinished features and fields, and the player with the most points wins.</p>
+</section>
+
+<section id="place">
+  <h2><span class="no">2</span>Placing tiles</h2>
+  <figure>
+    <div class="board"><svg viewBox="0 0 128 64" xmlns="http://www.w3.org/2000/svg" role="img"><rect width="128" height="64" fill="var(--board-bg, #efe9dc)"/><rect x="0" y="0" width="64" height="64" fill="#86b96a"/><path d="M64.0,32.0 L32.0,32.0 L0.0,32.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M64.0,32.0 L32.0,32.0 L0.0,32.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><polygon points="0.0,0.0 64.0,0.0 51.2,17.9 12.8,17.9" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="0.0,0.0 64.0,0.0 51.2,17.9 12.8,17.9" fill="#c08a5a"/><rect x="0.5" y="0.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><g opacity="0.9"><rect x="64" y="0" width="64" height="64" fill="#86b96a"/><path d="M128.0,32.0 L96.0,32.0 L64.0,32.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M128.0,32.0 L96.0,32.0 L64.0,32.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><rect x="64.5" y="0.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/></g><rect x="66" y="2" width="60" height="60" fill="none" stroke="#f5b400" stroke-width="3.5" rx="3"/></svg></div>
+    <figcaption><span class="k">Example</span>The tile in the <span class="gold">yellow frame</span> was placed to the right of the start tile. Road meets road and field meets field. A city edge can only touch a city edge, and a road only a road. You may rotate the tile any way you like.</figcaption>
+  </figure>
+  <p>If you draw a tile that fits nowhere, put it back in the box unused and draw another.</p>
+</section>
+
+<section id="meeple">
+  <h2><span class="no">3</span>Placing meeples</h2>
+  <div class="box"><ul>
+    <li>Each player has 7 meeples. You can only place one <b>on the tile you just placed</b>.</li>
+    <li><b>If a connected city or road already has a meeple on it, you can't place there</b> (even if it is your own).</li>
+    <li>Two separately claimed cities may later join, leaving several meeples in one city. Then <b>the player with the most meeples scores; if tied, all tied players score in full</b>.</li>
+    <li>A meeple stays put until its feature is completed. Meeples in fields (farmers) never come back before the end.</li>
+  </ul></div>
+</section>
+
+<section id="score">
+  <h2><span class="no">4</span>Scoring</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Feature</th><th>When completed (right away)</th><th>If unfinished at the end</th></tr></thead>
+    <tbody>
+      <tr><th>City</th><td>2 per tile + 2 per shield</td><td>1 per tile + 1 per shield</td></tr>
+      <tr><th>Road</th><td>1 per tile</td><td>1 per tile</td></tr>
+      <tr><th>Monastery</th><td>9 when all 8 surrounding squares are filled</td><td>1 + 1 per filled surrounding square</td></tr>
+      <tr><th>Field (farmer)</th><td>Not scored during the game</td><td>3 per <b>completed</b> city it touches</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>City</h3>
+  <figure>
+    <div class="board"><svg viewBox="0 0 192 128" xmlns="http://www.w3.org/2000/svg" role="img"><rect width="192" height="128" fill="var(--board-bg, #efe9dc)"/><rect x="64" y="64" width="64" height="64" fill="#86b96a"/><path d="M128.0,96.0 L96.0,96.0 L64.0,96.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M128.0,96.0 L96.0,96.0 L64.0,96.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><polygon points="64.0,64.0 128.0,64.0 115.2,81.9 76.8,81.9" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="64.0,64.0 128.0,64.0 115.2,81.9 76.8,81.9" fill="#c08a5a"/><rect x="64.5" y="64.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><rect x="64" y="0" width="64" height="64" fill="#86b96a"/><polygon points="128.0,0.0 128.0,64.0 110.1,51.2 110.1,12.8" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="64.0,64.0 128.0,64.0 115.2,46.1 76.8,46.1" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="76.8,46.1 110.1,12.8 115.2,46.1 110.1,51.2" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="128.0,0.0 128.0,64.0 110.1,51.2 110.1,12.8" fill="#c08a5a"/><polygon points="64.0,64.0 128.0,64.0 115.2,46.1 76.8,46.1" fill="#c08a5a"/><polygon points="76.8,46.1 110.1,12.8 115.2,46.1 110.1,51.2" fill="#c08a5a"/><polygon points="101.7,36.7 109.7,36.7 109.7,43.2 105.7,47.2 101.7,43.2" fill="#2f5fb5" stroke="#fff" stroke-width="1"/><rect x="64.5" y="0.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><rect x="0" y="64" width="64" height="64" fill="#86b96a"/><path d="M64.0,96.0 L32.0,96.0 L0.0,96.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M64.0,96.0 L32.0,96.0 L0.0,96.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><rect x="0.5" y="64.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><g opacity="0.9"><rect x="128" y="0" width="64" height="64" fill="#86b96a"/><polygon points="128.0,0.0 128.0,64.0 145.9,51.2 145.9,12.8" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="128.0,0.0 128.0,64.0 145.9,51.2 145.9,12.8" fill="#c08a5a"/><rect x="128.5" y="0.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/></g><circle cx="105.7" cy="36.0" r="4.8" fill="#d64541" stroke="#fff" stroke-width="1.5"/><polygon points="98.4,49.4 105.7,40.4 113.1,49.4" fill="#d64541" stroke="#fff" stroke-width="1.5"/><circle cx="32.0" cy="73.4" r="4.8" fill="#2f6fd6" stroke="#fff" stroke-width="1.5"/><polygon points="24.6,86.9 32.0,77.9 39.4,86.9" fill="#2f6fd6" stroke="#fff" stroke-width="1.5"/><rect x="130" y="2" width="60" height="60" fill="none" stroke="#f5b400" stroke-width="3.5" rx="3"/></svg></div>
+    <figcaption><span class="k">Example</span><span class="red">Red</span> has a meeple in a city with a shield. Placing a city tile in the <span class="gold">yellow frame</span> closes the 3-tile city. 3 tiles × 2 + 1 shield × 2 = <b>8 points</b>, and the meeple comes back.</figcaption>
+  </figure>
+
+  <h3>Road</h3>
+  <figure>
+    <div class="board"><svg viewBox="0 0 192 128" xmlns="http://www.w3.org/2000/svg" role="img"><rect width="192" height="128" fill="var(--board-bg, #efe9dc)"/><rect x="64" y="0" width="64" height="64" fill="#86b96a"/><path d="M128.0,32.0 L96.0,32.0 L64.0,32.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M128.0,32.0 L96.0,32.0 L64.0,32.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><polygon points="64.0,0.0 128.0,0.0 115.2,17.9 76.8,17.9" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="64.0,0.0 128.0,0.0 115.2,17.9 76.8,17.9" fill="#c08a5a"/><rect x="64.5" y="0.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><rect x="0" y="0" width="64" height="64" fill="#86b96a"/><path d="M64.0,32.0 L39.0,32.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M32.0,64.0 L32.0,39.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M0.0,32.0 L25.0,32.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M64.0,32.0 L39.0,32.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><path d="M32.0,64.0 L32.0,39.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><path d="M0.0,32.0 L25.0,32.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><circle cx="32.0" cy="32.0" r="3.8" fill="#7a6a45"/><rect x="0.5" y="0.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><rect x="64" y="64" width="64" height="64" fill="#86b96a"/><path d="M128.0,96.0 L96.0,96.0 L64.0,96.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M128.0,96.0 L96.0,96.0 L64.0,96.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><rect x="64.5" y="64.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><g opacity="0.9"><rect x="128" y="0" width="64" height="64" fill="#86b96a"/><path d="M192.0,32.0 L167.0,32.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M160.0,64.0 L160.0,39.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M128.0,32.0 L153.0,32.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M192.0,32.0 L167.0,32.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><path d="M160.0,64.0 L160.0,39.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><path d="M128.0,32.0 L153.0,32.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><circle cx="160.0" cy="32.0" r="3.8" fill="#7a6a45"/><rect x="128.5" y="0.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/></g><circle cx="44.8" cy="26.2" r="4.8" fill="#d64541" stroke="#fff" stroke-width="1.5"/><polygon points="37.4,39.7 44.8,30.7 52.2,39.7" fill="#d64541" stroke="#fff" stroke-width="1.5"/><rect x="130" y="2" width="60" height="60" fill="none" stroke="#f5b400" stroke-width="3.5" rx="3"/></svg></div>
+    <figcaption><span class="k">Example</span>A road is complete when both ends stop at a crossing, monastery, city and so on. <span class="red">Red</span>'s road ends at a crossing on the left; placing another crossing in the <span class="gold">yellow frame</span> completes it. 3 tiles, <b>3 points</b>.</figcaption>
+  </figure>
+
+  <h3>Monastery</h3>
+  <figure>
+    <div class="board"><svg viewBox="0 0 192 128" xmlns="http://www.w3.org/2000/svg" role="img"><rect width="192" height="128" fill="var(--board-bg, #efe9dc)"/><rect x="64" y="0" width="64" height="64" fill="#86b96a"/><path d="M128.0,32.0 L96.0,32.0 L64.0,32.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M128.0,32.0 L96.0,32.0 L64.0,32.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><polygon points="64.0,0.0 128.0,0.0 115.2,17.9 76.8,17.9" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="64.0,0.0 128.0,0.0 115.2,17.9 76.8,17.9" fill="#c08a5a"/><rect x="64.5" y="0.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><rect x="64" y="64" width="64" height="64" fill="#86b96a"/><rect x="87.0" y="93.4" width="17.9" height="12.8" fill="#e9e1d0" stroke="#5a3a2a" stroke-width="1"/><polygon points="84.5,93.4 96.0,83.2 107.5,93.4" fill="#b8403a"/><rect x="64.5" y="64.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><rect x="128" y="0" width="64" height="64" fill="#86b96a"/><path d="M192.0,32.0 L160.0,32.0 L128.0,32.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M192.0,32.0 L160.0,32.0 L128.0,32.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><rect x="128.5" y="0.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><rect x="128" y="64" width="64" height="64" fill="#86b96a"/><path d="M192.0,96.0 L160.0,96.0 L160.0,128.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M192.0,96.0 L160.0,96.0 L160.0,128.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><rect x="128.5" y="64.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><rect x="0" y="0" width="64" height="64" fill="#86b96a"/><path d="M32.0,0.0 L32.0,32.0 L64.0,32.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M32.0,0.0 L32.0,32.0 L64.0,32.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><rect x="0.5" y="0.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><rect x="0" y="64" width="64" height="64" fill="#86b96a"/><polygon points="0.0,128.0 64.0,128.0 51.2,110.1 12.8,110.1" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="0.0,64.0 0.0,128.0 17.9,115.2 17.9,76.8" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="12.8,110.1 17.9,76.8 51.2,110.1 17.9,115.2" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="0.0,128.0 64.0,128.0 51.2,110.1 12.8,110.1" fill="#c08a5a"/><polygon points="0.0,64.0 0.0,128.0 17.9,115.2 17.9,76.8" fill="#c08a5a"/><polygon points="12.8,110.1 17.9,76.8 51.2,110.1 17.9,115.2" fill="#c08a5a"/><rect x="0.5" y="64.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><circle cx="96.0" cy="90.2" r="4.8" fill="#d64541" stroke="#fff" stroke-width="1.5"/><polygon points="88.6,103.7 96.0,94.7 103.4,103.7" fill="#d64541" stroke="#fff" stroke-width="1.5"/><rect x="66" y="66" width="60" height="60" fill="none" stroke="#f5b400" stroke-width="3.5" rx="3"/></svg></div>
+    <figcaption><span class="k">Example</span>5 of the 8 squares around <span class="red">Red</span>'s monastery (<span class="gold">yellow frame</span>) are filled. Filling all of them gives 9 points; if the game ends now, it scores 1 for the monastery + 5 squares = <b>6 points</b>.</figcaption>
+  </figure>
+
+  <h3>Field (farmer)</h3>
+  <figure>
+    <div class="board"><svg viewBox="0 0 192 128" xmlns="http://www.w3.org/2000/svg" role="img"><rect width="192" height="128" fill="var(--board-bg, #efe9dc)"/><rect x="64" y="64" width="64" height="64" fill="#86b96a"/><path d="M128.0,96.0 L96.0,96.0 L64.0,96.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M128.0,96.0 L96.0,96.0 L64.0,96.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><polygon points="64.0,64.0 128.0,64.0 115.2,81.9 76.8,81.9" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="64.0,64.0 128.0,64.0 115.2,81.9 76.8,81.9" fill="#c08a5a"/><rect x="64.5" y="64.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><rect x="64" y="0" width="64" height="64" fill="#86b96a"/><polygon points="128.0,0.0 128.0,64.0 110.1,51.2 110.1,12.8" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="64.0,64.0 128.0,64.0 115.2,46.1 76.8,46.1" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="76.8,46.1 110.1,12.8 115.2,46.1 110.1,51.2" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="128.0,0.0 128.0,64.0 110.1,51.2 110.1,12.8" fill="#c08a5a"/><polygon points="64.0,64.0 128.0,64.0 115.2,46.1 76.8,46.1" fill="#c08a5a"/><polygon points="76.8,46.1 110.1,12.8 115.2,46.1 110.1,51.2" fill="#c08a5a"/><polygon points="101.7,36.7 109.7,36.7 109.7,43.2 105.7,47.2 101.7,43.2" fill="#2f5fb5" stroke="#fff" stroke-width="1"/><rect x="64.5" y="0.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><rect x="0" y="64" width="64" height="64" fill="#86b96a"/><path d="M64.0,96.0 L32.0,96.0 L0.0,96.0" stroke="#7a6a45" stroke-width="10.9" fill="none" stroke-linejoin="round"/><path d="M64.0,96.0 L32.0,96.0 L0.0,96.0" stroke="#f3e7c3" stroke-width="7.0" fill="none" stroke-linejoin="round"/><rect x="0.5" y="64.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><rect x="128" y="0" width="64" height="64" fill="#86b96a"/><polygon points="128.0,0.0 128.0,64.0 145.9,51.2 145.9,12.8" fill="#5e3f26" stroke="#5e3f26" stroke-width="4" stroke-linejoin="round"/><polygon points="128.0,0.0 128.0,64.0 145.9,51.2 145.9,12.8" fill="#c08a5a"/><rect x="128.5" y="0.5" width="63" height="63" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1"/><circle cx="32.0" cy="73.4" r="4.8" fill="#2f6fd6" stroke="#fff" stroke-width="1.5"/><polygon points="24.6,86.9 32.0,77.9 39.4,86.9" fill="#2f6fd6" stroke="#fff" stroke-width="1.5"/><rect x="2" y="66" width="60" height="60" fill="none" stroke="#f5b400" stroke-width="3.5" rx="3"/></svg></div>
+    <figcaption><span class="k">Example</span><span class="blue">Blue</span> has a meeple in the field on the upper side of the tile in the <span class="gold">yellow frame</span> (a meeple in a field is called a farmer). This field touches the city completed a moment ago, so it scores <b>3 points</b> at the end. If the city were unfinished, it would score 0.</figcaption>
+  </figure>
+</section>
+
+<section id="end">
+  <h2><span class="no">5</span>End of the game</h2>
+  <p>The game ends once the last tile is placed and scored. For each meeple still on the board, add the "at the end" points from the table above. The player with the highest total wins.</p>
+</section>
+
+<section id="first">
+  <h2><span class="no">6</span>Tips for beginners</h2>
+  <div class="box"><ul>
+    <li><b>Building small cities and closing them</b> is the surest way to score at first.</li>
+    <li>You only have 7 meeples. Put one on <b>a long road that is slow to finish</b> and it won't come back for a while.</li>
+    <li>When in doubt, look for <b>something you can complete right now</b>. You score, and your meeple comes back.</li>
+  </ul></div>
+  <div class="next">
+    <a href="ai_tips.html">Next: lessons from a strong AI</a>
+    <a class="sub" href="quiz.html">Practise with the next-move quiz</a>
+  </div>
+</section>
+
+<section id="notes">
+  <h2>About the rules on this page</h2>
+  <p style="font-size:14.5px;color:var(--muted)">These are the current rules of the base game (72 tiles). Farmers score 3 points per completed city (older editions counted differently). The diagrams are real positions played with this project's rules engine, and the points in the text are checked against the engine's scoring (<code>scripts/build_rules_page.py</code>). The examples assume two players, but 2–5 players use the same rules.</p>
+</section>
+</div>
+</body>
+</html>

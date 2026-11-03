@@ -17,12 +17,13 @@ import json
 import re
 from pathlib import Path
 
+from i18n import to_english_page, translate, write_pair
 from site_nav import NAV_CSS, nav_html
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def line_chart(strong: dict, greedy: dict) -> str:
+def line_chart(strong: dict, greedy: dict, lang: str = "ja") -> str:
     """手持ちミープル数の推移（横軸=残りタイル枚数、左が序盤）。"""
     W, H, L, R, T, B = 640, 320, 48, 16, 16, 62
     xs = sorted((int(k) for k in strong), reverse=True)
@@ -35,7 +36,7 @@ def line_chart(strong: dict, greedy: dict) -> str:
         return T + (1 - v / 7) * (H - T - B)
 
     out = [
-        f'<svg viewBox="0 0 {W} {H}" class="chart" role="img" aria-label="手持ちミープル数の推移">'
+        f'<svg viewBox="0 0 {W} {H}" class="chart" role="img" aria-label="{TXT[lang]["supply_aria"]}">'
     ]
     for v in range(8):
         y = py(v)
@@ -47,7 +48,7 @@ def line_chart(strong: dict, greedy: dict) -> str:
             f'<text x="{x:.1f}" y="{H - B + 26}" text-anchor="middle" class="tick">{v}</text>'
         )
     out.append(
-        f'<text x="{(L + W - R) / 2}" y="{H - 6}" text-anchor="middle" class="axis">山札の残り枚数（左が序盤）</text>'
+        f'<text x="{(L + W - R) / 2}" y="{H - 6}" text-anchor="middle" class="axis">{TXT[lang]["supply_axis"]}</text>'
     )
     for data, cls in ((greedy, "s-greedy"), (strong, "s-strong")):
         pts = " ".join(
@@ -58,7 +59,10 @@ def line_chart(strong: dict, greedy: dict) -> str:
     # 凡例は右上（線は左下に寄るので重ならない。スマホで文字を大きくしても切れない）
     lx = W - R - 250
     for k, (nm, cls, tcls) in enumerate(
-        (("強いAI", "s-strong", "lbl-strong"), ("目先の点だけのAI", "s-greedy", "lbl-greedy"))
+        (
+            (TXT[lang]["strong"], "s-strong", "lbl-strong"),
+            (TXT[lang]["greedy"], "s-greedy", "lbl-greedy"),
+        )
     ):
         y = T + 14 + k * 32
         out.append(f'<line x1="{lx}" x2="{lx + 34}" y1="{y - 6}" y2="{y - 6}" class="{cls}"/>')
@@ -102,10 +106,118 @@ def farms_in_phase(s: dict, phase: str) -> float:
 
 PLAYER = ['<span class="red">赤</span>', '<span class="blue">青</span>']
 KIND = {"C": "都市", "R": "道", "M": "修道院", "F": "草原"}
+PLAYER_EN = ['<span class="red">Red</span>', '<span class="blue">Blue</span>']
+KIND_EN = {"C": "city", "R": "road", "M": "monastery", "F": "field"}
+# 図の文字（英語ページは en）
+TXT = {
+    "ja": {
+        "supply_aria": "手持ちミープル数の推移",
+        "supply_axis": "山札の残り枚数（左が序盤）",
+        "strong": "強いAI",
+        "greedy": "目先の点だけのAI",
+        "winner": "勝った側",
+        "loser": "負けた側",
+        "pt": "点",
+        "turn": "手",
+        "winner_aria": "勝った側と負けた側の、得点源ごとの平均点",
+        "life_aria": "ミープルが戻るまでの手番数",
+        "kinds": {"C": "都市", "R": "道", "M": "修道院", "F": "草原"},
+    },
+    "en": {
+        "supply_aria": "Meeples in hand over the game",
+        "supply_axis": "Tiles left in the bag (opening on the left)",
+        "strong": "Strong AI",
+        "greedy": "Greedy AI",
+        "winner": "Winner",
+        "loser": "Loser",
+        "pt": "",
+        "turn": "",
+        "winner_aria": "Average points by source for winner and loser",
+        "life_aria": "Turns until a meeple returns",
+        "kinds": {"C": "City", "R": "Road", "M": "Monastery", "F": "Field"},
+    },
+}
 
 
 def phase(left: int) -> str:
     return "序盤" if left >= 47 else "中盤" if left >= 24 else "終盤"
+
+
+def phase_en(left: int) -> str:
+    return "opening" if left >= 47 else "middle game" if left >= 24 else "end game"
+
+
+def captions_en(ex: dict) -> dict:
+    """captions の英語版（英語ページ用）。"""
+    out = {}
+    P, K = PLAYER_EN, KIND_EN
+
+    def head(e):
+        return f'<span class="k">From a real game ({phase_en(e["left"])}, {e["left"]} tiles left)</span>'
+
+    def n(k, word):
+        return f"{k} {word}" + ("" if k == 1 else "s")
+
+    if "skip" in ex:
+        e = ex["skip"]
+        out["cap_skip"] = head(e) + (
+            f"{P[e['mover']]} placed a tile but kept its {n(e['supply'][0], 'meeple')} in hand. "
+            f"The greedy AI would have placed the same tile and put a meeple on the {K[e['greedy_kind']]}. "
+            "A meeple on a feature with no clear end won't come back for a while."
+        )
+    if "farm" in ex:
+        e = ex["farm"]
+        d, o = e["cities_done"], e["cities_open"]
+        city = lambda k, adj: f"{k} {adj} {'city' if k == 1 else 'cities'}"
+        more = (
+            f" It also touches {city(o, 'unfinished')}, worth 3 more points each if completed."
+            if o
+            else ""
+        )
+        out["cap_farm"] = head(e) + (
+            f"{P[e['mover']]} placed a meeple in a field (a farmer). This field touches "
+            f"{city(d, 'completed')}, so it is already worth {3 * d} points.{more}"
+        )
+    if "merge" in ex:
+        e = ex["merge"]
+        me, op = P[e["mover"]], P[1 - e["mover"]]
+        m = e["meeples"]
+        if m[0] == m[1]:
+            tail = (
+                f"Red and Blue have {m[0]} meeple{'s' if m[0] != 1 else ''} each, so both score in full "
+                f"when it is completed. It stops {op} from keeping the city to themselves."
+            )
+        else:
+            lead = P[0 if m[0] > m[1] else 1]
+            tail = (
+                f"With {m[0]} red and {m[1]} blue meeples, only {lead}, who has more, "
+                "scores when it is completed."
+            )
+        out["cap_merge"] = head(e) + (
+            f"{me} connected its own city to {op}'s, making a city of {e['city_tiles']} tiles. {tail}"
+        )
+    if "block" in ex:
+        e = ex["block"]
+        me, op = P[e["mover"]], P[1 - e["mover"]]
+        own = " and ".join(K[k] for k in e.get("self_blocked", []))
+        cost = (
+            f" {me}'s own {own} can no longer be completed either, but stopping the opponent's city "
+            "is judged to be worth more."
+            if own
+            else ""
+        )
+        out["cap_block"] = head(e) + (
+            f"After the tile {me} placed, no remaining tile can fill the square marked ×. "
+            f"{op}'s neighbouring city can never be completed.{cost}"
+        )
+    if "monastery" in ex:
+        e = ex["monastery"]
+        out["cap_monastery"] = head(e) + (
+            f"{P[e['mover']]} filled the last empty square around its own monastery, completing it "
+            f"and scoring {e['scored'][0]} points with this move. The meeple comes back and can be used "
+            "again next turn."
+        )
+    return out
 
 
 def captions(ex: dict) -> dict:
@@ -214,39 +326,43 @@ def main() -> None:
     ex = _load("habits_examples.json")
     s, g = summ["habits_strong"], summ["habits_greedy"]
     kinds = [("C", "都市"), ("R", "道"), ("M", "修道院"), ("F", "草原")]
-    charts = {
-        "chart_supply": line_chart(s["supply_curve"], g["supply_curve"]),
-        "chart_winner": bar_pairs(
-            [
-                (
-                    ja,
-                    s["winner_points_by_kind"][k],
-                    s["loser_points_by_kind"][k],
-                    "負けた側",
-                    "勝った側",
-                )
-                for k, ja in kinds
-            ],
-            "点",
-            50,
-            "勝った側と負けた側の、得点源ごとの平均点",
-        ),
-        "chart_life": bar_pairs(
-            [
-                (
-                    ja,
-                    s["meeple_life"][k]["turns"],
-                    g["meeple_life"][k]["turns"],
-                    "目先の点だけのAI",
-                    "強いAI",
-                )
-                for k, ja in kinds
-            ],
-            "手",
-            32,
-            "ミープルが戻るまでの手番数",
-        ),
-    }
+
+    def charts(lang: str) -> dict:
+        tx = TXT[lang]
+        return {
+            "chart_supply": line_chart(s["supply_curve"], g["supply_curve"], lang),
+            "chart_winner": bar_pairs(
+                [
+                    (
+                        tx["kinds"][k],
+                        s["winner_points_by_kind"][k],
+                        s["loser_points_by_kind"][k],
+                        tx["loser"],
+                        tx["winner"],
+                    )
+                    for k, _ in kinds
+                ],
+                tx["pt"],
+                50,
+                tx["winner_aria"],
+            ),
+            "chart_life": bar_pairs(
+                [
+                    (
+                        tx["kinds"][k],
+                        s["meeple_life"][k]["turns"],
+                        g["meeple_life"][k]["turns"],
+                        tx["greedy"],
+                        tx["strong"],
+                    )
+                    for k, _ in kinds
+                ],
+                tx["turn"],
+                32,
+                tx["life_aria"],
+            ),
+        }
+
     pct = lambda v: f"{v * 100:.0f}"
     lead = {k: s["winner_points_by_kind"][k] - s["loser_points_by_kind"][k] for k, _ in kinds}
     check_claims(s, g, lead)
@@ -306,22 +422,37 @@ def main() -> None:
     }
     for k, v in ex.items():
         nums[f"svg_{k}"] = v["svg"]
-    nums.update(captions(ex))
-    nums.update(charts)
-    nums["site_nav"] = nav_html("ai_tips.html")
     nums["site_nav_css"] = NAV_CSS
+    nums_en = {
+        **nums,
+        **captions_en(ex),
+        **charts("en"),
+        "site_nav": "__NAV__",
+        "block_ratio": f"{blk_s / blk_g:.1f}" if blk_g else "many",
+        "ai_name": ai.get("name", "the strongest AI setting"),
+        "ai_when": f", adopted {ai['date']}" if ai.get("date") else "",
+    }
+    nums.update(captions(ex))
+    nums.update(charts("ja"))
+    nums["site_nav"] = nav_html("ai_tips.html")
     tpl = (ROOT / "web" / "ai_tips_template.html").read_text(encoding="utf-8")
 
-    def sub(m):
-        key = m.group(1)
-        if key not in nums:
-            raise SystemExit(f"テンプレートの未定義キー: {key}")
-        return str(nums[key])
+    def fill(text: str, values: dict) -> str:
+        def sub(m):
+            key = m.group(1)
+            if key not in values:
+                raise SystemExit(f"テンプレートの未定義キー: {key}")
+            return str(values[key])
 
-    html = re.sub(r"\{\{(\w+)\}\}", sub, tpl)
-    out = ROOT / "docs" / "ai_tips.html"
-    out.write_text(html, encoding="utf-8")
-    print(f"{out} を書き出しました（{len(html) // 1024} KB）")
+        return re.sub(r"\{\{(\w+)\}\}", sub, text)
+
+    html = fill(tpl, nums)
+    # 英語: テンプレートの文を対訳表で訳してから、英語の数値・説明文を入れる
+    tpl_en = translate(tpl.replace('<html lang="ja">', '<html lang="en">', 1), "ai_tips")
+    nav = nav_html("ai_tips.html", "en")
+    html_en = to_english_page(fill(tpl_en, nums_en).replace("__NAV__", nav), "ai_tips.html", "none")
+    write_pair("ai_tips.html", html, html_en)
+    print(f"docs/ai_tips.html と docs/en/ai_tips.html を書き出しました（{len(html) // 1024} KB）")
 
 
 if __name__ == "__main__":

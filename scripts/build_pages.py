@@ -3,7 +3,7 @@
     py scripts/build_pages.py           # 作り直す
     py scripts/build_pages.py --check   # 作り直した結果がコミット済みの docs/ と同じか確かめる（CI用）
 
-docs/index.html は手書きなので対象外。
+docs/index.html は手書き（英語版 docs/en/index.html は build_index_en.py が作る）。
 """
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ BUILDERS = [
     "build_puzzles.py",
     "build_tips_page.py",
     "build_play_page.py",
+    "build_index_en.py",  # 手書きの docs/index.html から英語版を作る
 ]
 
 

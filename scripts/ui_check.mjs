@@ -15,6 +15,8 @@
 //   - ボタン・入力欄・画像に名前（文字・aria-label・alt・label）がある
 //   - 本文の文字が 12px 未満でない、viewport の指定がある
 //   - 対戦ページは「新しい対局」から1手置くところまで動かす
+//   - 英語ページ（docs/en/）も点検する。日本語ページは ja-JP、英語ページは en-US のブラウザで開く
+//   - 言語の自動切り替え: en-US のブラウザでトップを開くと英語版へ、ja-JP で英語版を開くと日本語版へ移る
 
 import http from "node:http";
 import fs from "node:fs";
@@ -201,7 +203,7 @@ async function exercisePlay(page) {
   if (!(await page.locator("#btnOk:not([disabled])").count())) return false;
   await page.click("#btnOk");
   // 駒を置くかの選択が出たら「置かない」
-  const none = page.locator("#pieceBtns button", { hasText: "置かない" });
+  const none = page.locator("#pieceBtns button", { hasText: /^(置かない|None)$/ });
   if (await none.count()) await none.first().click();
   if (await page.locator("#btnOk:not([disabled])").count()) await page.click("#btnOk");
   // AI の返し手を待つ（自分の番に戻り、置ける場所が出るまで）
@@ -217,7 +219,10 @@ async function main() {
   const only = args.filter((a) => a.endsWith(".html"));
   const pages = only.length
     ? only
-    : fs.readdirSync(DOCS).filter((f) => f.endsWith(".html")).sort();
+    : [
+        ...fs.readdirSync(DOCS).filter((f) => f.endsWith(".html")).sort(),
+        ...fs.readdirSync(path.join(DOCS, "en")).filter((f) => f.endsWith(".html")).sort().map((f) => "en/" + f),
+      ];
 
   const { chromium } = loadPlaywright();
   if (args.includes("--probe")) {
@@ -231,15 +236,46 @@ async function main() {
   const base = `http://127.0.0.1:${server.address().port}/`;
   let failed = 0;
 
+  // 言語の自動切り替え（初めて来た人。選んだ言語は localStorage に覚える）
+  for (const [locale, from, to] of [
+    ["en-US", "", "en/index.html"],
+    ["en-US", "rules.html", "en/rules.html"],
+    ["ja-JP", "en/quiz.html", "quiz.html"],
+    ["ja-JP", "index.html", "index.html"],
+    ["fr-FR", "strategy.html", "en/strategy.html"],
+  ]) {
+    const ctx = await browser.newContext({ locale });
+    const page = await ctx.newPage();
+    await page.goto(base + from, { waitUntil: "load" });
+    await page.waitForLoadState("load");
+    const got = page.url().replace(base, "");
+    const ok = got === to;
+    console.log(`${ok ? "✓" : "✗"} 言語の自動切り替え ${locale} ${from || "/"} → ${got || "/"}`);
+    if (!ok) failed++;
+    if (ok && locale === "en-US" && from === "") {
+      // 「日本語」を押すと日本語版に移り、以後は英語版に移されない
+      await page.click('nav.site a[data-lang="ja"]');
+      await page.waitForLoadState("load");
+      await page.goto(base + "rules.html", { waitUntil: "load" });
+      const stay = page.url().replace(base, "") === "rules.html";
+      console.log(`${stay ? "✓" : "✗"} 選んだ言語（日本語）を覚える`);
+      if (!stay) failed++;
+    }
+    await ctx.close();
+  }
+
   for (const vp of VIEWPORTS) {
-    const ctx = await browser.newContext({
-      viewport: { width: vp.width, height: vp.height },
-      isMobile: vp.isMobile,
-      hasTouch: vp.hasTouch,
-      deviceScaleFactor: 1,
-      locale: "ja-JP",
-    });
+    const ctxs = {};
+    const ctxFor = async (locale) =>
+      (ctxs[locale] ||= await browser.newContext({
+        viewport: { width: vp.width, height: vp.height },
+        isMobile: vp.isMobile,
+        hasTouch: vp.hasTouch,
+        deviceScaleFactor: 1,
+        locale,
+      }));
     for (const file of pages) {
+      const ctx = await ctxFor(file.startsWith("en/") ? "en-US" : "ja-JP");
       const page = await ctx.newPage();
       const problems = [];
       page.on("console", (m) => {
@@ -254,15 +290,16 @@ async function main() {
       await page.waitForTimeout(300);
       let res = await page.evaluate(inspect, vp.isMobile);
       if (shotDir)
-        await page.screenshot({ path: path.join(shotDir, `${file.replace(".html", "")}_${vp.name}.png`), fullPage: true });
-      if (file === "play.html") {
+        await page.screenshot({ path: path.join(shotDir, `${file.replace(".html", "").replace("/", "_")}_${vp.name}.png`), fullPage: true });
+      if (page.url() !== base + file) problems.push(`別のページに移された: ${page.url().replace(base, "")}`);
+      if (file.endsWith("play.html")) {
         try {
           const placed = await exercisePlay(page);
           if (!placed) problems.push("対戦ページ: 最初の1枚を置ける場所が見つからない");
           const r2 = await page.evaluate(inspect, vp.isMobile);
           res = { errors: [...res.errors, ...r2.errors], warns: [...res.warns, ...r2.warns] };
           if (shotDir)
-            await page.screenshot({ path: path.join(shotDir, `play_ingame_${vp.name}.png`), fullPage: true });
+            await page.screenshot({ path: path.join(shotDir, `${file.replace("play.html", "").replace("/", "_")}play_ingame_${vp.name}.png`), fullPage: true });
         } catch (e) {
           problems.push(`対戦ページの操作に失敗: ${String(e).slice(0, 160)}`);
         }
@@ -276,7 +313,7 @@ async function main() {
       failed += errs.length ? 1 : 0;
       await page.close();
     }
-    await ctx.close();
+    for (const c of Object.values(ctxs)) await c.close();
   }
   await browser.close();
   server.close();

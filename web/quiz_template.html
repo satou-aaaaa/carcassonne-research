@@ -363,7 +363,7 @@ function render() {
   document.documentElement.style.setProperty("--op", seatColor(op));
   const colorJa = p => p === 0 ? "赤" : "青";
   card.innerHTML = `
-    <div class="eyebrow">${P.level === "入門" ? '<span class="lvl easy">入門</span>' : '<span class="lvl">実戦</span>'}問題 ${idx + 1} / ${PUZ.length} ・ 第${P.turn}手 ・ 山札の残り ${P.deck_left}枚</div>
+    <div class="eyebrow">${P.level === "intro" ? '<span class="lvl easy">入門</span>' : '<span class="lvl">実戦</span>'}問題 ${idx + 1} / ${PUZ.length} ・ 第${P.turn}手 ・ 山札の残り ${P.deck_left}枚</div>
     <h2>${P.title}</h2>
     <p class="prompt">${P.prompt} <b>AIならどの手を選ぶでしょう？</b></p>
     <div class="situ">
@@ -448,7 +448,7 @@ function renderProgress() {
     b.setAttribute("aria-label", `問題${i + 1}`);
     const a = answers[p.id];
     if (a !== undefined) b.className = a === p.best ? "ok" : "ng";
-    if (p.level === "入門") b.classList.add("easy");
+    if (p.level === "intro") b.classList.add("easy");
     if (i === idx) b.classList.add("cur");
     b.onclick = () => go(i); nav.appendChild(b);
   });
@@ -479,7 +479,7 @@ document.addEventListener("keydown", ev => {
   } else return;
   ev.preventDefault();
 });
-{ const ne = PUZ.filter(p => p.level === "入門").length;
+{ const ne = PUZ.filter(p => p.level === "intro").length;
   if (ne) $("levels").textContent = ` 1〜${ne}問目は入門編（点線の番号）、そのあとは実戦編です。`; }
 go(Math.max(0, PUZ.findIndex(p => answers[p.id] === undefined)));
 </script>

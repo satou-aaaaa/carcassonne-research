@@ -829,6 +829,22 @@
   "checked_by": {
    "name": "gen912",
    "date": "2026-11-03"
+  },
+  "en": {
+   "title": "Close the city or the road?",
+   "prompt": "You are Blue. You drew a tile with a city edge and a crossing. This tile can complete either your city or your road.",
+   "explain": [
+    "The answer is to close the city where you have two meeples. Including the tile you place, it becomes an 8-tile city with 2 shields, worth (8 + 2) × 2 = 20 points the moment it is completed. Both meeples come back too.",
+    "The other three moves place the tile on the same square in different rotations. Each closes the 3-tile road at 4 tiles, for 4 points.",
+    "Completing the city also gives the farmer in the field touching it (Red, here) 3 points at the end. Even after subtracting that, closing the city is far better."
+   ],
+   "lesson": "When you can complete more than one thing, compare the points first. A completed city is 2 per tile (and 2 per shield); a road is 1 per tile.",
+   "notes": [
+    "The 8-tile city is completed for 20 points. Both meeples come back.",
+    "The road is completed for 4 points. The big city stays unfinished.",
+    "The road is completed for 4 points. The big city stays unfinished.",
+    "The road is completed for 4 points. The big city stays unfinished."
+   ]
   }
  },
  {
@@ -1206,6 +1222,22 @@
   "checked_by": {
    "name": "gen912",
    "date": "2026-11-03"
+  },
+  "en": {
+   "title": "A city nobody owns",
+   "prompt": "You are Red. On the board is a small piece of city that nobody has claimed yet.",
+   "explain": [
+    "Capping that city with the tile you drew completes a 2-tile city. Put a meeple on the city part of your tile and you score 4 points on the spot.",
+    "A meeple in a completed city comes straight back, so using it costs nothing. You could place the tile the same way and put a farmer in the field instead, but a farmer doesn't come back until the game ends.",
+    "When an unclaimed city is one tile from completion, the basic move is to put your meeple on it and just take the points."
+   ],
+   "lesson": "Put a meeple on a city or road as you complete it: you score and the meeple comes straight back. The points are essentially free.",
+   "notes": [
+    "The small city is completed for 4 points. The meeple comes straight back.",
+    "A farmer in the field. Worth 3 points for now, and the meeple never comes back.",
+    "Starts a new city. It still needs more tiles to complete.",
+    "Just places the tile. No points."
+   ]
   }
  },
  {
@@ -1526,6 +1558,22 @@
   "checked_by": {
    "name": "gen912",
    "date": "2026-11-03"
+  },
+  "en": {
+   "title": "After closing the city, one more trick",
+   "prompt": "You are Red, early in the game. The city tile you drew can close your one-tile city.",
+   "explain": [
+    "The tile you drew caps your one-tile city. Completing it scores 4 points, and the city meeple comes back.",
+    "The answer is to also put a farmer in the field on the same tile. That field already touches another completed city, so with the one you close this turn it touches two. At 3 points per completed city at the end, that's already worth 6 points.",
+    "It's still early, so more completed cities may join this field later. Starting a new city isn't bad either, but the AI values the farmer highly."
+   ],
+   "lesson": "A field touching two or more completed cities is worth a farmer, even early in the game.",
+   "notes": [
+    "The city is completed for 4 points, and the farmer is worth 6 more.",
+    "The city is completed for 4 points. No farmer.",
+    "Joins an unclaimed city and grows it to 3 tiles. Completion is still a way off.",
+    "Joins an unclaimed city and grows it to 3 tiles. Completion is still a way off."
+   ]
   }
  },
  {
@@ -2477,6 +2525,21 @@
   "checked_by": {
    "name": "gen912",
    "date": "2026-11-03"
+  },
+  "en": {
+   "title": "Where to build the monastery?",
+   "prompt": "You are Blue, late in the game. You drew a monastery with a road. You have 2 meeples in hand.",
+   "explain": [
+    "A monastery is completed when all 8 surrounding squares are filled, scoring 9 points. If unfinished at the end, it scores 1 + the number of surrounding tiles.",
+    "At the correct spot, 7 of the surrounding squares are already filled, so the monk is worth 8 points as soon as it is placed, and one more tile completes it. The other candidate has only 4 neighbours filled, and this late in the game it probably won't fill up.",
+    "Placing it here also connects the field with your farmer to the field with Red's farmer, making the farmers 1 vs 1. With a tie both players score in full, so you also get the 6-point field."
+   ],
+   "lesson": "Build monasteries where the surroundings are already filled. The monk is then almost sure to score.",
+   "notes": [
+    "With a monk. Worth 8 points now, and one more tile completes it (9).",
+    "Same spot, but no monk. You only gain the tied field.",
+    "A spot with only 4 neighbours filled. Worth 5 points for now."
+   ]
   }
  },
  {
@@ -3074,6 +3137,22 @@
   "checked_by": {
    "name": "gen912",
    "date": "2026-11-03"
+  },
+  "en": {
+   "title": "One meeple left",
+   "prompt": "You are Blue with one meeple left in hand. You drew a tile with a city on just one edge.",
+   "explain": [
+    "Starting a new city is tempting, but the answer is to place no meeple and close your 3-tile city.",
+    "Including the tile you place, it becomes a 4-tile city with 2 shields: (4 + 2) × 2 = 12 points. The meeple in the city comes back too, so you'll have 2 in hand.",
+    "The other moves use your last meeple to start a new city. That's worth only 1 point for now, and the meeple is stuck until the city is completed."
+   ],
+   "lesson": "When you're short of meeples, get them back by completing something. Points and meeples come back together.",
+   "notes": [
+    "The city is completed for 12 points, and the meeple comes back. Red's farmer gets 3, but it's still worth it.",
+    "Starts a new city with your last meeple. Worth 1 point for now.",
+    "Starts a new city with your last meeple. Worth 1 point for now.",
+    "Starts a new city with your last meeple. Worth 1 point for now."
+   ]
   }
  },
  {
@@ -3818,6 +3897,21 @@
   "checked_by": {
    "name": "gen912",
    "date": "2026-11-03"
+  },
+  "en": {
+   "title": "Using a monastery with a road",
+   "prompt": "You are Red. You drew a monastery with a road. Your road has grown to 7 tiles. You have 1 meeple in hand.",
+   "explain": [
+    "On the correct square, the monastery's road caps the end of your 7-tile road, completing an 8-tile road for 8 points.",
+    "At the same time you can put a monk on the monastery. 7 squares around this spot are filled, so it's worth 8 points. Even though you use your last meeple, the road meeple comes back, so you'll still have a meeple next turn.",
+    "You could place on the neighbouring square and take only the monastery, but the road would stay unfinished. Look for spots where one tile gains you two things."
+   ],
+   "lesson": "A spot where one tile both completes something and lets you place a new meeple is especially strong.",
+   "notes": [
+    "The road is completed for 8 points, and the monk is worth 8 more.",
+    "The road is completed for 8 points. The monastery is left empty.",
+    "The monastery is worth 8 points, but the road stays unfinished."
+   ]
   }
  },
  {
@@ -4726,6 +4820,22 @@
   "checked_by": {
    "name": "gen912",
    "date": "2026-11-03"
+  },
+  "en": {
+   "title": "Where to put your last meeple",
+   "prompt": "You are Red. Only a few tiles are left and you have 1 meeple in hand. You drew a straight road.",
+   "explain": [
+    "If you place a meeple this late, choose a spot almost sure to score before the game ends.",
+    "The answer is a farmer in the field beside the road you place. That field touches two completed cities, so it scores 6 points at the end. The cities are already completed, so those points are very unlikely to shrink.",
+    "A meeple on the road is worth 3 points for now, but the road can still grow, so it depends on the remaining tiles."
+   ],
+   "lesson": "Late in the game, put your last meeple in a field touching completed cities rather than on roads or cities with little room to grow.",
+   "notes": [
+    "A farmer worth 6 points (2 completed cities).",
+    "A meeple on the road. Worth 3 points for now.",
+    "Just places the tile elsewhere. No change in points.",
+    "A meeple on a road elsewhere. Worth 2 points for now."
+   ]
   }
  },
  {
@@ -5317,6 +5427,22 @@
   "checked_by": {
    "name": "gen912",
    "date": "2026-11-03"
+  },
+  "en": {
+   "title": "What you can do without meeples",
+   "prompt": "You are Blue with no meeples in hand, so this time you only choose where to place the tile. Meeples lying on their side are farmers.",
+   "explain": [
+    "Look at the fields on the board. One big field has one red farmer and one of yours. It's a tie right now, so both of you would score 9 points.",
+    "Placing a curved road on the correct square connects that big field with another field that has your farmer. The farmers become you 2 : Red 1, and the 9-point field is yours alone. Red's projected score drops by 9, and your road grows too.",
+    "Even with no meeples in hand, where you place a tile can change the value of the meeples on the board."
+   ],
+   "lesson": "Connecting fields changes the farmer majority. In a tied field, join another field to take the majority.",
+   "notes": [
+    "The fields connect; farmers 2 vs 1 give you the 9-point field alone.",
+    "Extends a road by one tile and fills one square around a monastery.",
+    "Extends a road by one tile and fills one square around a monastery.",
+    "Only fills one square around a monastery."
+   ]
   }
  },
  {
@@ -6326,6 +6452,21 @@
   "checked_by": {
    "name": "gen912",
    "date": "2026-11-03"
+  },
+  "en": {
+   "title": "Losing the big field",
+   "prompt": "You are Blue, late in the game. You drew a monastery without a road. You have 1 meeple in hand.",
+   "explain": [
+    "The big field has 3 red farmers and 2 of yours. As it stands, its points go to Red alone.",
+    "Placing the monastery on the correct square connects another field with your farmer to the big field through the monastery tile's field. The farmers become a 3 vs 3 tie, so you also get the big field's 30 points.",
+    "Also put a monk on the monastery. 6 squares around it are filled, so it's worth 7 points. In the same spot without a monk, those 7 points disappear entirely."
+   ],
+   "lesson": "When you're losing a field, connect a field with your own farmer to tie it. With a tie, both players score in full.",
+   "notes": [
+    "The big field becomes a 3 vs 3 tie, and the monk is worth 7 points.",
+    "The big field becomes a tie, but the monastery is left empty.",
+    "The monastery is worth 8 points, but the big field stays Red's."
+   ]
   }
  },
  {
@@ -7384,6 +7525,22 @@
   "checked_by": {
    "name": "gen912",
    "date": "2026-11-03"
+  },
+  "en": {
+   "title": "No meeples, late in the game",
+   "prompt": "You are Red with only a few turns left and no meeples in hand. You drew a monastery without a road.",
+   "explain": [
+    "When no move adds to your own score, look for one that reduces your opponent's.",
+    "Blue has the majority of farmers in a big field (21 points) and also has a farmer in another field (9 points). Placing the monastery on the correct square joins those two fields into one. A field only scores once, so Blue's projected score drops by 9.",
+    "It also fills a square around Blue's monastery next to it, giving Blue 1 point, but overall you take 8 points off Blue. The other moves don't change anyone's points."
+   ],
+   "lesson": "Connecting fields that hold your opponent's farmers can reduce their score. It works well late in the game when you have no meeples.",
+   "notes": [
+    "Blue's two fields become one, and Blue's projected score drops by 8.",
+    "Just places the tile. No change in points.",
+    "Just places the tile. No change in points.",
+    "Just places the tile. No change in points."
+   ]
   }
  },
  {
@@ -7982,6 +8139,22 @@
   "checked_by": {
    "name": "gen912",
    "date": "2026-11-03"
+  },
+  "en": {
+   "title": "A city you can complete right now",
+   "prompt": "You are Blue. You drew a tile with a city on just one edge. To the left is a city with a shield and your meeple, one tile from closing.",
+   "explain": [
+    "The answer is to close the city on the left. Including the tile you place, a 4-tile city with 1 shield is completed, scoring (4 + 1) × 2 = 10 points at once.",
+    "You had no meeples in hand, but the meeple in the completed city comes back, so you can place again from your next turn.",
+    "The other moves only grow a city by one tile and score nothing this turn."
+   ],
+   "lesson": "First, look for something you can complete right now. You score, and your meeple comes back too.",
+   "notes": [
+    "The 4-tile city with 1 shield is completed for 10 points. The meeple comes back.",
+    "Only grows a city by one tile. 0 points this turn.",
+    "Only grows a city by one tile. 0 points this turn.",
+    "Only grows a city by one tile. 0 points this turn."
+   ]
   }
  },
  {
@@ -8618,6 +8791,22 @@
   "checked_by": {
    "name": "gen912",
    "date": "2026-11-03"
+  },
+  "en": {
+   "title": "When you have no meeples",
+   "prompt": "You are Blue. You drew a tile with a city edge and a three-way junction. Neither you nor your opponent has any meeples in hand.",
+   "explain": [
+    "The answer is to close the city with a shield where your meeple is. The 3-tile city with 1 shield is completed for (3 + 1) × 2 = 8 points, and one meeple comes back.",
+    "With no meeples you can't start new cities or roads. Completing something to get one back is the quickest fix.",
+    "Placing at the end of your opponent's road completes Red's road and gives them 3 points."
+   ],
+   "lesson": "When you have no meeples in hand, complete a feature with your meeple on it to get one back.",
+   "notes": [
+    "The 3-tile city with 1 shield is completed for 8 points. One meeple comes back.",
+    "Only completes a short road nobody owns. 0 points.",
+    "Completes your opponent's road, giving them 3 points.",
+    "Completes nothing. 0 points this turn."
+   ]
   }
  },
  {
@@ -9132,6 +9321,22 @@
   "checked_by": {
    "name": "gen912",
    "date": "2026-11-03"
+  },
+  "en": {
+   "title": "Complete the monastery or the city?",
+   "prompt": "You are Blue. You drew a tile with a city edge and a curved road. 7 of the 8 squares around your monastery are filled, and your small city can also be closed with one more tile.",
+   "explain": [
+    "The answer is to fill the last square around the monastery. The monastery is completed for 9 points, and the meeple comes back.",
+    "Closing the small city also scores, but it's a 2-tile city with no shield, so 2 × 2 = 4 points. The monastery's 9 points are more.",
+    "This move also leaves just one empty square around your other monastery right below it."
+   ],
+   "lesson": "When you can complete two things, compare the points. A completed monastery is worth 9.",
+   "notes": [
+    "The monastery is completed for 9 points. The meeple comes back.",
+    "The 2-tile city is completed for 4 points.",
+    "Only grows a city. 0 points this turn.",
+    "Only grows a road. 0 points this turn."
+   ]
   }
  }
 ]
