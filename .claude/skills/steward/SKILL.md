@@ -30,6 +30,7 @@ description: このリポジトリでPRを作る・直す・CIを通す・マー
   入れてよいのは生成物だけ（`AUTO_PATHS`）。
 - 人が書くコミットの題・本文には、CI を飛ばす印（`[skip ci]` など）を書かない。書くとその push・PR の CI が全部動かなくなる。
 - CI から gh を呼ぶときは `source scripts/gh_retry.sh` して `ghr gh ...`（5xx をやり直す）。Issue を作るのは `gh_issue_create_once`。
+- selfplay・AI content に gh を呼ぶ手順を足したら、`tests/test_workflow_rehearsal.py` の REHEARSED に足し、にせものの gh（本物の上限・1回目は 504）で通しで動かす。本番でしか動かない手順は、ここで動かさないと数時間後に初めて落ちる（#92・#110・#118）。ワークフローは CI の actionlint も見る。
 - コツ集の言い切りが新しい集計と合わないと `data/tips_blocked.json` と Issue ができる。直し方は Issue に書いてある。
 
 ## マージ
