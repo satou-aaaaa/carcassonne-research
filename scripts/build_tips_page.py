@@ -17,7 +17,7 @@ import json
 import re
 from pathlib import Path
 
-from site_nav import NAV_CSS, nav_html
+from site_nav import NAV_CSS, nav_html, support_html
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -310,6 +310,7 @@ def main() -> None:
     nums.update(charts)
     nums["site_nav"] = nav_html("ai_tips.html")
     nums["site_nav_css"] = NAV_CSS
+    nums["site_support"] = support_html()
     tpl = (ROOT / "web" / "ai_tips_template.html").read_text(encoding="utf-8")
 
     def sub(m):

@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from board_svg import board_svg
-from site_nav import NAV_CSS, nav_html
+from site_nav import NAV_CSS, nav_html, support_html
 
 from carcassonne.state import Move, State
 
@@ -255,6 +255,7 @@ __NAV__
   <h2>このページのルールについて</h2>
   <p style="font-size:14.5px;color:var(--muted)">基本セット（72枚）の現行ルールです。農民は完成した都市1つにつき3点で数えます（古い版には別の数え方があります）。図はこのプロジェクトのルールエンジンで実際に手を進めた局面で、本文の点数もエンジンの得点計算で確かめています（<code>scripts/build_rules_page.py</code>）。2人対戦で説明していますが、2〜5人で同じルールで遊べます。</p>
 </section>
+__SUPPORT__
 </div>
 </body>
 </html>
@@ -263,6 +264,7 @@ __NAV__
 
 def main() -> None:
     html = PAGE.replace("__NAV_CSS__", NAV_CSS).replace("__NAV__", nav_html("rules.html"))
+    html = html.replace("__SUPPORT__", support_html())
     for k, svg in figures().items():
         html = html.replace(f"__FIG_{k}__", svg)
     if "__" in html.replace("__init__", ""):
