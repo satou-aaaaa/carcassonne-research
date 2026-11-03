@@ -43,6 +43,10 @@ nav.site a.p:hover, nav.site a.p:focus-visible { color: var(--ink); background: 
 nav.site a.p[aria-current="page"] { color: var(--paper); background: var(--field); }
 @media (pointer: coarse) { nav.site a { min-height: 44px; display: inline-flex; align-items: center; } }
 h1, h2, h3 { word-break: auto-phrase; }
+/* 共通: ページ下の支援リンク（Ko-fi）。目立ちすぎないよう枠線だけのボタンにする */
+.support { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.support a.kofi { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); text-decoration: none; font-weight: 600; }
+.support a.kofi:hover, .support a.kofi:focus-visible { border-color: var(--field); }
 
 </style>
 </head>
@@ -62,6 +66,7 @@ h1, h2, h3 { word-break: auto-phrase; }
 </ol>
 <p class="more">おすすめの進め方: ルール入門で遊び方を覚えたら、戦略ガイドの「まず覚える5つ」を読み、クイズの入門編を解いてから、AIと対戦（初心者モード）で損した手を振り返ってください。慣れてきたら、強いAIのコツとクイズの実戦編へ。</p>
 <p class="more">AIとの対戦はインストール不要で、AIはお使いのブラウザの中で考えます（最強設定は1手に数秒かかることがあります）。ルールは基本セット（72枚）の現行ルールです。</p>
+<div class="support">このサイトが役に立ったら、作者を応援できます。<a class="kofi" href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>Ko-fiで応援する</a></div>
 </div>
 </body>
 </html>

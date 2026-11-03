@@ -71,6 +71,10 @@ nav.site a.p[aria-current="page"] { color: var(--paper); background: var(--field
 /* 共通: 見出しを語の切れ目で折り返す・開閉の見出しを押しやすく */
 h1, h2, h3 { word-break: auto-phrase; }
 summary { padding-block: 6px; }
+/* 共通: ページ下の支援リンク（Ko-fi）。目立ちすぎないよう枠線だけのボタンにする */
+.support { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.support a.kofi { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); text-decoration: none; font-weight: 600; }
+.support a.kofi:hover, .support a.kofi:focus-visible { border-color: var(--field); }
 
 </style>
 </head>
@@ -171,6 +175,7 @@ summary { padding-block: 6px; }
   <h2>このページのルールについて</h2>
   <p style="font-size:14.5px;color:var(--muted)">基本セット（72枚）の現行ルールです。農民は完成した都市1つにつき3点で数えます（古い版には別の数え方があります）。図はこのプロジェクトのルールエンジンで実際に手を進めた局面で、本文の点数もエンジンの得点計算で確かめています（<code>scripts/build_rules_page.py</code>）。2人対戦で説明していますが、2〜5人で同じルールで遊べます。</p>
 </section>
+<div class="support">このサイトが役に立ったら、作者を応援できます。<a class="kofi" href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>Ko-fiで応援する</a></div>
 </div>
 </body>
 </html>
