@@ -198,6 +198,7 @@
 </dialog>
 
 <script src="play_features.js"></script>
+<script src="tile_art.js"></script>
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
@@ -279,44 +280,10 @@ function anchors(t, v) {
 function tileCanvas(t, v) {
   const key = t + ":" + v;
   if (cache.has(key)) return cache.get(key);
-  const S = 128, c = document.createElement("canvas"); c.width = c.height = S;
-  const g = c.getContext("2d"), vr = LIB[t].variants[v];
-  g.fillStyle = "#86b96a"; g.fillRect(0, 0, S, S);
-  const pt = q => [q[0]*S, q[1]*S];
-  const path = pts => { g.beginPath(); pts.forEach((q, i) => { const [x, y] = pt(q); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.closePath(); };
-  const roads = vr.pieces.filter(p => p.kind === "R");
-  // 2辺以上の道は 端→中心→端 の折れ線にする
-  const fixedRoads = (w, col) => {
-    g.strokeStyle = col; g.lineWidth = w; g.lineCap = "butt"; g.lineJoin = "round";
-    for (const r of roads) {
-      g.beginPath();
-      if (r.sides.length >= 2) {
-        const a = pt(EM[r.sides[0]]), b = pt(EM[r.sides[1]]), m = pt([.5, .5]);
-        g.moveTo(a[0], a[1]); g.lineTo(m[0], m[1]); g.lineTo(b[0], b[1]);
-      } else {
-        const a = pt(EM[r.sides[0]]), f = roads.length >= 3 ? .78 : 1;
-        g.moveTo(a[0], a[1]); g.lineTo(a[0] + (S/2 - a[0])*f, a[1] + (S/2 - a[1])*f);
-      }
-      g.stroke();
-    }
-  };
-  fixedRoads(S*.17, "#7a6a45"); fixedRoads(S*.11, "#f3e7c3");
-  if (roads.length >= 3) { g.fillStyle = "#7a6a45"; g.beginPath(); g.arc(S/2, S/2, S*.06, 0, 7); g.fill(); }
-  const cities = vr.pieces.filter(p => p.kind === "C");
-  g.lineJoin = "round";
-  for (const ct of cities) for (const sh of cityShapes(ct.sides)) { path(sh); g.strokeStyle = "#5e3f26"; g.lineWidth = 6; g.stroke(); }
-  for (const ct of cities) for (const sh of cityShapes(ct.sides)) { path(sh); g.fillStyle = "#c08a5a"; g.fill(); }
-  for (const ct of cities) if (ct.pennant) {
-    const [ax, ay] = anchorOf(ct, vr).map(x => x * S);
-    g.fillStyle = "#2f5fb5"; g.strokeStyle = "#fff"; g.lineWidth = 1.5;
-    g.beginPath(); g.moveTo(ax-8, ay-10); g.lineTo(ax+8, ay-10); g.lineTo(ax+8, ay+3); g.lineTo(ax, ay+11); g.lineTo(ax-8, ay+3); g.closePath(); g.fill(); g.stroke();
-  }
-  if (vr.pieces.some(p => p.kind === "M")) {
-    g.fillStyle = "#e9e1d0"; g.fillRect(S*.36, S*.46, S*.28, S*.2);
-    g.fillStyle = "#b8403a"; g.beginPath(); g.moveTo(S*.32, S*.46); g.lineTo(S*.5, S*.3); g.lineTo(S*.68, S*.46); g.closePath(); g.fill();
-    g.strokeStyle = "#5a3a2a"; g.lineWidth = 1.5; g.strokeRect(S*.36, S*.46, S*.28, S*.2);
-  }
-  g.strokeStyle = "rgba(0,0,0,.45)"; g.lineWidth = 1.5; g.strokeRect(.75, .75, S-1.5, S-1.5);
+  // 256px で描く（拡大・高解像度の画面でもにじまない）。絵柄は tile_art.js
+  const S = 256, c = document.createElement("canvas"); c.width = c.height = S;
+  const vr = LIB[t].variants[v];
+  TileArt.paint(c.getContext("2d"), S, vr, { EM, cityShapes, anchor: p => anchorOf(p, vr) }, t * 4 + v);
   cache.set(key, c); return c;
 }
 
