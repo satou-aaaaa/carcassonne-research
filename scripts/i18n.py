@@ -144,10 +144,12 @@ def segments(text: str, kind: str = "html") -> list[str]:
         segs = _js_segments(text)
     else:
         text = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
-        text = re.sub(r"<style\b.*?</style>", "", text, flags=re.DOTALL)
+        text = re.sub(r"<style\b.*?</style>", "", text, flags=re.DOTALL | re.IGNORECASE)
         segs = []
         pos = 0
-        for m in re.finditer(r"(<script\b[^>]*>)(.*?)(</script>)", text, flags=re.DOTALL):
+        for m in re.finditer(
+            r"(<script\b[^>]*>)(.*?)(</script\s*>)", text, flags=re.DOTALL | re.IGNORECASE
+        ):
             segs += _html_segments(text[pos : m.start()] + m.group(1))
             segs += _js_segments(m.group(2))
             pos = m.end(2)
@@ -165,8 +167,10 @@ def load_table(name: str) -> dict[str, str]:
 
 def leftover(text: str, kind: str = "html") -> list[str]:
     """英語ページに残った日本語（コメントと lang="ja" の要素は除く）。"""
-    text = re.sub(r'<(\w+)\b[^>]*\blang="ja"[^>]*>.*?</\1>', "", text, flags=re.DOTALL)
-    text = re.sub(r"<style\b.*?</style>", "", text, flags=re.DOTALL)
+    text = re.sub(
+        r'<(\w+)\b[^>]*\blang="ja"[^>]*>.*?</\1>', "", text, flags=re.DOTALL | re.IGNORECASE
+    )
+    text = re.sub(r"<style\b.*?</style>", "", text, flags=re.DOTALL | re.IGNORECASE)
     if not JA.search(_strip_comments(text)):
         return []
     segs = segments(text, kind)

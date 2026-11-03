@@ -54,7 +54,12 @@ def test_no_japanese_left_in_english_scripts():
 @pytest.mark.parametrize("page", EN_PAGES)
 def test_english_scripts_parse(page, tmp_path):
     html = (DOCS / "en" / page).read_text(encoding="utf-8")
-    for i, src in enumerate(re.findall(r"<script>(.*?)</script>", html, flags=re.DOTALL)):
+    scripts = re.findall(
+        r"<script\b([^>]*)>(.*?)</script\s*>", html, flags=re.DOTALL | re.IGNORECASE
+    )
+    for i, (attrs, src) in enumerate(scripts):
+        if "application/json" in attrs:  # データの埋め込みはスクリプトではない
+            continue
         f = tmp_path / f"s{i}.js"
         f.write_text(src, encoding="utf-8")
         r = subprocess.run(["node", "--check", str(f)], check=False, capture_output=True, text=True)
