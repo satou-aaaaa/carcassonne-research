@@ -177,7 +177,7 @@ function inspect(isMobile) {
 }
 
 // 対戦ページ: 新しい対局を始め、置ける場所に1枚置いて確定するまで
-async function exercisePlay(page) {
+async function exercisePlay(page, shotDir, vpName) {
   // 開いた直後に「新しい対局」の窓が出る。出ていなければボタンで開く
   let dlg = page.locator("dialog[open]");
   if (!(await dlg.count())) {
@@ -198,8 +198,10 @@ async function exercisePlay(page) {
   });
   await page.mouse.click(pt.x, pt.y);
   await page.waitForTimeout(300);
-  if (!(await page.locator("#btnOk:not([disabled])").count())) return false;
-  await page.click("#btnOk");
+  // 仮置きすると、タイルのすぐ下に操作バー（回転・やめる・確定）が出る
+  if (!(await page.locator("#tileBar:not([hidden]) #tbOk").count())) return false;
+  if (shotDir) await page.screenshot({ path: path.join(shotDir, `play_pending_${vpName}.png`) });
+  await page.click("#tbOk");
   // 駒を置くかの選択が出たら「置かない」
   const none = page.locator("#pieceBtns button", { hasText: "置かない" });
   if (await none.count()) await none.first().click();
@@ -257,7 +259,7 @@ async function main() {
         await page.screenshot({ path: path.join(shotDir, `${file.replace(".html", "")}_${vp.name}.png`), fullPage: true });
       if (file === "play.html") {
         try {
-          const placed = await exercisePlay(page);
+          const placed = await exercisePlay(page, shotDir, vp.name);
           if (!placed) problems.push("対戦ページ: 最初の1枚を置ける場所が見つからない");
           const r2 = await page.evaluate(inspect, vp.isMobile);
           res = { errors: [...res.errors, ...r2.errors], warns: [...res.warns, ...r2.warns] };
