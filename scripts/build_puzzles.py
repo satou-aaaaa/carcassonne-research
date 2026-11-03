@@ -109,7 +109,9 @@ def main() -> None:
         blob = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
         body = tpl if lang == "ja" else translate(tpl, "quiz")
         body = body.replace("__QUIZ_DATA__", blob).replace("__AI_NOTE__", ai_note(raw, lang))
-        body = body.replace("__TILE_ART__", (ROOT / "web" / "tile_art.js").read_text(encoding="utf-8"))
+        body = body.replace(
+            "__TILE_ART__", (ROOT / "web" / "tile_art.js").read_text(encoding="utf-8")
+        )
         nav = "" if args.fragment else nav_html("quiz.html", lang)
         body = body.replace("__SITE_NAV_CSS__", NAV_CSS).replace("__SITE_NAV__", nav)
         body = body.replace("__SITE_SUPPORT__", "" if args.fragment else support_html(lang))
