@@ -5,7 +5,9 @@ name: AI content
 # 最新AI同士の対局を取り直し、クイズの答えを確かめ直して、PR を作ってすぐマージする（scripts/refresh_ai_content.py、
 # main は PR 必須なので scripts/merge_via_pr.sh を使う）。
 # 起動を取りこぼしても、毎日1回「古くなっていないか」を見て、古ければ作り直す。
-# 本文の言い切りが新しい集計と合わない・入れられないときはジョブを失敗にする（ci-failure-issue.yml が Issue で知らせる）。
+# 入れられないとき（検査が通らない・PR を作れない）はジョブを失敗にする（ci-failure-issue.yml が Issue で知らせる）。
+# 本文の言い切りが新しい集計と合わないときは、コツ集だけ前の版のまま残してほかは進め、Issue で文の直しを頼む
+# （data/tips_blocked.json。以前は毎日赤になっていた、gen419〜gen926 で 11 回。scripts/refresh_ai_content.py）。
 # クイズで答えが変わった問題はページから外し、Issue で見直しを頼む（Issue は1件だけにして書き直し、食い違いが無くなったら閉じる）。
 
 on:
@@ -27,6 +29,7 @@ permissions:
   issues: write
   pull-requests: write
   pages: write # マージ後に公開を起こす（GITHUB_TOKEN のコミットでは自動で走らない）
+  actions: write # merge_via_pr.sh が、マージ前の検査（test・Secret scan）を workflow_dispatch で起こす
 
 jobs:
   refresh:
@@ -61,6 +64,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs data/puzzles.json
+          # コツ集を前の版で残した理由（できたとき・消えたとき）も入れる
+          if [ -e data/tips_blocked.json ] || git ls-files --error-unmatch data/tips_blocked.json >/dev/null 2>&1; then
+            git add -A data/tips_blocked.json
+          fi
           if git diff --cached --quiet; then echo "変更なし"; exit 0; fi
           git commit -q -m "学習ページ（コツ集・クイズ）を最新AI $name で作り直す（自動）"
           bash scripts/merge_via_pr.sh ai-content "学習ページ（コツ集・クイズ）を最新AI $name で作り直す（自動）"
@@ -69,6 +76,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          source scripts/gh_retry.sh  # API の一時的な失敗（5xx）はやり直す
           python - > body.md <<'EOF'
           import json
           ps = [p for p in json.load(open("data/puzzles.json", encoding="utf-8")) if p.get("disputed")]
@@ -76,19 +84,51 @@ jobs:
               print(f"- {p['id']}「{p['title']}」: {p['disputed']}")
           EOF
           title="次の一手クイズ: 最新AIと答えが食い違う問題があります"
-          num=$(gh api "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100" --paginate \
+          num=$(ghr gh api "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100" --paginate \
             --jq ".[] | select(.pull_request == null) | select(.title == \"$title\") | .number" | head -n1)
           if [ ! -s body.md ]; then
             # 食い違いが無くなったら、開いている知らせを閉じる
-            [ -z "$num" ] || gh issue close "$num" --comment "最新AIで確かめ直したら、食い違う問題は無くなったので閉じます。"
+            [ -z "$num" ] || ghr gh issue close "$num" --comment "最新AIで確かめ直したら、食い違う問題は無くなったので閉じます。"
             exit 0
           fi
           { echo; echo "これらの問題は公開ページから外しています。解説を書き直すか、問題を差し替えてください（data/puzzles.json の disputed を消すと戻ります）。"; } >> body.md
           python scripts/cap_body.py body.md --note "全部は data/puzzles.json の disputed"
           if [ -n "$num" ]; then
             # 同じ知らせを増やさず、1件を今の一覧に書き直す
-            gh issue edit "$num" --body-file body.md
-            gh issue comment "$num" --body "最新AIで確かめ直し、一覧を書き直しました。"
+            ghr gh issue edit "$num" --body-file body.md
+            ghr gh issue comment "$num" --body "最新AIで確かめ直し、一覧を書き直しました。"
           else
-            gh issue create --title "$title" --body-file body.md
+            gh_issue_create_once "$title" body.md
+          fi
+      - name: 言い切りが合わずコツ集を前の版で残したら Issue で知らせる
+        # data/tips_blocked.json があれば、文の直しを頼む Issue を1件だけ開いておく（無くなったら閉じる）
+        if: steps.stale.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          source scripts/gh_retry.sh
+          title="コツ集: 最新AIの集計が本文の言い切りと合いません"
+          num=$(ghr gh api "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100" --paginate \
+            --jq ".[] | select(.pull_request == null) | select(.title == \"$title\") | .number" | head -n1)
+          if [ ! -f data/tips_blocked.json ]; then
+            [ -z "$num" ] || ghr gh issue close "$num" --comment "最新AIの集計で、本文の言い切りがすべて成り立ったので閉じます（コツ集を作り直しました）。"
+            exit 0
+          fi
+          python - > body.md <<'EOF'
+          import json
+          b = json.load(open("data/tips_blocked.json", encoding="utf-8"))
+          print(f"最新AI {b['ai']['name']} で48局を集計し直したら、コツ集（docs/ai_tips.html）の言い切りのうち次が成り立ちませんでした。")
+          print("コツ集は前の版のまま公開しています（クイズ・対戦ページは最新AIにしました）。\n")
+          for m in b["failed_claims"]:
+              print(f"- {m}")
+          print("\n直し方:")
+          print(f"1. data/tips_blocked.json の ai・habits_strong・habits_greedy を tests/data/habits_history/{b['ai']['name']}.json として足す。")
+          print("2. web/ai_tips_template.html の文と scripts/build_tips_page.py の言い切りを、過去の全世代で成り立つ言い方に直す（pytest tests/test_ai_content.py）。")
+          print("3. data/tips_blocked.json を消して PR にする。マージ後、AI content を force で回すとコツ集が最新AIで作り直される。")
+          EOF
+          python scripts/cap_body.py body.md
+          if [ -n "$num" ]; then
+            ghr gh issue edit "$num" --body-file body.md
+          else
+            gh_issue_create_once "$title" body.md
           fi

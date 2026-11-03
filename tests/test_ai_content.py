@@ -15,6 +15,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import build_puzzles
 import build_tips_page
 import recheck_puzzles
+import refresh_ai_content
 
 from carcassonne.webplay import champion_eval_path, champion_info
 
@@ -130,3 +131,46 @@ def test_dispute_reason_names_both_problems():
     r = {"top": 1, "ai_top_listed": False}
     assert recheck_puzzles.reason(r) == "選択肢2の点差が最大、一番よく選ぶ手は選択肢の外"
     assert recheck_puzzles.reason({"top": 2, "ai_top_listed": True}) == "選択肢3の点差が最大"
+
+
+def test_flipped_claim_holds_the_tips_page_instead_of_failing(tmp_path, monkeypatch):
+    """言い切りが1つ外れても、ジョブを止めずにコツ集を前の版で残し、同じAIでは作り直さない。
+
+    以前は止めていたので、文を直すまで毎日赤になった（gen419・gen576・gen836・gen926、2026-10-24〜11-03 に 11 回）。
+    """
+    summ = json.loads((ROOT / "docs/results/habits_summary.json").read_text(encoding="utf-8"))
+    assert build_tips_page.summary_failed_claims(summ) == []
+    flipped = copy.deepcopy(summ)
+    s = flipped["habits_strong"]
+    s["winner_points_by_kind"]["C"] = s["loser_points_by_kind"]["C"] - 1  # 勝った側が都市で負けた
+    flipped["ai"] = {"name": "genX"}
+    bad = build_tips_page.summary_failed_claims(flipped)
+    assert any("#citywins" in m for m in bad)
+
+    monkeypatch.setattr(refresh_ai_content, "BLOCKED", tmp_path / "tips_blocked.json")
+    monkeypatch.setattr(refresh_ai_content, "champion_info", lambda: {"name": "genX"})
+    monkeypatch.setattr(
+        refresh_ai_content, "content_ai", lambda: {"tips": "gen1", "quiz": ["genX"]}
+    )
+    assert refresh_ai_content.is_stale()  # コツ集が古い
+    refresh_ai_content.hold(flipped, bad)
+    held = json.loads((tmp_path / "tips_blocked.json").read_text(encoding="utf-8"))
+    assert held["ai"]["name"] == "genX" and held["failed_claims"] == bad
+    assert set(held) >= {
+        "habits_strong",
+        "habits_greedy",
+    }  # 直すときに tests/data/habits_history/ へ足せる
+    assert not refresh_ai_content.is_stale()  # 同じAIでは毎日作り直さない
+    monkeypatch.setattr(refresh_ai_content, "champion_info", lambda: {"name": "genY"})
+    assert refresh_ai_content.is_stale()  # 次のAIが出たら、また試す
+
+
+def test_no_held_tips_left_in_the_repository():
+    """data/tips_blocked.json が main に残っていたら、言い切りの直しが済んでいない（Issue が開いている）。
+
+    ここでは失敗にしない（自動の PR を止めないため）。中身が直し方どおりの形かだけ見る。
+    """
+    p = ROOT / "data" / "tips_blocked.json"
+    if p.exists():
+        held = json.loads(p.read_text(encoding="utf-8"))
+        assert held["failed_claims"] and held["ai"]["name"]

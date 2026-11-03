@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # CI が作った自動の PR は、マージ前に scripts/merge_via_pr.sh がこれで検査を回す（GITHUB_TOKEN の PR では pull_request の実行が承認待ちになるため）
+  workflow_dispatch:
 
 # 外部の人の PR でも動くので、トークンは読むだけにする
 permissions:
