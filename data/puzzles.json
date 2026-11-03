@@ -749,8 +749,8 @@
      3,
      null
     ],
-    "visits": 0.8701,
-    "diff": 19.77,
+    "visits": 0.825,
+    "diff": 18.79,
     "facts": {
      "gain_me": 20,
      "gain_opp": 0,
@@ -766,8 +766,8 @@
      1,
      null
     ],
-    "visits": 0.011,
-    "diff": 11.49,
+    "visits": 0.0161,
+    "diff": 12.09,
     "facts": {
      "gain_me": 4,
      "gain_opp": 0,
@@ -783,8 +783,8 @@
      3,
      null
     ],
-    "visits": 0.0117,
-    "diff": 11.73,
+    "visits": 0.017,
+    "diff": 12.3,
     "facts": {
      "gain_me": 4,
      "gain_opp": 0,
@@ -800,8 +800,8 @@
      2,
      null
     ],
-    "visits": 0.0122,
-    "diff": 11.95,
+    "visits": 0.0172,
+    "diff": 12.36,
     "facts": {
      "gain_me": 4,
      "gain_opp": 0,
@@ -827,8 +827,8 @@
   ],
   "level": "入門",
   "checked_by": {
-   "name": "gen890",
-   "date": "2026-11-02"
+   "name": "gen912",
+   "date": "2026-11-03"
   }
  },
  {
@@ -1110,8 +1110,8 @@
      1,
      0
     ],
-    "visits": 0.6691,
-    "diff": 8.66,
+    "visits": 0.6414,
+    "diff": 8.07,
     "facts": {
      "gain_me": 4,
      "gain_opp": 0,
@@ -1131,8 +1131,8 @@
      1,
      2
     ],
-    "visits": 0.0265,
-    "diff": 4.77,
+    "visits": 0.0211,
+    "diff": 3.67,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -1154,8 +1154,8 @@
      3,
      0
     ],
-    "visits": 0.0089,
-    "diff": 4.83,
+    "visits": 0.0121,
+    "diff": 5.2,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -1177,8 +1177,8 @@
      3,
      null
     ],
-    "visits": 0.0056,
-    "diff": 3.34,
+    "visits": 0.0063,
+    "diff": 3.16,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -1204,8 +1204,8 @@
   ],
   "level": "入門",
   "checked_by": {
-   "name": "gen890",
-   "date": "2026-11-02"
+   "name": "gen912",
+   "date": "2026-11-03"
   }
  },
  {
@@ -1429,8 +1429,8 @@
      0,
      1
     ],
-    "visits": 0.1902,
-    "diff": 7.9,
+    "visits": 0.2922,
+    "diff": 8.71,
     "facts": {
      "gain_me": 4,
      "gain_opp": 0,
@@ -1452,8 +1452,8 @@
      0,
      null
     ],
-    "visits": 0.0729,
-    "diff": 6.11,
+    "visits": 0.0834,
+    "diff": 5.63,
     "facts": {
      "gain_me": 4,
      "gain_opp": 0,
@@ -1469,8 +1469,8 @@
      3,
      0
     ],
-    "visits": 0.1776,
-    "diff": 7.49,
+    "visits": 0.1092,
+    "diff": 6.05,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -1492,8 +1492,8 @@
      2,
      0
     ],
-    "visits": 0.0442,
-    "diff": 6.32,
+    "visits": 0.0358,
+    "diff": 5.21,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -1524,8 +1524,8 @@
    "誰もいない都市に入って3枚に伸ばす。完成はまだ先。"
   ],
   "checked_by": {
-   "name": "gen890",
-   "date": "2026-11-02"
+   "name": "gen912",
+   "date": "2026-11-03"
   }
  },
  {
@@ -2408,8 +2408,8 @@
      2,
      2
     ],
-    "visits": 0.2507,
-    "diff": 16.13,
+    "visits": 0.2341,
+    "diff": 16.4,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -2429,8 +2429,8 @@
      2,
      null
     ],
-    "visits": 0.0291,
-    "diff": 12.68,
+    "visits": 0.0302,
+    "diff": 13.06,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -2446,8 +2446,8 @@
      0,
      2
     ],
-    "visits": 0.0116,
-    "diff": 12.34,
+    "visits": 0.0105,
+    "diff": 12.33,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -2475,8 +2475,8 @@
    "周りが4マスしか埋まっていない場所。今は5点の見込み。"
   ],
   "checked_by": {
-   "name": "gen890",
-   "date": "2026-11-02"
+   "name": "gen912",
+   "date": "2026-11-03"
   }
  },
  {
@@ -2977,8 +2977,8 @@
      0,
      null
     ],
-    "visits": 0.3242,
-    "diff": 3.07,
+    "visits": 0.2654,
+    "diff": 3.16,
     "facts": {
      "gain_me": 12,
      "gain_opp": 0,
@@ -2994,8 +2994,8 @@
      1,
      0
     ],
-    "visits": 0.0143,
-    "diff": -0.2,
+    "visits": 0.0157,
+    "diff": 0.64,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -3017,8 +3017,8 @@
      2,
      0
     ],
-    "visits": 0.0085,
-    "diff": -1.55,
+    "visits": 0.0108,
+    "diff": -0.47,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -3040,8 +3040,8 @@
      1,
      0
     ],
-    "visits": 0.0089,
-    "diff": -1.35,
+    "visits": 0.0105,
+    "diff": -0.55,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -3072,8 +3072,8 @@
    "最後のミープルで新しい都市を始める。今は1点の見込み。"
   ],
   "checked_by": {
-   "name": "gen890",
-   "date": "2026-11-02"
+   "name": "gen912",
+   "date": "2026-11-03"
   }
  },
  {
@@ -3749,8 +3749,8 @@
      3,
      2
     ],
-    "visits": 0.6787,
-    "diff": 5.04,
+    "visits": 0.6226,
+    "diff": 5.67,
     "facts": {
      "gain_me": 8,
      "gain_opp": 0,
@@ -3770,8 +3770,8 @@
      3,
      null
     ],
-    "visits": 0.0189,
-    "diff": -0.79,
+    "visits": 0.0153,
+    "diff": -0.71,
     "facts": {
      "gain_me": 8,
      "gain_opp": 0,
@@ -3787,7 +3787,7 @@
      2,
      2
     ],
-    "visits": 0.0356,
+    "visits": 0.0758,
     "diff": 1.5,
     "facts": {
      "gain_me": 0,
@@ -3816,8 +3816,8 @@
    "修道院は8点の見込みだが、道は未完成のまま。"
   ],
   "checked_by": {
-   "name": "gen890",
-   "date": "2026-11-02"
+   "name": "gen912",
+   "date": "2026-11-03"
   }
  },
  {
@@ -4629,8 +4629,8 @@
      0,
      1
     ],
-    "visits": 0.1886,
-    "diff": -0.18,
+    "visits": 0.1963,
+    "diff": 0.16,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -4653,7 +4653,7 @@
      0
     ],
     "visits": 0.0366,
-    "diff": -2.29,
+    "diff": -2.02,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -4675,8 +4675,8 @@
      0,
      null
     ],
-    "visits": 0.0172,
-    "diff": -3.66,
+    "visits": 0.0171,
+    "diff": -3.4,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -4692,8 +4692,8 @@
      0,
      0
     ],
-    "visits": 0.0251,
-    "diff": -2.91,
+    "visits": 0.0226,
+    "diff": -2.75,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -4724,8 +4724,8 @@
    "別の場所の道にミープル。今は2点の見込み。"
   ],
   "checked_by": {
-   "name": "gen890",
-   "date": "2026-11-02"
+   "name": "gen912",
+   "date": "2026-11-03"
   }
  },
  {
@@ -5238,8 +5238,8 @@
      1,
      null
     ],
-    "visits": 0.5407,
-    "diff": 15.59,
+    "visits": 0.4876,
+    "diff": 14.35,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -5255,8 +5255,8 @@
      1,
      null
     ],
-    "visits": 0.014,
-    "diff": 9.25,
+    "visits": 0.0161,
+    "diff": 8.68,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -5272,8 +5272,8 @@
      2,
      null
     ],
-    "visits": 0.0144,
-    "diff": 9.37,
+    "visits": 0.0177,
+    "diff": 8.97,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -5289,8 +5289,8 @@
      0,
      null
     ],
-    "visits": 0.018,
-    "diff": 10.14,
+    "visits": 0.0184,
+    "diff": 9.12,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -5315,8 +5315,8 @@
    "修道院の周りが1マス埋まるだけ。"
   ],
   "checked_by": {
-   "name": "gen890",
-   "date": "2026-11-02"
+   "name": "gen912",
+   "date": "2026-11-03"
   }
  },
  {
@@ -6324,8 +6324,8 @@
    "修道院は8点の見込みだが、大草原は赤のまま。"
   ],
   "checked_by": {
-   "name": "gen890",
-   "date": "2026-11-02"
+   "name": "gen912",
+   "date": "2026-11-03"
   }
  },
  {
@@ -7382,8 +7382,8 @@
    "タイルを置くだけ。点は動かない。"
   ],
   "checked_by": {
-   "name": "gen890",
-   "date": "2026-11-02"
+   "name": "gen912",
+   "date": "2026-11-03"
   }
  },
  {
@@ -7902,8 +7902,8 @@
      1,
      null
     ],
-    "visits": 0.2702,
-    "diff": 1.63,
+    "visits": 0.2213,
+    "diff": 1.86,
     "facts": {
      "gain_me": 10,
      "gain_opp": 0,
@@ -7919,8 +7919,8 @@
      3,
      null
     ],
-    "visits": 0.0294,
-    "diff": -1.32,
+    "visits": 0.0329,
+    "diff": -0.93,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -7936,8 +7936,8 @@
      3,
      null
     ],
-    "visits": 0.0262,
-    "diff": -1.71,
+    "visits": 0.0282,
+    "diff": -1.27,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -7953,8 +7953,8 @@
      2,
      null
     ],
-    "visits": 0.0318,
-    "diff": -1.23,
+    "visits": 0.0329,
+    "diff": -0.92,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -7980,8 +7980,8 @@
   ],
   "level": "入門",
   "checked_by": {
-   "name": "gen890",
-   "date": "2026-11-02"
+   "name": "gen912",
+   "date": "2026-11-03"
   }
  },
  {
@@ -8538,8 +8538,8 @@
      3,
      null
     ],
-    "visits": 0.5186,
-    "diff": -0.2,
+    "visits": 0.5728,
+    "diff": 1.47,
     "facts": {
      "gain_me": 8,
      "gain_opp": 0,
@@ -8555,8 +8555,8 @@
      2,
      null
     ],
-    "visits": 0.0361,
-    "diff": -3.62,
+    "visits": 0.0392,
+    "diff": -1.83,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -8572,8 +8572,8 @@
      2,
      null
     ],
-    "visits": 0.0153,
-    "diff": -5.78,
+    "visits": 0.0118,
+    "diff": -5.01,
     "facts": {
      "gain_me": 0,
      "gain_opp": 3,
@@ -8589,8 +8589,8 @@
      3,
      null
     ],
-    "visits": 0.0221,
-    "diff": -4.74,
+    "visits": 0.0154,
+    "diff": -4.25,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -8616,8 +8616,8 @@
   ],
   "level": "入門",
   "checked_by": {
-   "name": "gen890",
-   "date": "2026-11-02"
+   "name": "gen912",
+   "date": "2026-11-03"
   }
  },
  {
@@ -9052,8 +9052,8 @@
      0,
      null
     ],
-    "visits": 0.7401,
-    "diff": 7.37,
+    "visits": 0.7092,
+    "diff": 6.86,
     "facts": {
      "gain_me": 9,
      "gain_opp": 0,
@@ -9069,8 +9069,8 @@
      2,
      null
     ],
-    "visits": 0.032,
-    "diff": 3.82,
+    "visits": 0.0387,
+    "diff": 3.65,
     "facts": {
      "gain_me": 4,
      "gain_opp": 0,
@@ -9086,8 +9086,8 @@
      3,
      null
     ],
-    "visits": 0.0291,
-    "diff": 3.67,
+    "visits": 0.0375,
+    "diff": 3.56,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -9103,8 +9103,8 @@
      2,
      null
     ],
-    "visits": 0.0165,
-    "diff": 2.29,
+    "visits": 0.0202,
+    "diff": 2.22,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -9130,8 +9130,8 @@
   ],
   "level": "入門",
   "checked_by": {
-   "name": "gen890",
-   "date": "2026-11-02"
+   "name": "gen912",
+   "date": "2026-11-03"
   }
  }
 ]
