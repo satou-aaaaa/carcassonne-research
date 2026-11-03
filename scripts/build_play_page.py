@@ -9,7 +9,7 @@ AIは Python 版（src/carcassonne/fast*.py）を JavaScript に移したもの�
 書き出すもの:
 - docs/play.html            web/play.html にブラウザ内対局用のスクリプトを差し込んだもの
 - docs/play_data.js         タイル定義・エンジン用テーブル・評価関数の重み
-- docs/carcassonne_engine.js, docs/play_features.js, docs/play_local.js, docs/play_worker.js
+- docs/carcassonne_engine.js, docs/play_features.js, docs/play_local.js, docs/play_worker.js, docs/tile_art.js
                             web/ からの複写
 - docs/en/ に同じものの英語版（画面の文は web/i18n/en/play.json・play_local.json で訳す）
 
@@ -38,7 +38,13 @@ DOCS = ROOT / "docs"
 WEB = ROOT / "web"
 EVAL = "models/eval_champion.npy"  # 自己対戦ループの最新チャンピオン（selfplay-state の loop/models/ から複写）
 CHAMPION = "models/eval_champion.json"  # その世代名・採用日（画面の表示用）
-COPIES = ["carcassonne_engine.js", "play_features.js", "play_local.js", "play_worker.js"]
+COPIES = [
+    "carcassonne_engine.js",
+    "play_features.js",
+    "play_local.js",
+    "play_worker.js",
+    "tile_art.js",
+]
 TABLE_NAMES = [
     "edge", "npc", "pkind", "psides", "phalves", "ppen", "padj", "cadj",
     "sidepc", "halfpc", "mpiece", "vbase", "nvar",
