@@ -4,13 +4,15 @@
 # .venv を作って requirements.txt を入れる。以後は .venv の Python で動かす（README「環境構築」）。
 # Claude Code のクラウドセッションでは .claude/settings.json の SessionStart フックが自動で呼び、.venv を PATH の先頭に置く。
 # CI の Setup check（共通部品 satou-aaaaa/shared-workflows）が、まっさらな環境でこれが通るかを確かめる。
-# ひな形の版: 3（上げたら写しの版も上げる。shared-workflows の scripts/drift-check.mjs が古い写しを週次まとめに出す）
+# ひな形の版: 4（上げたら写しの版も上げる。shared-workflows の scripts/drift-check.mjs が古い写しを週次まとめに出す）
 #   2: 依存は毎回 npm ci・ブラウザが無ければ止める・このシェルで要る操作（nvm use・export）を最後に出す（shared-workflows incidents/2026-11-03-setup-false-ready.md）
 #   3: nvm.sh を --no-use で読む（.nvmrc の版が入っていないと、読んだだけで何も言わずに止まっていた。shared-workflows incidents/2026-11-04-setup-nvm-silent-stop.md）
+#   4: ブラウザの場所はファイルかも見る（-x だけだとフォルダでも通った。2026-11-05 CodeRabbit が bunshi-tsukuri #1 で指摘）
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 fail() { echo "✗ $*" >&2; exit 1; }
+runnable() { [ -f "$1" ] && [ -x "$1" ]; }   # 動かせるファイルか（フォルダも -x では通るので -f も見る）
 # 準備のあと、このシェルで打つ必要がある操作。1つでもあれば最後に「✓」を出さない
 todo=()
 # 環境変数を以後のコマンドに渡す。クラウドセッションは CLAUDE_ENV_FILE に書く。
