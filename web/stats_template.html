@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>数字で見るカルカソンヌ</title>
+<meta name="description" content="強いAI同士の対局から測った、カルカソンヌの先手の有利さ・得点源・逆転の起きやすさ・タイルの価値と、チェスや囲碁など他のゲームとの比較。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+:root {
+  --bg: #f1f3ee; --paper: #ffffff; --ink: #1d2620; --muted: #5c6a60; --line: #d5dccf;
+  --field: #2f6b3a; --city: #9a6436; --red: #d64541; --blue: #2f6fd6; --board-bg: #e6e2d6;
+  --bar: #2f6b3a; --bar2: #a8c9ae; --draw: #b9c0b5;
+  --font-display: "Dela Gothic One", "Zen Kaku Gothic New", "Hiragino Sans", sans-serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+  --font-num: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141a16; --paper: #1c241f; --ink: #e6ece6; --muted: #9aa89d; --line: #2e3a32;
+    --field: #7cc48a; --city: #d9a571; --red: #f06a62; --blue: #6c9cf0; --board-bg: #2a312c;
+    --bar: #6fbf7e; --bar2: #35583d; --draw: #56635a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141a16; --paper: #1c241f; --ink: #e6ece6; --muted: #9aa89d; --line: #2e3a32;
+  --field: #7cc48a; --city: #d9a571; --red: #f06a62; --blue: #6c9cf0; --board-bg: #2a312c;
+  --bar: #6fbf7e; --bar2: #35583d; --draw: #56635a; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.85; padding-inline: 16px; padding-block: 0 64px; }
+.wrap { max-width: 760px; margin: 0 auto; }
+header.hero { padding-block: 40px 20px; display: grid; gap: 12px; }
+.eyebrow { font-size: 13px; letter-spacing: .12em; color: var(--muted); font-weight: 700; }
+h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 6vw, 44px); line-height: 1.25; margin: 0; }
+h1 .accent { color: var(--field); }
+.lede { margin: 0; max-width: 38em; }
+section { padding-block: 28px 4px; border-top: 1px solid var(--line); margin-top: 20px; display: grid; gap: 14px; }
+h2 { font-family: var(--font-display); font-weight: 400; font-size: 22px; margin: 0; display: flex; gap: 12px; align-items: baseline; }
+h2 .no { font-family: var(--font-body); font-weight: 700; font-size: 12px; letter-spacing: .1em; color: var(--paper); background: var(--field); padding: 2px 8px; border-radius: 3px; flex: none; }
+h3 { font-size: 17px; margin: 6px 0 0; }
+p { margin: 0; max-width: 38em; }
+.num { font-family: var(--font-num); font-weight: 500; }
+.tiles-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.stat { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; display: grid; gap: 2px; }
+.stat b { font-family: var(--font-num); font-weight: 500; font-size: 26px; line-height: 1.2; }
+.stat span { font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+.chartbox { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 14px 14px 8px; }
+.chartbox .cap { font-size: 13.5px; color: var(--muted); margin: 0 0 8px; }
+svg.chart { width: 100%; max-width: 620px; height: auto; display: block; }
+svg.chart .grid { stroke: var(--line); stroke-width: 1; }
+svg.chart .tick { fill: var(--muted); font-size: 13px; font-family: var(--font-num); }
+svg.chart .axis { fill: var(--muted); font-size: 13px; }
+svg.chart .leg { fill: var(--muted); font-size: 14px; }
+svg.chart .rowlbl { fill: var(--ink); font-size: 14px; font-weight: 700; }
+svg.chart .val { fill: var(--ink); font-size: 14px; font-family: var(--font-num); }
+svg.chart .ln { stroke-width: 2.5; stroke-linejoin: round; }
+svg.chart .s-first { stroke: var(--red); fill: var(--red); }
+svg.chart polyline.s-first, svg.chart polyline.s-second { fill: none; }
+svg.chart .s-second { stroke: var(--blue); fill: var(--blue); stroke-dasharray: 7 5; }
+svg.chart circle.s-second { stroke-dasharray: none; }
+svg.chart .pt { stroke: var(--paper); stroke-width: 2; }
+svg.chart .b-main { fill: var(--bar); }
+svg.chart .b-end { fill: var(--bar2); }
+svg.chart .b-first { fill: var(--red); }
+svg.chart .b-second { fill: var(--blue); }
+svg.chart .b-draw { fill: var(--draw); }
+@media (max-width: 560px) {
+  .chartbox { padding: 12px 8px 6px; }
+  svg.chart .tick, svg.chart .axis, svg.chart .leg, svg.chart .val { font-size: 16px; }
+  svg.chart .rowlbl { font-size: 17px; }
+}
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; font-size: 14.5px; }
+th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+thead th { font-size: 12.5px; color: var(--muted); font-weight: 700; }
+tbody th { color: var(--ink); white-space: nowrap; }
+tr:last-child td, tr:last-child th { border-bottom: 0; }
+.wide table { min-width: 720px; }
+table.games tr.me { background: color-mix(in srgb, var(--field) 10%, transparent); }
+table.games td { font-size: 13.5px; line-height: 1.6; }
+a.src { font-size: 12px; text-decoration: none; white-space: nowrap; }
+table.tiles td { vertical-align: middle; padding: 5px 10px; }
+table.tiles td.tile { display: flex; align-items: center; gap: 10px; line-height: 1.35; }
+table.tiles td.tile svg { flex: none; border-radius: 3px; }
+table.tiles td.tile small { color: var(--muted); margin-left: 6px; font-family: var(--font-num); }
+table.tiles td.bar { width: 45%; position: relative; }
+table.tiles .bv { display: inline-block; height: 14px; background: var(--bar); border-radius: 3px; vertical-align: middle; max-width: calc(100% - 52px); }
+table.tiles td.bar b { font-family: var(--font-num); font-weight: 500; margin-left: 8px; font-size: 14px; }
+sup { font-size: max(12px, .75em); }
+/* スマホでは横長の表を、1行ずつのカードにする（見出しは data-label で各セルに出す） */
+@media (max-width: 560px) {
+  .wide table { min-width: 0; }
+  table.cards thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  table.cards, table.cards tbody, table.cards tr, table.cards th, table.cards td { display: block; }
+  table.cards tr { border-bottom: 1px solid var(--line); padding: 8px 4px; }
+  table.cards tr:last-child { border-bottom: 0; }
+  table.cards th, table.cards td { border: 0; padding: 2px 6px; }
+  table.cards tbody th { font-size: 15.5px; white-space: normal; }
+  table.cards td { display: grid; grid-template-columns: 8.5em 1fr; gap: 8px; }
+  table.cards td::before { content: attr(data-label); color: var(--muted); font-size: 12.5px; font-weight: 700; }
+}
+@media (max-width: 560px) { th, td { padding: 7px 6px; } table.tiles td.tile svg { width: 32px; height: 32px; } table.tiles td.bar { width: 40%; } }
+.box { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 14px 18px; }
+.box ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
+.learn { border-left: 4px solid var(--field); }
+.learn .k { display: block; font-size: 12px; letter-spacing: .1em; color: var(--field); font-weight: 700; margin-bottom: 4px; }
+.note { font-size: 14px; color: var(--muted); }
+.next { display: flex; flex-wrap: wrap; gap: 10px; }
+.next a { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 16px; border-radius: 6px; background: var(--field); color: var(--paper); text-decoration: none; font-weight: 700; }
+.next a.sub { background: var(--paper); color: var(--ink); border: 1px solid var(--line); }
+.red { color: var(--red); font-weight: 700; }
+.blue { color: var(--blue); font-weight: 700; }
+a { color: var(--field); }
+:focus-visible { outline: 2px solid var(--field); outline-offset: 2px; }
+__NAV_CSS__
+</style>
+</head>
+<body>
+<div class="wrap">
+__NAV__
+<header class="hero">
+  <span class="eyebrow">カルカソンヌ ・ データ ・ 2人対戦</span>
+  <h1>数字で見る<span class="accent">カルカソンヌ</span></h1>
+  <p class="lede">カルカソンヌは、チェスや囲碁に比べて研究がほとんど進んでいないゲームです。このページでは、このサイトでいちばん強いAI同士に<b class="num">{{games}}</b>局を指させて、先手の有利さ、点の取れ方、逆転の起きやすさ、タイルの価値などを測りました。チェス・囲碁・将棋など、ほかのゲームとも比べます。</p>
+</header>
+
+<div class="tiles-row" aria-label="このページの要点">
+  <div class="stat"><b>{{fp_score}}</b><span>先手の勝率（引き分けは0.5勝）</span></div>
+  <div class="stat"><b>{{end_share}}</b><span>ゲーム終了時に入る点の割合</span></div>
+  <div class="stat"><b>{{lead_half}}</b><span>折り返しでリードしていた側が勝つ割合</span></div>
+  <div class="stat"><b>{{same_winner}}</b><span>同じ山札でもう一度指して、勝者が同じだった割合</span></div>
+</div>
+
+<section id="first">
+  <h2><span class="no">1</span>先手はどれくらい有利？</h2>
+  <p>{{games}}局の結果は、{{fp_record}}でした。先手の勝率は<b class="num">{{fp_score}}</b>（95%の確からしさで{{fp_ci}}の範囲）、先手の平均の点差は<b class="num">{{fp_diff}}</b>点（±{{fp_se}}）です。{{fp_verdict}}</p>
+  <div class="chartbox">
+    <p class="cap">先手・後手の勝ち負け（{{games}}局）</p>
+    {{chart_record}}
+  </div>
+  <p>理由のひとつは枚数です。開始タイルを除く71枚を交互に置くので、先手は<b class="num">{{first_tiles}}</b>枚、後手は<b class="num">{{second_tiles}}</b>枚置きます。最後の1枚を置けるのも先手です。引き分けは{{draw}}と、とても少なめです。</p>
+  <div class="box learn"><span class="k">学び</span><ul>
+    <li>後手で数点負けているのは、ほぼ互角です。焦って無理な手を打つ必要はありません。</li>
+    <li>先手は最後の1枚を持っています。終盤は「相手にもう1手ある／ない」を数えて、完成させる順番を決めましょう。</li>
+    <li>友だちや家族と遊ぶときは、先手・後手を入れ替えて2局遊ぶと公平です。</li>
+  </ul></div>
+</section>
+
+<section id="scores">
+  <h2><span class="no">2</span>点数と点差</h2>
+  <p>1人の平均点は<b class="num">{{mean}}</b>点。勝った側は平均{{win_mean}}点、負けた側は{{lose_mean}}点でした。点差の真ん中の値は{{margin_med}}点で、<b class="num">{{close10}}</b>の対局は10点差以内、{{close5}}は5点差以内で決着しています。</p>
+  <div class="chartbox">
+    <p class="cap">勝者と敗者の点差の分布（5点刻み）</p>
+    {{chart_margin}}
+  </div>
+  <div class="box learn"><span class="k">学び</span><p>強いAI同士でも、3局に1局以上が10点差以内です。小さな道の数点や、終了時の草原の3点が勝敗を分けます。</p></div>
+</section>
+
+<section id="sources">
+  <h2><span class="no">3</span>点はどこから来る？</h2>
+  <p>全得点のうち、都市が<b class="num">{{city_share}}</b>でいちばん多く、草原（農民）は{{field_share}}でした。見落としがちなのは、<b>ゲーム終了時</b>に入る点（未完成の都市・道・修道院と、草原）が全体の<b class="num">{{end_share}}</b>もあることです。</p>
+  <div class="chartbox">
+    <p class="cap">1人1局あたりの点（得点源ごと）</p>
+    {{chart_sources}}
+  </div>
+  <h3>完成しないまま終わる割合</h3>
+  <p>ミープルを置いた場所のうち、ゲーム終了までに完成しなかった割合です。修道院は<b class="num">{{unf_M}}</b>が未完成で終わります（都市は{{unf_C}}、道は{{unf_R}}）。</p>
+  <div class="chartbox">
+    <p class="cap">ミープルを置いたのに、完成しないまま終わった割合</p>
+    {{chart_unfinished}}
+  </div>
+  <div class="box learn"><span class="k">学び</span><ul>
+    <li>得点は「完成した点」だけで数えると大きく外れます。未完成の場所と草原を足した見込みの点で、いまの点差を考えましょう。</li>
+    <li>修道院は半分近くが未完成で終わりますが、未完成でも周りのタイルの数だけ点が入ります。早めに置くほど周りが埋まります。</li>
+  </ul></div>
+</section>
+
+<section id="lead">
+  <h2><span class="no">4</span>点の推移と逆転</h2>
+  <p>手数ごとの平均の点（完成して確定した点）です。後半ほど点が増えるのは、大きな都市が完成し始めるからです。最後に跳ね上がるのは、終了時の点が入るためです。</p>
+  <div class="chartbox">
+    <p class="cap">手数ごとの平均得点（<span class="red">先手</span>・<span class="blue">後手</span>）</p>
+    {{chart_score}}
+  </div>
+  <p>途中で「いま終わったら」の見込みの点でリードしていた側が、最後に勝った割合は、序盤（{{ply_early}}手目）で<b class="num">{{lead_early}}</b>、折り返し（{{ply_half}}手目）で<b class="num">{{lead_half}}</b>、終盤（{{ply_late}}手目）で<b class="num">{{lead_late}}</b>でした。リードは1局に平均{{lead_changes}}回入れ替わります。折り返しで15点以上負けていた側が逆転した対局も<b class="num">{{comeback}}</b>ありました。</p>
+  <div class="chartbox">
+    <p class="cap">折り返し時点の見込み点のリードと、リード側の勝率</p>
+    {{chart_lead}}
+  </div>
+  <div class="box learn"><span class="k">学び</span><p>序盤のリードはあまり当てになりません。逆に、中盤で負けていても、完成しそうな場所と草原をうまく使えば十分に追いつけます。点差を見るときは、確定した点ではなく見込みの点で比べましょう。</p></div>
+</section>
+
+<section id="meeple">
+  <h2><span class="no">5</span>ミープルの使い方</h2>
+  <p>強いAIは1局に1人あたり約<b class="num">{{m_per_game}}</b>回ミープルを置き、手番の<b class="num">{{m_rate}}</b>で置いています。7個しかないのに倍以上置けるのは、完成させて何度も手元に戻しているからです。それでも手番の{{m_empty}}は手持ちが0個でした。</p>
+  <div class="chartbox">
+    <p class="cap">手持ちのミープルの平均（<span class="red">先手</span>・<span class="blue">後手</span>）</p>
+    {{chart_supply}}
+  </div>
+  <div class="chartbox">
+    <p class="cap">ミープルを置いた場所の割合</p>
+    {{chart_mkind}}
+  </div>
+  <p>置いた場所は都市{{m_C}}・道{{m_R}}・修道院{{m_M}}・草原{{m_F}}。終了時には1人平均{{m_stuck}}個が未完成の場所に残り、点が入った農民は平均{{farmers}}人でした。</p>
+  <div class="box learn"><span class="k">学び</span><p>ミープルは「置いて、完成させて、また置く」の回転が大事です。すぐ完成しそうな小さい都市や短い道で回転させ、終盤まで手持ちを切らさないようにしましょう。</p></div>
+</section>
+
+<section id="tiles">
+  <h2><span class="no">6</span>タイルの価値</h2>
+  <p>あるタイルを引いたとき、置いた手で「いま終わったら」の点差が平均でどれだけ自分に有利に動いたかです。いちばん得なのは<b>{{top_tiles}}</b>、いちばん得が小さいのは<b>{{low_tiles}}</b>でした（×の数字は山札の枚数）。</p>
+  {{table_tiles}}
+  <div class="box learn"><span class="k">学び</span><p>修道院のタイルは、置いた瞬間に周りのタイルの分の点が見込めるので、引いたら大きなチャンスです。数が多い道のタイルは1枚の価値は小さいですが、相手の都市や修道院の周りを埋めない場所に置くなど、使い方で差がつきます。</p></div>
+</section>
+
+<section id="luck">
+  <h2><span class="no">7</span>運と実力</h2>
+  <p>カルカソンヌの運は「どのタイルをいつ引くか」です。同じ山札（同じ順番のタイル）を2回指して比べました。同じ山札でも、勝者が同じになったのは<b class="num">{{same_winner}}</b>だけでした（山札で結果が決まるなら100%、まったく関係ないなら50%）。点差のばらつきのうち山札で決まる部分は、約{{deck_corr}}と見積もれます。</p>
+  <p>強さの違うAIどうしも対戦させました。同じ山札で先手と後手を入れ替えて2局ずつ指しています。「チェスなら」は、その勝率がチェスのレーティング（Elo）で何点差にあたるかです。</p>
+  {{table_ladder}}
+  <div class="box learn"><span class="k">学び</span><p>対戦ページの「標準」は、目先の点だけを追うAIに{{sg_score}}勝ちます。弱い側が勝つのは{{sg_upset}}だけです。1局ごとの引きには波があっても、何局も遊べば実力どおりの結果になります。引きのせいにせず、打ち方を見直す価値のあるゲームです。</p></div>
+</section>
+
+<section id="compare">
+  <h2><span class="no">8</span>ほかのゲームと比べる</h2>
+  <p>カルカソンヌで1手に選べる手（タイルの置き場所と向き×ミープルの置き方）は平均約<b class="num">{{legal}}</b>通り、多いときは{{legal_max}}通りありました。置き場所と向きだけなら平均{{places}}通りです。1局の手を全部並べた「ゲーム木」の大きさは約10<sup>{{tree}}</sup>で、チェスと同じくらい。引くタイルの分かれ道（平均{{kinds}}種類）も数えると約10<sup>{{tree_chance}}</sup>になります。</p>
+  {{table_games}}
+  <p class="note">[*] は出典です。1手の選択肢とゲーム木の大きさは Wikipedia「<a href="https://en.wikipedia.org/wiki/Game_complexity">Game complexity</a>」の表（10の何乗かを切り上げた目安）。数え方はゲームごとに違うので、桁の大きさの比較として見てください。チェスの先手の数字は chessgames.com の2015年のデータベース。</p>
+  <div class="box learn"><span class="k">学び</span><ul>
+    <li>先手の有利さは、チェス（白の得点率 約55%）と同じくらいかやや大きめです。囲碁のように「コミ」で調整するしくみはありません。</li>
+    <li>チェスや囲碁と違い、引くタイルという運があります。それでも、選べる手の多さはチェス以上で、うまい人ほど勝ちやすいゲームです。</li>
+    <li>チェス・囲碁・将棋ではAIが人間のトップを超えましたが、カルカソンヌでは公開された記録がまだありません。研究の余地が大きいゲームです。</li>
+  </ul></div>
+</section>
+
+<section id="method">
+  <h2>測り方について</h2>
+  <p class="note">AIは対戦ページの「標準」と同じ設定（1手2000回の探索＋最新の評価関数 {{ai}}）。{{decks}}通りの山札を、指し手の乱数だけ変えて2回ずつ指しました（{{date}}時点）。勝率の範囲はWilsonの95%信頼区間、先手有利の検定は引き分けを除いた二項検定（{{fp_p}}）。「見込みの点」は、その時点でゲームが終わったとして未完成の場所と草原を数えた点です。強さ別の対戦は、同じ山札で先後を入れ替えた2局を1組にしています。人間同士の対局とは数字が違うかもしれません。集計は <code>scripts/collect_game_stats.py</code>・<code>scripts/summarize_game_stats.py</code>、集計結果は <code>docs/results/game_stats.json</code>。</p>
+  <div class="next">
+    <a href="ai_tips.html">強いAIに学ぶコツ</a>
+    <a class="sub" href="play.html">AIと対戦する</a>
+  </div>
+</section>
+__SUPPORT__
+</div>
+</body>
+</html>

@@ -7,7 +7,7 @@
  "－": "−",
  "全体を表示": "Fit board",
  "サイト内のページ": "Site pages",
- "<a href=\"index.html\">← カルカソンヌ入門</a><a href=\"rules.html\">ルール入門</a><a href=\"strategy.html\">戦略ガイド</a><a href=\"ai_tips.html\">強いAIのコツ</a><a href=\"quiz.html\">次の一手クイズ</a>": "<a href=\"index.html\">← Carcassonne Primer</a><a href=\"rules.html\">Rules</a><a href=\"strategy.html\">Strategy</a><a href=\"ai_tips.html\">Lessons from the AI</a><a href=\"quiz.html\">Next-Move Quiz</a>",
+ "<a href=\"index.html\">← カルカソンヌ入門</a><a href=\"rules.html\">ルール入門</a><a href=\"strategy.html\">戦略ガイド</a><a href=\"ai_tips.html\">強いAIのコツ</a><a href=\"quiz.html\">次の一手クイズ</a><a href=\"stats.html\">データで見る</a>": "<a href=\"index.html\">← Carcassonne Primer</a><a href=\"rules.html\">Rules</a><a href=\"strategy.html\">Strategy</a><a href=\"ai_tips.html\">Lessons from the AI</a><a href=\"quiz.html\">Next-Move Quiz</a><a href=\"stats.html\">By the Numbers</a>",
  "AIはこのブラウザの中で考えます。": "The AI thinks inside your browser.",
  "新しい対局": "New game",
  "同じ山札で席替え再戦": "Rematch, same tiles, seats swapped",
