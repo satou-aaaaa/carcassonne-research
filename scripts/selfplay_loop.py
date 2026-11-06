@@ -2,6 +2,7 @@
 
     py scripts/selfplay_loop.py run --root /mnt/project-files/carcassonne-runs/loop --minutes 50
     py scripts/selfplay_loop.py status --root /mnt/project-files/carcassonne-runs/loop
+    py scripts/selfplay_loop.py prune --root /mnt/project-files/carcassonne-runs/loop   # 古いデータを消す
 
 初回の `run` で `--root` に状態を作り、初代チャンピオン（`--initial`、既定は `models/best.json` の最強の評価関数）
 から始める。設定（`--games` など）は初回だけ効き、以後は `state.json` の値を使う。
@@ -19,12 +20,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from carcassonne.selfplay_loop import Config, Loop
+from carcassonne.selfplay_loop import Config, Loop, prune_data
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["run", "status"])
+    ap.add_argument("cmd", choices=["run", "status", "prune"])
     ap.add_argument("--root", default="runs/loop", help="状態・データ・重みを置くフォルダ")
     ap.add_argument("--minutes", type=float, default=50)
     best = json.loads((ROOT / "models" / "best.json").read_text(encoding="utf-8"))["best"]
@@ -34,6 +35,10 @@ def main() -> None:
         ap.add_argument(f"--{k.replace('_', '-')}", type=type(v), default=v)
     args = ap.parse_args()
     root = Path(args.root)
+    if args.cmd == "prune":  # 学習に使わなくなった古いデータを消す（CI が保存の前に呼ぶ）
+        for f in prune_data(root):
+            print(f"消した: {f.name}")
+        return
     if args.cmd == "status":
         st = json.loads((root / "state.json").read_text(encoding="utf-8"))
         print(f"試行{st['attempt']} {st['phase']} / チャンピオン {st['champion']}")

@@ -70,16 +70,7 @@ jobs:
         if: always() && steps.state.outputs.exists == 'true'
         run: |
           rm -f state/loop/lock
-          python - <<'EOF'
-          import json
-          from pathlib import Path
-          root = Path("state/loop")
-          st = json.loads((root / "state.json").read_text(encoding="utf-8"))
-          window = st.get("config", {}).get("window", 4)
-          for f in (root / "data").glob("a*.npz"):
-              if int(f.name[1:4]) <= st["attempt"] - window:
-                  f.unlink()
-          EOF
+          python scripts/selfplay_loop.py prune --root state/loop
       - name: 状態を保存する
         if: always() && steps.state.outputs.exists == 'true'
         working-directory: state

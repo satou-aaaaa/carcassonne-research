@@ -70,3 +70,64 @@ def test_window_pads_data_from_before_new_features(tmp_path):
     assert X.shape == (2 * n, NF)
     assert np.all(X[:n, 29:] == 0) and np.all(X[n:] == 1)
     assert list(g) == [0] * n + [1] * n
+
+
+def _fake_data(path, n=3):
+    np.savez(
+        path, X=np.ones((n, NF)), y=np.zeros(n), p=np.zeros(n, np.int64), g=np.zeros(n, np.int64)
+    )
+
+
+def test_window_and_prune_across_attempt_1000(tmp_path):
+    """試行番号が3桁から4桁に変わっても、直近 window 試行のデータを使い・それより前だけを消す。
+
+    以前は名前を [1:4] で切っていたので a1003 を 100 と読み、学習のデータが全部消えた（Issue #141）。
+    """
+    from carcassonne.selfplay_loop import data_attempt, data_files, prune_data
+
+    cfg = Config(games=1, chunk=1, sims=10, depth=2, window=4, workers=1)
+    loop = Loop(tmp_path, cfg, "models/eval_v6_lin.npy")
+    for a in range(996, 1004):
+        _fake_data(tmp_path / "data" / f"a{a:03d}_00.npz")
+    assert data_attempt(tmp_path / "data" / "a1003_00.npz") == 1003
+    assert [data_attempt(f) for f in data_files(tmp_path / "data")] == list(range(996, 1004))
+    loop.state["attempt"] = 1003
+    loop.save()
+    X, *_ = loop.load_window()
+    assert len(X) == 4 * 3  # 1000〜1003
+    gone = prune_data(tmp_path)
+    assert sorted(data_attempt(f) for f in gone) == list(range(996, 1000))
+    assert [data_attempt(f) for f in data_files(tmp_path / "data")] == list(range(1000, 1004))
+
+
+def test_train_redoes_selfplay_when_data_is_missing(tmp_path):
+    """学習の番なのにこの試行のデータが無いときは、落ちずに自己対戦からやり直す。"""
+    cfg = Config(games=2, chunk=1, sims=10, depth=2, window=2, workers=1)
+    loop = Loop(tmp_path, cfg, "models/eval_v6_lin.npy")
+    loop.state["phase"] = "train"
+    loop.save()
+    msg = loop.step()
+    assert loop.state["phase"] == "selfplay", msg
+    assert "やり直" in msg
+
+
+def test_data_names_are_not_cut_at_fixed_width():
+    """ファイル名から番号を取るのに `name[1:4]` のような決まった幅の切り出しを使わない（桁が増えると読み違える）。"""
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    files = [
+        *root.glob("src/**/*.py"),
+        *root.glob("scripts/**/*.py"),
+        *root.glob(".github/workflows/*.yml"),
+    ]
+    bad = [
+        f"{f.relative_to(root)}:{i}: {line.strip()}"
+        for f in files
+        for i, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1)
+        if re.search(r"\b(name|stem)\[\d*:\d+\]", line)
+    ]
+    assert not bad, "番号は正規表現で取ってください（selfplay_loop.data_attempt）:\n" + "\n".join(
+        bad
+    )

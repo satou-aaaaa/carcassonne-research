@@ -22,14 +22,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from carcassonne.fast_eval import NF, fit_mlp, load_eval
 from carcassonne.ridge_stats import solve_ridge, stats_of
-from carcassonne.selfplay_loop import eval_np
+from carcassonne.selfplay_loop import data_files, eval_np
 from carcassonne.td import td_lambda_targets
 
 
 def load_all(data_dir: Path):
     """data/a*.npz を試行・塊の順に読み、対局番号を通しで振り直して返す。"""
     Xs, ys, ps, gs, off = [], [], [], [], 0
-    for f in sorted(data_dir.glob("a*.npz")):
+    for f in data_files(data_dir):
         with np.load(f) as d:
             X = d["X"]
             if X.shape[1] < NF:
