@@ -443,7 +443,9 @@ def fairness_table(st: dict, lang: str) -> str:
                  f"{r['mean_diff']:+.1f}"]  # fmt: skip
         rows.append(
             f"<tr><th>{RULE[r['rule']][li]}</th>"
-            + "".join(f'<td data-label="{h}"><span>{c}</span></td>' for h, c in zip(head[1:], cells))
+            + "".join(
+                f'<td data-label="{h}"><span>{c}</span></td>' for h, c in zip(head[1:], cells)
+            )
             + "</tr>"
         )
     return (

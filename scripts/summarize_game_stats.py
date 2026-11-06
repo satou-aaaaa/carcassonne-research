@@ -348,7 +348,7 @@ def fairness(d: Path, games: list[dict]) -> dict:
     diffs = [g["scores"][0] - g["scores"][1] for g in games]
     n = len(diffs)
     sim = []
-    for k in range(0, 8):
+    for k in range(8):
         w = sum(x > k for x in diffs)
         t = sum(x == k for x in diffs)
         sim.append({"komi": k, "score": _r((w + 0.5 * t) / n, 4), "draw": _r(t / n, 4)})
