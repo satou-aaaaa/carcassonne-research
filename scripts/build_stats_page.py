@@ -413,6 +413,78 @@ def ladder_table(ladder: list[dict], lang: str) -> str:
     )
 
 
+RULE = {
+    "base": ("いまのルール（71枚・調整なし）", "Current rules (71 tiles, no adjustment)"),
+    "komi4": ("後手に最初から4点（コミ4点）", "Second player starts with 4 points (komi 4)"),
+    "tiles70": ("1枚伏せて70枚に（2人とも35枚ずつ）", "Remove 1 tile face-down (35 tiles each)"),
+}
+
+
+def fair(st: dict, rule: str) -> dict | None:
+    rows = [r for r in st["fairness"]["played"] if r["rule"] == rule]
+    return rows[0] if rows else None
+
+
+def balanced(r: dict) -> bool:
+    """先手の勝率の95%区間に50%が入るか（先後の差が検出されないか）。"""
+    return r["ci"][0] <= 0.5 <= r["ci"][1]
+
+
+def fairness_table(st: dict, lang: str) -> str:
+    li = 0 if lang == "ja" else 1
+    head = (
+        ("ルール", "局数", "先手の勝率", "95%の範囲", "先手の平均点差")
+        if lang == "ja"
+        else ("Rule", "Games", "First player scores", "95% interval", "First player's avg margin")
+    )
+    rows = []
+    for r in st["fairness"]["played"]:
+        cells = [f"{r['games']:,}", pct(r["score"]), f"{pct(r['ci'][0])}–{pct(r['ci'][1])}",
+                 f"{r['mean_diff']:+.1f}"]  # fmt: skip
+        rows.append(
+            f"<tr><th>{RULE[r['rule']][li]}</th>"
+            + "".join(f'<td data-label="{h}"><span>{c}</span></td>' for h, c in zip(head[1:], cells))
+            + "</tr>"
+        )
+    return (
+        '<div class="tablewrap"><table class="cards"><thead><tr>'
+        + "".join(f"<th>{h}</th>" for h in head)
+        + f"</tr></thead><tbody>{''.join(rows)}</tbody></table></div>"
+    )
+
+
+def fairness_texts(st: dict, lang: str) -> dict[str, str]:
+    """ルール変更の結果の文。勝率の区間に50%が入るかで言い方を変える。"""
+    ja = lang == "ja"
+    out = {}
+    for rule in ("komi4", "tiles70"):
+        r = fair(st, rule)
+        name = RULE[rule][0 if ja else 1]
+        if r is None:
+            out[rule] = ""
+            continue
+        s, d = pct(r["score"]), f"{r['mean_diff']:+.1f}"
+        if balanced(r):
+            out[rule] = (
+                f"「{name}」では先手の勝率が{s}（平均点差{d}）になり、先後の差は誤差の範囲に収まりました。"
+                if ja
+                else f"With “{name}”, the first player scored {s} (average margin {d}); the gap is within the margin of error."
+            )
+        elif r["score"] > 0.5:
+            out[rule] = (
+                f"「{name}」では先手の勝率が{s}（平均点差{d}）で、差は縮みましたが先手がまだ有利です。"
+                if ja
+                else f"With “{name}”, the first player scored {s} (average margin {d}): the gap shrank, but the first player is still ahead."
+            )
+        else:
+            out[rule] = (
+                f"「{name}」では先手の勝率が{s}（平均点差{d}）で、今度は後手が有利になりすぎました。"
+                if ja
+                else f"With “{name}”, the first player scored {s} (average margin {d}): now the second player is too far ahead."
+            )
+    return out
+
+
 def games_table(st: dict, lang: str) -> str:
     li = 0 if lang == "ja" else 1
     cx, fp = st["complexity"], st["first_player"]
@@ -520,6 +592,14 @@ def failed_claims(st: dict) -> list[str]:
     sg = [r for r in st["ladder"] if (r["strong"], r["weak"]) == ("standard", "greedy")]
     if sg and not sg[0]["upset"] < 0.25:
         bad.append("標準が目先の点だけのAIに負けるのは少しだけ")
+    sim = {k["komi"]: k["score"] for k in st["fairness"]["komi_sim"]}
+    if not (sim[3] > 0.51 and sim[5] < 0.49):
+        bad.append("試算で3点では足りず、5点では後手が有利")
+    k4, t70 = fair(st, "komi4"), fair(st, "tiles70")
+    if k4 is None or not balanced(k4):
+        bad.append("コミ4点で先後の差が誤差の範囲に収まる（9節の「学び」）")
+    if t70 is None or not balanced(t70) or abs(t70["mean_diff"]) > 1.5:
+        bad.append("1枚抜いて枚数をそろえると先後の差がほぼ消える（1節・9節）")
     return bad
 
 
@@ -677,6 +757,18 @@ def texts(st: dict, lang: str) -> dict[str, str]:
     t["table_tiles"] = tile_table(st["tiles"], lang)
     t["table_ladder"] = ladder_table(st["ladder"], lang)
     t["table_games"] = games_table(st, lang)
+    t["table_fair"] = fairness_table(st, lang)
+    ft = fairness_texts(st, lang)
+    t["fair_komi"], t["fair_tiles"] = ft["komi4"], ft["tiles70"]
+    t["fair_games"] = f"{min(r['games'] for r in st['fairness']['played']):,}"
+    t["chart_komi"] = hbars(
+        [
+            ((f"{k['komi']}点" if ja else f"{k['komi']} pts"), k["score"] * 100, f"{k['score'] * 100:.1f}")
+            for k in st["fairness"]["komi_sim"]
+        ],
+        100, "%", "後手の加点と先手の勝率（試算）" if ja else "Points given to the second player vs. first player's score (estimate)",
+        label_w=70,
+    )  # fmt: skip
     return t
 
 

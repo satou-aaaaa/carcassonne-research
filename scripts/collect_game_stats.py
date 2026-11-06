@@ -6,6 +6,11 @@
 どれだけ似た結果になるかで「山札の運」の大きさを測る（scripts/summarize_game_stats.py）。
 AIは対戦ページの「標準」と同じ設定（2000回探索＋最新チャンピオンの評価関数）。
 1局を1行のJSONで書く。集計は scripts/summarize_game_stats.py。
+
+先後の差をなくすルールの実験（scripts/summarize_fairness.py）:
+    py scripts/collect_game_stats.py --decks 1000 --plays 1 --komi 4 --out runs/stats/komi4.jsonl
+    py scripts/collect_game_stats.py --decks 1000 --plays 1 --tiles 70 --out runs/stats/tiles70.jsonl
+--komi は後手の初期点、--tiles は使う枚数（山札の最後の残りは伏せたまま使わない）。
 """
 
 from __future__ import annotations
@@ -31,14 +36,16 @@ def make_agent():
 _AGENT = None
 
 
-def play(job: tuple[int, int]) -> dict:
+def play(job: tuple) -> dict:
     """山札 seed を play 番目の乱数で1局指し、記録を返す。"""
     global _AGENT
-    seed, k = job
+    seed, k, komi, tiles = job
     if _AGENT is None:
         _AGENT = make_agent()
     agent = _AGENT
     st = State.new_game(seed)
+    if komi or tiles < len(st.deck):
+        st = State(st.deck[:tiles], komi=komi)
     rngs = [random.Random((seed * 16 + k) * 2 + i) for i in (0, 1)]
     awards = []
     orig = State._award
@@ -94,6 +101,8 @@ def play(job: tuple[int, int]) -> dict:
     return {
         "seed": seed,
         "play": k,
+        "komi": komi,
+        "tiles": tiles,
         "scores": list(st.scores),
         "discarded": len(st.discarded),
         "awards": awards,
@@ -107,6 +116,8 @@ def main() -> None:
     ap.add_argument("--plays", type=int, default=2)
     ap.add_argument("--start", type=int, default=200000)
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--komi", type=int, default=0, help="後手の初期点")
+    ap.add_argument("--tiles", type=int, default=71, help="使う枚数（開始タイルを除く）")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
     out = Path(args.out)
@@ -117,7 +128,7 @@ def main() -> None:
             g = json.loads(line)
             done.add((g["seed"], g["play"]))
     jobs = [
-        (s, k)
+        (s, k, args.komi, args.tiles)
         for s in range(args.start, args.start + args.decks)
         for k in range(args.plays)
         if (s, k) not in done

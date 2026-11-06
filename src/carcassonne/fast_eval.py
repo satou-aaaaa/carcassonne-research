@@ -14,6 +14,7 @@ from .fast import (
     NT,
     SC_CUR,
     SC_DRAW,
+    SC_END,
     SC_N,
     SC_OVER,
     SC_PL,
@@ -222,7 +223,7 @@ def features(S, T, P, me, out):
     mysup = sc[SC_SUP0 + me]
     thsup = sc[SC_SUP0 + 1 - me]
     out[10] = mysup - thsup
-    rem = (NT - 1 - sc[SC_DRAW]) / 71.0
+    rem = (sc[SC_END] - sc[SC_DRAW]) / 71.0
     out[11] = rem
     out[13] = 1.0
     out[20] = rem * rem

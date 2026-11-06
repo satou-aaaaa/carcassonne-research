@@ -49,10 +49,12 @@ def py_snapshot(st):
     }
 
 
-def mirror_game(seed, policy_rng, pick):
+def mirror_game(seed, policy_rng, pick, komi=0, tiles=71):
     """Python側で手を選び、同じ手をNumba側へ適用して毎手の状態を比較する。"""
     st = State.new_game(seed)
-    S = FAST.new_game(st.deck)
+    if komi or tiles < 71:
+        st = State(st.deck[:tiles], komi=komi)
+    S = FAST.new_game(st.deck, komi)
     assert snapshot(S) == py_snapshot(st)
     while not st.over:
         m = pick(st, policy_rng)
@@ -149,3 +151,13 @@ def test_fast_is_much_faster_than_python():
     fast_rate = n / (time.time() - t)
     assert fast_rate > 300  # Pythonエンジンは約200局/秒（meeple列挙あり）。Numbaは桁違いに速いはず
     assert np is not None
+
+
+@pytest.mark.parametrize("seed", range(10))
+def test_fast_matches_python_with_komi_and_short_deck(seed):
+    """ルール変更の実験（コミ・70枚）でも、両エンジンが一致し、70手で終わる。"""
+    st = mirror_game(
+        seed + 900, random.Random(seed), lambda st, r: r.choice(st.legal_moves()), komi=4, tiles=70
+    )
+    assert len(st.history) + len(st.discarded) == 70
+    assert st.komi == 4
