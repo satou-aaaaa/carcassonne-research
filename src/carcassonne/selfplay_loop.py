@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import time
 from dataclasses import asdict, dataclass
@@ -50,6 +51,36 @@ class Config:
     threshold: float = 0.55  # 採用に必要な勝率
     anchor_seeds: int = 20  # 採用時に初代と対戦する組数（0で省略）
     workers: int = 4
+
+
+_DATA_NAME = re.compile(r"^a(\d+)_")
+
+
+def data_attempt(path: Path) -> int:
+    """自己対戦データ `a<試行>_<塊>.npz` の試行番号。
+
+    番号は `:03d` で書くので 1000 からは4桁になる。名前を `[1:4]` のように決まった幅で切ると
+    1000 以上を 100 と読み違え、学習のデータが消える（2026-11-06 試行1003、Issue #141）。
+    """
+    m = _DATA_NAME.match(path.name)
+    if not m:
+        raise ValueError(f"自己対戦データの名前ではありません: {path.name}")
+    return int(m.group(1))
+
+
+def data_files(data_dir: Path) -> list[Path]:
+    """自己対戦データを試行・塊の数の順に並べて返す（名前の文字の順だと a1000 が a999 より前に来る）。"""
+    return sorted(data_dir.glob("a*_*.npz"), key=lambda f: (data_attempt(f), f.name))
+
+
+def prune_data(root: Path) -> list[Path]:
+    """学習に使わなくなった古い自己対戦データ（直近 window 試行より前）を消し、消したものを返す。"""
+    st = json.loads((root / "state.json").read_text(encoding="utf-8"))
+    window = st.get("config", {}).get("window", 4)
+    gone = [f for f in data_files(root / "data") if data_attempt(f) <= st["attempt"] - window]
+    for f in gone:
+        f.unlink()
+    return gone
 
 
 def _write_json(path: Path, obj) -> None:
@@ -149,8 +180,8 @@ class Loop:
     def load_window(self):
         a, w = self.attempt, self.cfg.window
         Xs, ys, ps, gs, off = [], [], [], [], 0
-        for f in sorted((self.root / "data").glob("a*.npz")):
-            if not a - w < int(f.name[1:4]) <= a:
+        for f in data_files(self.root / "data"):
+            if not a - w < data_attempt(f) <= a:
                 continue
             with np.load(f) as d:
                 X = d["X"]
@@ -166,6 +197,17 @@ class Loop:
 
     def _train(self) -> str:
         c, a = self.cfg, self.attempt
+        n_chunks = -(-c.games // c.chunk)
+        missing = [
+            k
+            for k in range(n_chunks)
+            if not (self.root / "data" / f"a{a:03d}_{k:02d}.npz").exists()
+        ]
+        if missing:
+            # この試行の自己対戦データが欠けている（消えた・別の場所から移した）: 自己対戦からやり直す
+            self.state["phase"] = "selfplay"
+            self.save()
+            return f"試行{a}: 自己対戦データが {len(missing)}/{n_chunks} 塊ないので、自己対戦からやり直します"
         X, y, p, g = self.load_window()
         champ, mode = load_eval(self.path(self.state["champion"]))
         target = td_lambda_targets(eval_np(champ, mode, X), y, p, g, c.lam)
