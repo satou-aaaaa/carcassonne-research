@@ -20,6 +20,7 @@ from .fast import (
     NT,
     SC_CUR,
     SC_DRAW,
+    SC_END,
     SC_OVER,
     SC_PL,
     SC_S0,
@@ -316,7 +317,7 @@ def run_tree(
         if rshuf == 1 and chance == 0:
             shuffle_rest(W)
         v0 = 0.0
-        use_eval = eval_mode >= 1 and (NT - 1 - wsc[SC_DRAW]) > late
+        use_eval = eval_mode >= 1 and (wsc[SC_END] - wsc[SC_DRAW]) > late
         if use_eval and wsc[SC_OVER] == 0:
             # 学習型評価関数: depth手のロールアウトで進めた後の局面を線形モデルで評価する
             if depth > 0:
@@ -484,7 +485,7 @@ def next_tile_value(
     X = copy_state(S)
     seen = np.zeros(128, np.bool_)
     for ci in range(len(cells)):
-        if lo >= NT - 1:  # この手で終局
+        if lo >= S[10][SC_END]:  # この手で終局
             copy_into(X, S)
             apply_move(X, T, P, cells[ci], gs[ci], pieces[ci], stamp, stamp_box, out_cell, out_g)
             d = float(X[10][SC_S0] - X[10][SC_S1])
@@ -597,7 +598,7 @@ class FastMCTSAgent:
 
     def to_fast(self, state: State):
         """Pythonの State を、着手履歴の再生でNumba状態へ変換する。"""
-        S = self.fast.new_game(state.deck)
+        S = self.fast.new_game(state.deck, getattr(state, "komi", 0))
         for x, y, ti, vi, piece in state.history:
             self.fast.apply(S, x, y, ti, vi, piece)
         return S

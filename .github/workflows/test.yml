@@ -46,7 +46,9 @@ jobs:
 
   # 公開ページの UI 点検（スマホ幅・PC幅。scripts/ui_check.mjs、目で見る手順は .claude/skills/ui-check）
   ui:
-    runs-on: ubuntu-latest
+    # ubuntu-latest が 26.04 に変わり、Playwright 1.56.1 が Chromium を入れられなくなった（2026-11-06）。
+    # Playwright が対応している版に固定する。Playwright を上げるときは、対応する Ubuntu を確かめてから外す
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: "準備: Playwright と Chromium"

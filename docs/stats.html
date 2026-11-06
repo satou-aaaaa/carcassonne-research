@@ -158,7 +158,7 @@ summary { padding-block: 6px; }
     <p class="cap">先手・後手の勝ち負け（2,000局）</p>
     <svg viewBox="0 0 480 116" class="chart" role="img" aria-label="先手の勝ち 56.1%"><rect x="1.0" y="0" width="267.5" height="44" rx="4" class="b-first"><title>先手の勝ち 56.1%</title></rect><rect x="270.5" y="0" width="7.4" height="44" rx="4" class="b-draw"><title>引き分け 1.9%</title></rect><rect x="279.9" y="0" width="199.1" height="44" rx="4" class="b-second"><title>後手の勝ち 41.9%</title></rect><text x="2" y="74" class="val">先手の勝ち 56.1%</text><text x="2" y="104" class="tick">引き分け 1.9%</text><text x="478" y="74" text-anchor="end" class="val">後手の勝ち 41.9%</text></svg>
   </div>
-  <p>理由のひとつは枚数です。開始タイルを除く71枚を交互に置くので、先手は<b class="num">36</b>枚、後手は<b class="num">35</b>枚置きます。最後の1枚を置けるのも先手です。引き分けは1.9%と、とても少なめです。</p>
+  <p>いちばんの理由は枚数です。開始タイルを除く71枚を交互に置くので、先手は<b class="num">36</b>枚、後手は<b class="num">35</b>枚置きます。最後の1枚を置けるのも先手です。1枚抜いて枚数をそろえると差がほぼ消えました（<a href="#fair">9節</a>）。引き分けは1.9%と、とても少なめです。</p>
   <div class="box learn"><span class="k">学び</span><ul>
     <li>後手で数点負けているのは、ほぼ互角です。焦って無理な手を打つ必要はありません。</li>
     <li>先手は最後の1枚を持っています。終盤は「相手にもう1手ある／ない」を数えて、完成させる順番を決めましょう。</li>
@@ -252,9 +252,26 @@ summary { padding-block: 6px; }
   </ul></div>
 </section>
 
+<section id="fair">
+  <h2><span class="no">9</span>先手の有利をなくすには</h2>
+  <p>囲碁では、先に打つ黒の有利を消すために、白に最初から点を足す「コミ」があります。カルカソンヌでも同じことができるか、ルールを変えてAIに実際に1,000局以上ずつ指させて確かめました。</p>
+  <div class="tablewrap"><table class="cards"><thead><tr><th>ルール</th><th>局数</th><th>先手の勝率</th><th>95%の範囲</th><th>先手の平均点差</th></tr></thead><tbody><tr><th>いまのルール（71枚・調整なし）</th><td data-label="局数"><span>2,000</span></td><td data-label="先手の勝率"><span>57.1%</span></td><td data-label="95%の範囲"><span>54.9%–59.3%</span></td><td data-label="先手の平均点差"><span>+4.0</span></td></tr><tr><th>後手に最初から4点（コミ4点）</th><td data-label="局数"><span>1,000</span></td><td data-label="先手の勝率"><span>52.8%</span></td><td data-label="95%の範囲"><span>49.8%–55.9%</span></td><td data-label="先手の平均点差"><span>+1.3</span></td></tr><tr><th>1枚伏せて70枚に（2人とも35枚ずつ）</th><td data-label="局数"><span>1,000</span></td><td data-label="先手の勝率"><span>51.2%</span></td><td data-label="95%の範囲"><span>48.1%–54.3%</span></td><td data-label="先手の平均点差"><span>+0.5</span></td></tr></tbody></table></div>
+  <p>「後手に最初から4点（コミ4点）」では先手の勝率が52.8%（平均点差+1.3）になり、先後の差は誤差の範囲に収まりました。「1枚伏せて70枚に（2人とも35枚ずつ）」では先手の勝率が51.2%（平均点差+0.5）になり、先後の差は誤差の範囲に収まりました。</p>
+  <p>下の図は、いまのルールで指した対局の点差に、後手の加点を足したらどうなるかの試算です。3点では足りず、5点では後手が有利になります。</p>
+  <div class="chartbox">
+    <p class="cap">後手に最初から何点あげると、先手の勝率がどうなるか（試算）</p>
+    <svg viewBox="0 0 480 292" class="chart" role="img" aria-label="後手の加点と先手の勝率（試算）"><text x="60" y="23" text-anchor="end" class="rowlbl">0点</text><rect x="70" y="4" width="197.7" height="26" rx="3" class="b-main"><title>0点 57.1</title></rect><text x="275.7" y="23" class="val">57.1%</text><text x="60" y="59" text-anchor="end" class="rowlbl">1点</text><rect x="70" y="40" width="191.7" height="26" rx="3" class="b-main"><title>1点 55.4</title></rect><text x="269.7" y="59" class="val">55.4%</text><text x="60" y="95" text-anchor="end" class="rowlbl">2点</text><rect x="70" y="76" width="185.9" height="26" rx="3" class="b-main"><title>2点 53.7</title></rect><text x="263.9" y="95" class="val">53.7%</text><text x="60" y="131" text-anchor="end" class="rowlbl">3点</text><rect x="70" y="112" width="179.6" height="26" rx="3" class="b-main"><title>3点 51.9</title></rect><text x="257.6" y="131" class="val">51.9%</text><text x="60" y="167" text-anchor="end" class="rowlbl">4点</text><rect x="70" y="148" width="172.6" height="26" rx="3" class="b-main"><title>4点 49.9</title></rect><text x="250.6" y="167" class="val">49.9%</text><text x="60" y="203" text-anchor="end" class="rowlbl">5点</text><rect x="70" y="184" width="165.1" height="26" rx="3" class="b-main"><title>5点 47.7</title></rect><text x="243.1" y="203" class="val">47.7%</text><text x="60" y="239" text-anchor="end" class="rowlbl">6点</text><rect x="70" y="220" width="157.3" height="26" rx="3" class="b-main"><title>6点 45.5</title></rect><text x="235.3" y="239" class="val">45.5%</text><text x="60" y="275" text-anchor="end" class="rowlbl">7点</text><rect x="70" y="256" width="150.5" height="26" rx="3" class="b-main"><title>7点 43.5</title></rect><text x="228.5" y="275" class="val">43.5%</text></svg>
+  </div>
+  <div class="box learn"><span class="k">学び</span><ul>
+    <li>友だちや家族と1局だけ遊ぶときは、始める前に山札から1枚を見ないで箱に戻すと（2人とも35枚ずつ）、先後の差がほぼ消えます。</li>
+    <li>後手の得点コマを4点の位置に置いてから始める方法でも、差は誤差の範囲まで縮みます。</li>
+    <li>4点は「強い人どうし」の数字です。慣れていない人どうしでは先後の差がもっと小さいかもしれないので、まずは2〜3点から試してもかまいません。</li>
+  </ul></div>
+</section>
+
 <section id="method">
   <h2>測り方について</h2>
-  <p class="note">AIは対戦ページの「標準」と同じ設定（1手2000回の探索＋最新の評価関数 gen975）。1,000通りの山札を、指し手の乱数だけ変えて2回ずつ指しました（2026-11-05時点）。勝率の範囲はWilsonの95%信頼区間、先手有利の検定は引き分けを除いた二項検定（p < 0.001）。「見込みの点」は、その時点でゲームが終わったとして未完成の場所と草原を数えた点です。強さ別の対戦は、同じ山札で先後を入れ替えた2局を1組にしています。人間同士の対局とは数字が違うかもしれません。集計は <code>scripts/collect_game_stats.py</code>・<code>scripts/summarize_game_stats.py</code>、集計結果は <code>docs/results/game_stats.json</code>。</p>
+  <p class="note">AIは対戦ページの「標準」と同じ設定（1手2000回の探索＋最新の評価関数 gen975）。1,000通りの山札を、指し手の乱数だけ変えて2回ずつ指しました（2026-11-05時点）。勝率の範囲はWilsonの95%信頼区間、先手有利の検定は引き分けを除いた二項検定（p < 0.001）。「見込みの点」は、その時点でゲームが終わったとして未完成の場所と草原を数えた点です。強さ別の対戦は、同じ山札で先後を入れ替えた2局を1組にしています。ルールを変えた対局は、AIもそのルールを知ったうえで指しています（コミは後手の初期点、70枚は山札の最後の1枚を伏せたまま使わない）。人間同士の対局とは数字が違うかもしれません。集計は <code>scripts/collect_game_stats.py</code>・<code>scripts/summarize_game_stats.py</code>、集計結果は <code>docs/results/game_stats.json</code>。</p>
   <div class="next">
     <a href="ai_tips.html">強いAIに学ぶコツ</a>
     <a class="sub" href="play.html">AIと対戦する</a>

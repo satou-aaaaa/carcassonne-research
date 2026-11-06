@@ -333,6 +333,28 @@ def ladder(d: Path) -> list[dict]:
     return out
 
 
+# 先後の差をなくすルールの実験（名前, ファイル）。基準は selfplay.jsonl（コミなし・71枚）
+FAIRNESS = [("komi4", "komi4"), ("tiles70", "tiles70")]
+
+
+def fairness(d: Path, games: list[dict]) -> dict:
+    """ルールを変えて実際に指した結果と、基準の対局の点差に後手の加点を足した試算。"""
+    rows = [{"rule": "base", **first_player(games)}]
+    for name, fname in FAIRNESS:
+        path = d / f"{fname}.jsonl"
+        if path.exists():
+            gs = [json.loads(x) for x in path.read_text(encoding="utf-8").splitlines() if x.strip()]
+            rows.append({"rule": name, **first_player(gs)})
+    diffs = [g["scores"][0] - g["scores"][1] for g in games]
+    n = len(diffs)
+    sim = []
+    for k in range(8):
+        w = sum(x > k for x in diffs)
+        t = sum(x == k for x in diffs)
+        sim.append({"komi": k, "score": _r((w + 0.5 * t) / n, 4), "draw": _r(t / n, 4)})
+    return {"played": rows, "komi_sim": sim}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("dir", help="runs/stats など")
@@ -356,6 +378,7 @@ def main() -> None:
         "complexity": complexity(games),
         "deck_luck": deck_luck(games),
         "ladder": ladder(d),
+        "fairness": fairness(d, games),
     }
     Path(args.out).write_text(json.dumps(stats, ensure_ascii=False, indent=1), encoding="utf-8")
     fp = stats["first_player"]

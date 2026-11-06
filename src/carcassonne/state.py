@@ -36,7 +36,8 @@ class Move(NamedTuple):
 class State:
     """ゲーム状態。`copy()` で複製でき、`apply()` は自身を破壊的に更新する。"""
 
-    def __init__(self, deck: list[int], tileset: TileSet | None = None) -> None:
+    def __init__(self, deck: list[int], tileset: TileSet | None = None, komi: int = 0) -> None:
+        """komi は後手の初期点（ルール変更の実験用）。deck を71枚より短くすると、その枚数で終局する。"""
         self.ts = tileset or load_tileset()
         self.deck = list(deck)  # 引く順に並べた種別index（開始タイルを除く）
         self.draw_pos = 0
@@ -54,7 +55,8 @@ class State:
         self.field_cities: list[set | None] = []
         self.monasteries: dict[tuple[int, int], int] = {}
         self.supply = [MEEPLES_PER_PLAYER, MEEPLES_PER_PLAYER]
-        self.scores = [0, 0]
+        self.komi = komi
+        self.scores = [0, komi]
         self.player = 0
         self.current: int | None = None  # 手番プレイヤーが引いて置くタイル
         self.over = False
@@ -91,6 +93,7 @@ class State:
         c.monasteries = dict(self.monasteries)
         c.supply = list(self.supply)
         c.scores = list(self.scores)
+        c.komi = self.komi
         c.player = self.player
         c.current = self.current
         c.over = self.over

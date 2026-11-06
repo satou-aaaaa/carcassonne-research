@@ -22,8 +22,8 @@ MEEPLES = 7
 KIND = {CITY: 0, ROAD: 1, FIELD: 2, MONASTERY: 3}
 
 # sc（スカラー）配列の添字
-SC_N, SC_PL, SC_S0, SC_S1, SC_SUP0, SC_SUP1, SC_OVER, SC_DRAW, SC_CUR, SC_DISC = range(10)
-SC_LEN = 10
+SC_N, SC_PL, SC_S0, SC_S1, SC_SUP0, SC_SUP1, SC_OVER, SC_DRAW, SC_CUR, SC_DISC, SC_END = range(11)
+SC_LEN = 11  # SC_END: 山札の何枚目まで使うか（通常71。ルール変更の実験で70など）
 
 
 def build_tables(ts: TileSet) -> tuple:
@@ -508,7 +508,7 @@ def projected(S, T, P):
 def draw(S, T, P, stamp, stamp_box, out_cell, out_g):
     """置ける次のタイルを引く（置けないものは捨てる）。山札切れなら終局処理。"""
     sc, deck = S[10], S[11]
-    ndeck = NT - 1
+    ndeck = sc[SC_END]
     while sc[SC_DRAW] < ndeck:
         ti = deck[sc[SC_DRAW]]
         sc[SC_DRAW] += 1
@@ -623,9 +623,22 @@ class Fast:
         self.P = int(self.T[2].shape[1])
         self.scratch = Scratch()
 
-    def new_game(self, deck: list[int]):
-        """山札（開始タイルを除く71枚の種別index）から初期状態を作る。"""
+    def new_game(self, deck: list[int], komi: int = 0):
+        """山札（開始タイルを除く71枚の種別index）から初期状態を作る。
+
+        ルール変更の実験用: komi は後手の初期点（囲碁のコミ）。deck が71枚より短いときは、
+        その枚数で終局する（残りは使わないタイルとして末尾に詰める。未公開の山札として扱う）。
+        """
         S = make_state(self.P)
+        n = len(deck)
+        if n < NT - 1:
+            rest = [i for i, t in enumerate(self.ts.types) for _ in range(t.count)]
+            rest.remove(self.ts.start)
+            for t in deck:
+                rest.remove(t)
+            deck = list(deck) + rest
+        S[10][SC_END] = n
+        S[10][SC_S1] = komi
         sc = self.scratch
         init_game(
             S,

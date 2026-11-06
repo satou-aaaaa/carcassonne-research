@@ -10,7 +10,7 @@ from __future__ import annotations
 import numpy as np
 from numba import njit
 
-from .fast import NT, SC_DRAW, SC_N, SC_SUP0, G, dircell, end_points, find
+from .fast import NT, SC_DRAW, SC_END, SC_N, SC_SUP0, G, dircell, end_points, find
 from .fast_eval import n_fit, remaining_counts
 
 NX = 11
@@ -104,7 +104,7 @@ def features_ext(S, T, P, me, out):
     lp = np.empty(NN)
     completion_logp(S, T, P, lp)
     parent, meep, tg, npc, opn = S[3], S[9], S[1], T[1], S[5]
-    rem = (NT - 1 - sc[SC_DRAW]) / 71.0
+    rem = (sc[SC_END] - sc[SC_DRAW]) / 71.0
     for t in range(sc[SC_N]):
         for i in range(npc[tg[t]]):
             nd = t * P + i

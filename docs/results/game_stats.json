@@ -1220,5 +1220,99 @@
    "mean_diff": 10.2,
    "elo": 144.0
   }
- ]
+ ],
+ "fairness": {
+  "played": [
+   {
+    "rule": "base",
+    "games": 2000,
+    "wins": 1123,
+    "losses": 838,
+    "draws": 39,
+    "score": 0.5713,
+    "ci": [
+     0.5494,
+     0.5928
+    ],
+    "p_value": 1.32e-10,
+    "mean_diff": 3.98,
+    "se_diff": 0.45,
+    "draw_rate": 0.0195
+   },
+   {
+    "rule": "komi4",
+    "games": 1000,
+    "wins": 517,
+    "losses": 460,
+    "draws": 23,
+    "score": 0.5285,
+    "ci": [
+     0.4975,
+     0.5593
+    ],
+    "p_value": 0.0731,
+    "mean_diff": 1.32,
+    "se_diff": 0.64,
+    "draw_rate": 0.023
+   },
+   {
+    "rule": "tiles70",
+    "games": 1000,
+    "wins": 504,
+    "losses": 480,
+    "draws": 16,
+    "score": 0.512,
+    "ci": [
+     0.481,
+     0.5429
+    ],
+    "p_value": 0.463,
+    "mean_diff": 0.52,
+    "se_diff": 0.61,
+    "draw_rate": 0.016
+   }
+  ],
+  "komi_sim": [
+   {
+    "komi": 0,
+    "score": 0.5713,
+    "draw": 0.0195
+   },
+   {
+    "komi": 1,
+    "score": 0.554,
+    "draw": 0.015
+   },
+   {
+    "komi": 2,
+    "score": 0.5373,
+    "draw": 0.0185
+   },
+   {
+    "komi": 3,
+    "score": 0.519,
+    "draw": 0.018
+   },
+   {
+    "komi": 4,
+    "score": 0.4988,
+    "draw": 0.0225
+   },
+   {
+    "komi": 5,
+    "score": 0.4773,
+    "draw": 0.0205
+   },
+   {
+    "komi": 6,
+    "score": 0.4547,
+    "draw": 0.0245
+   },
+   {
+    "komi": 7,
+    "score": 0.435,
+    "draw": 0.015
+   }
+  ]
+ }
 }
