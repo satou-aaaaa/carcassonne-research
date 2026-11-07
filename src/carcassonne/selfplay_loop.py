@@ -53,6 +53,10 @@ class Config:
     workers: int = 4
 
 
+# root の下のフォルダ。状態は git のブランチで受け渡すので、空になったフォルダは次の実行では無い
+# （git は空のフォルダを残さない。2026-11-07 試行1003、Issue #143）。読み込むたびに作り直す。
+_SUBDIRS = ("data", "models", "gate")
+
 _DATA_NAME = re.compile(r"^a(\d+)_")
 
 
@@ -84,12 +88,14 @@ def prune_data(root: Path) -> list[Path]:
 
 
 def _write_json(path: Path, obj) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(json.dumps(obj, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     os.replace(tmp, path)
 
 
 def _save_npz(path: Path, **arrays) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(path.name + ".tmp.npz")
     np.savez_compressed(tmp, **arrays)
     os.replace(tmp, path)
@@ -117,11 +123,11 @@ class Loop:
         if self.state_path.exists():
             self.state = json.loads(self.state_path.read_text(encoding="utf-8"))
             self.cfg = Config(**self.state["config"])
+            self._make_dirs()
             return
         if config is None or initial is None:
             raise ValueError(f"{self.state_path} が無いので、config と初代の重みが必要です")
-        for sub in ("data", "models", "gate"):
-            (self.root / sub).mkdir(parents=True, exist_ok=True)
+        self._make_dirs()
         shutil.copy(initial, self.root / "models" / "gen000.npy")
         self.cfg = config
         self.state = {
@@ -135,6 +141,10 @@ class Loop:
         self.save()
 
     # ---- 状態 ----
+    def _make_dirs(self) -> None:
+        for sub in _SUBDIRS:
+            (self.root / sub).mkdir(parents=True, exist_ok=True)
+
     def save(self) -> None:
         _write_json(self.state_path, self.state)
 
