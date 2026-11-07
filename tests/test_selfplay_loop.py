@@ -131,3 +131,56 @@ def test_data_names_are_not_cut_at_fixed_width():
     assert not bad, "番号は正規表現で取ってください（selfplay_loop.data_attempt）:\n" + "\n".join(
         bad
     )
+
+
+def _through_git(root, work):
+    """CI と同じく、状態を git のコミットにして別の場所へ取り出す（空のフォルダはここで消える）。"""
+    import shutil
+    import subprocess
+
+    def git(*a, cwd):
+        subprocess.run(["git", *a], cwd=cwd, check=True, capture_output=True)
+
+    repo = work / "repo"
+    shutil.rmtree(repo, ignore_errors=True)
+    shutil.copytree(root, repo / "loop")
+    git("init", "-q", cwd=repo)
+    git("add", "-A", "-f", "loop", cwd=repo)
+    git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "s", cwd=repo)
+    out = work / f"clone{len(list(work.glob('clone*')))}"
+    git("clone", "-q", str(repo), str(out), cwd=work)
+    return out / "loop"
+
+
+def test_loop_survives_state_passed_through_git(tmp_path):
+    """CI は状態をブランチ selfplay-state で受け渡す。git は空のフォルダを残さないので、
+    1単位ごとに git を通して取り出しても、どの番でも落ちずに進む（Issue #143: data/ が無くて落ちた）。
+    """
+    from carcassonne.selfplay_loop import prune_data
+
+    cfg = Config(
+        games=1, chunk=1, sims=10, depth=2, window=1, gate_seeds=1, gate_chunk=1,
+        threshold=0.0, anchor_seeds=1, workers=1,
+    )  # fmt: skip
+    root = tmp_path / "start"
+    Loop(root, cfg, "models/eval_v6_lin.npy")  # 作った直後は data/・gate/ が空
+    seen = set()
+    for _ in range(8):  # 自己対戦→学習→判定→初代と対戦→（次の試行）…
+        root = _through_git(root, tmp_path)
+        loop = Loop(root)
+        seen.add(loop.state["phase"])
+        loop.step()
+        prune_data(root)  # CI は保存の前に片付ける
+    assert seen == {"selfplay", "train", "gate", "anchor"}
+    assert loop.attempt >= 2
+    # 試行1003 のように data/ が丸ごと消えた状態から、学習の番を迎えても続けられる
+    for f in (root / "data").glob("*.npz"):
+        f.unlink()
+    loop.state["phase"] = "train"
+    loop.save()
+    root = _through_git(root, tmp_path)
+    assert not (root / "data").exists()
+    loop = Loop(root)
+    assert "やり直" in loop.step()
+    loop.step()  # 自己対戦（以前はここで FileNotFoundError）
+    assert loop.state["phase"] == "train"
