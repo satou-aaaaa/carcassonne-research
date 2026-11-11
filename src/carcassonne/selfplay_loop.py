@@ -56,6 +56,11 @@ class Config:
     # 判定の対戦は変わらないので、混ぜて弱くなれば採用されない。
     human_games: str = "data/human_games.jsonl"
     human_weight: int = 1
+    # 探索の上位候補を相手の返し手まで読んで選び直す（FastMCTSAgent の reselect・reselect_k・reselect_reply）。
+    # 自己対戦・判定で、対戦ページの「最強」と同じ選び方をする。0 で使わない
+    reselect: float = 0.0
+    reselect_k: int = 6
+    reselect_reply: int = 0
 
 
 # root の下のフォルダ。状態は git のブランチで受け渡すので、空になったフォルダは次の実行では無い
@@ -159,7 +164,19 @@ class Loop:
 
     def agent(self, eval_rel: str):
         c = self.cfg
-        return partial(FastMCTSAgent, c.sims, rollout_depth=c.depth, eval_path=self.path(eval_rel))
+        return partial(FastMCTSAgent, c.sims, eval_path=self.path(eval_rel), **self.search_kwargs())
+
+    def search_kwargs(self) -> dict:
+        """自己対戦・判定で共通の探索の設定（評価関数を除く）。"""
+        c = self.cfg
+        kw = {"rollout_depth": c.depth}
+        if c.reselect > 0:
+            kw.update(
+                reselect=c.reselect,
+                reselect_k=c.reselect_k,
+                reselect_reply=bool(c.reselect_reply),
+            )
+        return kw
 
     @property
     def attempt(self) -> int:
@@ -250,7 +267,7 @@ class Loop:
                 continue
             n = min(c.chunk, c.games - k * c.chunk)
             kw = {"n_sims": c.sims, "eval_path": self.path(self.state["champion"])}
-            kw["rollout_depth"] = c.depth
+            kw.update(self.search_kwargs())
             X, y, p, g = generate(kw, n, c.workers, seed=100_000 + a * 100 + k, with_meta=True)
             _save_npz(out, X=X, y=y, p=p, g=g)
             if k == n_chunks - 1:
