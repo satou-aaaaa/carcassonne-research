@@ -19,6 +19,7 @@
   @keyframes spin { to { transform:rotate(360deg); } }
   #viewBtns { position:absolute; right:12px; top:12px; display:flex; gap:6px; z-index:1; }
   #viewBtns button { background:var(--panel); padding:4px 10px; }
+  #viewBtns button[aria-pressed="true"] { background:var(--accent); color:#fff; border-color:var(--accent); }
   /* 仮置きしたタイルのすぐ下に出す操作（回転・やめる・確定）。盤から目と指を離さずに置ける */
   #tileBar { position:absolute; z-index:2; display:flex; gap:6px; padding:5px; background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,.25); }
   #tileBar[hidden] { display:none; }
@@ -33,7 +34,7 @@
   .score small { color:var(--muted); display:block; }
   .score .pr { color:var(--muted); font-size:12px; margin-left:4px; }
   .score .mp { display:block; height:14px; line-height:0; }
-  .score .mp svg { width:11px; height:13px; margin-right:1px; }
+  .score .mp svg { width:12px; height:12px; margin-right:1px; }
   .score .pop { position:absolute; right:10px; top:6px; font-weight:700; font-size:18px; animation:pop 1.4s ease-out forwards; pointer-events:none; }
   @keyframes pop { 0% { opacity:0; transform:translateY(6px); } 15% { opacity:1; transform:translateY(0); } 70% { opacity:1; } 100% { opacity:0; transform:translateY(-14px); } }
   .turn { outline:2px solid var(--accent); }
@@ -73,6 +74,10 @@
   #result td, #result th { padding:2px 4px; border-bottom:1px solid var(--line); text-align:right; }
   #result td:first-child, #result th:first-child { text-align:left; font-weight:normal; color:var(--muted); }
   #result tr.sum td { font-weight:700; color:var(--ink); border-bottom:0; }
+  #result .share { margin-top:8px; padding-top:8px; border-top:1px solid var(--line); font-size:12.5px; color:var(--muted); line-height:1.5; }
+  #result .share b { color:var(--ink); }
+  #result .share .row { margin:6px 0 4px; flex-wrap:wrap; }
+  #result .share button { min-height:36px; }
   #home { font-size:12.5px; color:var(--muted); }
   #home nav { display:flex; flex-wrap:wrap; gap:0 12px; margin-bottom:2px; }
   #home a { color:inherit; display:inline-flex; align-items:center; min-height:28px; }
@@ -81,7 +86,7 @@
   .touch .kbd-only { display:none; }
   @media (pointer: coarse) {
     #tileBar button { min-width:48px; min-height:44px; font-size:17px; }
-    #tileCtl button, #viewBtns button { min-height:40px; }
+    #tileCtl button, #viewBtns button { min-height:44px; }
   }
   @media (max-width: 760px) {
     body { flex-direction:column; height:auto; }
@@ -113,6 +118,7 @@
   <div id="viewBtns">
     <button id="btnZoomIn" title="拡大" aria-label="拡大">＋</button>
     <button id="btnZoomOut" title="縮小" aria-label="縮小">－</button>
+    <button id="btnAreas" aria-pressed="false" title="ミープルが乗っている都市・道・草原などを持ち主の色で塗る">陣地</button>
     <button id="btnFit">全体を表示</button>
   </div>
   <div id="tileBar" hidden>
@@ -170,6 +176,7 @@
       <li>完成: 都市=タイル数×2＋盾×2、道=タイル数、修道院=9点。</li>
       <li>終局時: 未完成の都市・道は1タイル1点（都市の盾も1点）、修道院は1＋周囲の埋まった数、農民は隣接する完成都市1つにつき3点。</li>
       <li>最多ミープルの側が得点（同数なら両者満点）。</li>
+      <li>盤のミープル: 立っているのは都市・道・修道院、寝ているのは草原の農民（実物のゲームと同じ置き方）。「陣地」ボタンで、ミープルが乗っている範囲を持ち主の色（同数は黄色）で塗り分けます。</li>
       <li>置けないタイルは捨てて引き直し（手番は変わらない）。</li>
       <li>操作: 緑のマスを押してタイルを仮置き → タイルのすぐ下の ⟳ かタイルをもう一度押して向きを変える（置ける向きだけを順に回ります） → ミープルを円かボタンで選ぶ → ✓確定（選んだ円をもう一度押しても確定）。✕ で仮置きをやめます。</li>
       <li>「ヒント」でAIならどう置くかを仮置きで見られます。「待った」で直前の自分の手を取り消せます（ローカル版の記録には回数が残り、強さの集計からは除かれます）。</li>
@@ -295,7 +302,8 @@ function tileCanvas(t, v) {
 
 
 // ---------- 盤面描画 ----------
-const cv = $("board"), ctx = cv.getContext("2d");
+const cv = $("board");
+let ctx = cv.getContext("2d");
 const cellLeft = x => view.ox + x*view.s, cellTop = y => view.oy - y*view.s;
 const keyOf = (x, y) => x + "," + y;
 function resize() {
@@ -400,7 +408,14 @@ function draw() {
   // 調べている特徴（置いたミープルにカーソル／タップ）
   if (inspect && !pending) drawFeature(inspect.feature, inspect.color, .45);
   if (cellInfo && !pending) { ctx.strokeStyle = "#ff9800"; ctx.lineWidth = 3; ctx.setLineDash([5, 4]); ctx.strokeRect(cellLeft(cellInfo.x)+2, cellTop(cellInfo.y)+2, s-4, s-4); ctx.setLineDash([]); }
+  if (showAreas && !pending) drawAreas();
   for (const m of G.meeples) drawMeeple(cellLeft(m.x), cellTop(m.y), m.piece, m.player, G.board.find(b => b.x === m.x && b.y === m.y));
+  // AIが直前に置いたミープルを輪で示す（どこに置いたか見落とさない）
+  if (G.last_ai) for (const m of G.meeples) if (m.x === G.last_ai.x && m.y === G.last_ai.y && m.player !== G.human_seat) {
+    const b = G.board.find(q => q.x === m.x && q.y === m.y), [ax, ay] = anchors(b.t, b.v)[m.piece];
+    ctx.save(); ctx.strokeStyle = PCOL[m.player]; ctx.lineWidth = 2.5; ctx.beginPath();
+    ctx.arc(cellLeft(m.x) + ax*s, cellTop(m.y) + ay*s, meepleSize() * .72, 0, 7); ctx.stroke(); ctx.restore();
+  }
   if (inflight && inflight.piece !== null) drawMeeple(cellLeft(inflight.x), cellTop(inflight.y), inflight.piece, G.human_seat, inflight);
   if (myTurn() && G.current !== null) {
     if (!pending) {
@@ -422,6 +437,9 @@ function draw() {
         if (pi === pending.piece) { drawMeeple(cellLeft(pending.x), cellTop(pending.y), pi, G.human_seat, {t: G.current, v: pending.v}); continue; }
         ctx.beginPath(); ctx.arc(x, y, rr, 0, 7); ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.fill();
         ctx.strokeStyle = PCOL[G.human_seat]; ctx.lineWidth = 2.5; ctx.setLineDash([4, 3]); ctx.stroke(); ctx.setLineDash([]);
+        // 円の中に置いたときの形をうすく出す（草原は寝かせた農民）
+        const kind = LIB[G.current].variants[pending.v].pieces[pi].kind;
+        meepleGlyph(x, y, rr * 1.45, PCOL[G.human_seat], kind === "F", .55);
       }
     }
   }
@@ -465,15 +483,60 @@ function placeTileBar() {
   x = Math.max(4, Math.min(W - bw - 4, x)); y = Math.max(a.top + 4, Math.min(a.bottom - bh - 4, y));
   bar.style.left = (cv.offsetLeft + x) + "px"; bar.style.top = (cv.offsetTop + y) + "px";
 }
+// ミープルの形（100×100 の枠）。草原の農民は実物と同じく寝かせて描き、都市・道・修道院の駒と見分けやすくする
+const MEEPLE_D = "M50 4C60 4 66 12 66 21C66 27 63 31 60 34L90 44C97 46 99 52 96 58C93 63 88 63 82 61L68 57L82 92C84 97 80 100 75 100L58 100L50 82L42 100L25 100C20 100 16 97 18 92L32 57L18 61C12 63 7 63 4 58C1 52 3 46 10 44L40 34C37 31 34 27 34 21C34 12 40 4 50 4Z";
+const MEEPLE_PATH = new Path2D(MEEPLE_D);
+// (x, y) を中心に、大きさ size（px）のミープルを描く。lying なら横に寝かせる
+function meepleGlyph(x, y, size, color, lying, alpha = 1) {
+  ctx.save(); ctx.globalAlpha = alpha; ctx.translate(x, y);
+  if (lying) { ctx.rotate(-Math.PI / 2); ctx.scale(.82, 1.12); }
+  const k = size / 100; ctx.scale(k, k); ctx.translate(-50, -52);
+  if (alpha >= 1) { ctx.shadowColor = "rgba(0,0,0,.5)"; ctx.shadowBlur = 3; ctx.shadowOffsetY = 1; }
+  ctx.fillStyle = color; ctx.fill(MEEPLE_PATH);
+  ctx.shadowColor = "transparent"; ctx.strokeStyle = "#fff"; ctx.lineWidth = Math.min(10, 1.6 / k); ctx.lineJoin = "round"; ctx.stroke(MEEPLE_PATH);
+  ctx.restore();
+}
+const meepleSize = () => Math.max(13, view.s * .27);
 function drawMeeple(left, top, pi, player, b) {
-  const [ax, ay] = anchors(b.t, b.v)[pi], s = view.s;
-  const x = left + ax*s, y = top + ay*s, r = s*.1;
-  ctx.fillStyle = PCOL[player]; ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(x, y - r*.9, r*.75, 0, 7); ctx.fill(); ctx.stroke();       // 頭
-  ctx.beginPath(); ctx.moveTo(x - r*1.15, y + r*1.2); ctx.lineTo(x, y - r*.2); ctx.lineTo(x + r*1.15, y + r*1.2); ctx.closePath(); ctx.fill(); ctx.stroke(); // 胴
+  const [ax, ay] = anchors(b.t, b.v)[pi], s = view.s, p = LIB[b.t].variants[b.v].pieces[pi];
+  meepleGlyph(left + ax*s, top + ay*s, meepleSize(), PCOL[player], p.kind === "F");
 }
 
 // ---------- 特徴の範囲と点数 ----------
+// 「陣地」: ミープルが乗っている特徴を持ち主の色で塗る（同数なら黄色）。盤面ごとに一度だけ計算する
+let showAreas = false, areasOf = null, areasList = [];
+function ownedAreas() {
+  if (areasOf === G) return areasList;
+  const B = CarcFeatures.build(LIB, G.board), seen = new Set();
+  areasList = [];
+  for (const m of G.meeples) {
+    const f = B.feature(m.x, m.y, m.piece);
+    if (!f || seen.has(f)) continue;
+    seen.add(f);
+    const o = CarcFeatures.owners(B, f, G.meeples);
+    areasList.push({feature: f, color: o[0] === o[1] ? "#ffd600" : PCOL[o[0] > o[1] ? 0 : 1]});
+  }
+  areasOf = G; return areasList;
+}
+// 別の層に不透明で塗ってから半透明で重ねる（隣り合う断片の重なりが濃い線にならない）。草原は広いので薄く
+let areaLayer = null;
+function drawAreas() {
+  if (!areaLayer) areaLayer = document.createElement("canvas");
+  if (areaLayer.width !== cv.width || areaLayer.height !== cv.height) { areaLayer.width = cv.width; areaLayer.height = cv.height; }
+  const main = ctx, lc = areaLayer.getContext("2d");
+  for (const fields of [true, false]) {
+    lc.setTransform(1, 0, 0, 1, 0, 0); lc.clearRect(0, 0, areaLayer.width, areaLayer.height);
+    lc.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    ctx = lc;
+    for (const a of ownedAreas()) if ((a.feature.kind === "F") === fields) drawFeature(a.feature, a.color, 1);
+    ctx = main;
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = fields ? .2 : .4; ctx.drawImage(areaLayer, 0, 0); ctx.restore();
+  }
+}
+function setAreas(on) {
+  showAreas = on; $("btnAreas").setAttribute("aria-pressed", on ? "true" : "false");
+  store.set("cc_areas", on ? "1" : "0"); requestDraw();
+}
 function pendingBoard() { return CarcFeatures.build(LIB, boardWith({x: pending.x, y: pending.y, t: G.current, v: pending.v})); }
 function pendingFeature(pi) { return pendingBoard().feature(pending.x, pending.y, pi); }
 function featureText(f, B, meeples, placing) {
@@ -488,7 +551,7 @@ function featureText(f, B, meeples, placing) {
     t = `修道院: 周り${f.around}/8マスが埋まっている。全部埋まれば9点、今終局すると${ev}点。`;
   } else {
     const open = f.cities.length - f.doneCities;
-    t = `草原: 接する完成した都市${f.doneCities}つ（未完成${open}つ）。今終局すると${ev}点。農民は最後まで戻りません。`;
+    t = `草原: 接する完成した都市${f.doneCities}つ（未完成${open}つ）。今終局すると${ev}点。草原のミープル（農民）は寝かせて置き、最後まで戻りません。`;
   }
   if (!placing) {
     const m = CarcFeatures.owners(B, f, meeples), h = G.human_seat;
@@ -666,6 +729,7 @@ function zoomCenter(f) { const r = cv.getBoundingClientRect(); zoomAt(r.width/2,
 $("btnZoomIn").onclick = () => zoomCenter(1.25);
 $("btnZoomOut").onclick = () => zoomCenter(1/1.25);
 $("btnFit").onclick = () => fitAll(true);
+$("btnAreas").onclick = () => setAreas(!showAreas);
 window.addEventListener("keydown", e => {
   if ($("dlg").open) return;
   if (e.target.tagName === "BUTTON" && (e.key === " " || e.key === "Enter")) return;
@@ -804,7 +868,7 @@ function animateDiff(prev, next, sent) {
 
 // ---------- パネル ----------
 function setHint(t) { $("hint").textContent = t; $("hint").classList.toggle("busy", busy); }
-const MEEPLE_SVG = c => `<svg viewBox="0 0 11 13"><circle cx="5.5" cy="3" r="2.6" fill="${c}"/><path d="M0.6 12.6 L5.5 4.6 L10.4 12.6 Z" fill="${c}"/></svg>`;
+const MEEPLE_SVG = c => `<svg viewBox="0 0 100 104"><path d="${MEEPLE_D}" fill="${c}"/></svg>`;
 function meepleIcons(n, col) { return MEEPLE_SVG(col).repeat(n) + MEEPLE_SVG("rgba(128,128,128,.3)").repeat(Math.max(0, 7 - n)); }
 function pieceLabel(pi, all) {
   const k = LIB[G.current].variants[pending.v].pieces[pi].kind;
@@ -821,7 +885,7 @@ function refreshInfo() {
     const h = G.hint;
     if (h && h.x === pending.x && h.y === pending.y && h.v === pending.v && h.piece === pending.piece)
       t = `ヒント: AIならこう置きます（${h.kind ? h.kind + "にミープル" : "ミープルなし"}）。そのまま確定しても、変えてもかまいません。` + (t ? " " + t : "");
-    else if (pending.pieces.length) t = "ミープルを置くなら、円かボタンで選びます。置くと黄色の範囲があなたの物になります。";
+    else if (pending.pieces.length) t = "ミープルを置くなら、円かボタンで選びます。置くと黄色の範囲があなたの物になります（寝かせた形は草原の農民）。";
     else t = G.supply[G.human_seat] ? "このタイルにはミープルを置ける場所がありません。" : "手持ちのミープルがありません。";
   } else if (inspect) t = inspect.text;
   else if (cellInfo) t = cellInfo.text;
@@ -917,8 +981,41 @@ function resultHtml() {
   return `<div class="title">終局: ${G.scores[h]} − ${G.scores[a]}（${verdict}）</div>` +
     `<table><tr><th></th><th style="color:${PCOL[h]}">あなた</th><th style="color:${PCOL[a]}">AI</th></tr>` +
     rows.map(([l, f]) => tr(l, f)).join("") + tr("合計", p => G.scores[p], "sum") + "</table>" +
-    (G.saved === false ? "" : `<div style="font-size:12px;color:var(--muted);margin-top:4px">記録を保存しました。</div>`);
+    (G.saved === false ? "" : `<div style="font-size:12px;color:var(--muted);margin-top:4px">記録を保存しました。</div>`) +
+    (G.record ? shareHtml() : "");
 }
+// 終局後の「棋譜を送る」欄。Google フォーム（アカウント不要）は設定があるときだけ出す（data/human_games_form.json）
+function shareHtml() {
+  const form = REC_FORM ? `<button type="button" class="primary" id="btnFormRec">棋譜を送る（アカウント不要）</button>` : "";
+  return `<div class="share"><b>棋譜を研究に使わせてください</b><br>人との対局から、AIの弱点を探して学習に使います。` +
+    `<div class="row">${form}<button type="button" id="btnSendRec">GitHubで送る</button><button type="button" id="btnSaveRec">ファイルに保存</button></div>` +
+    `送るのは山札・指し手・得点・AIの強さだけで、名前は入りません。開いた画面で内容を確かめ、送信ボタンを押すと届きます。` +
+    (REC_FORM ? `「棋譜を送る」は Google フォームで、アカウントもメールアドレスも要りません。` : "") +
+    `GitHub で送ると、棋譜とアカウント名が公開されます。ファイルは送らずに手元に残せます。</div>`;
+}
+const REC_FORM = window.PLAY_DATA ? window.PLAY_DATA.form : null;
+function recordFormUrl() { return `${REC_FORM.url}?usp=pp_url&${REC_FORM.entry}=${encodeURIComponent(recordJson())}`; }
+// 棋譜の送り先（Issue の画面を内容入りで開く。受け取りは .github/workflows/human-games.yml）
+const REC_REPO = "https://github.com/satou-aaaaa/carcassonne-research";
+function recordJson() { return JSON.stringify(G.record); }
+function recordIssueUrl() {
+  const r = G.record, h = r.human_seat, a = 1 - h;
+  const title = `[棋譜] ${r.scores[h]} − ${r.scores[a]}（AI: ${r.level}）`;
+  const body = "<!-- carcassonne-game-record -->\n対戦ページで指した対局の棋譜です。AIの学習と弱点探しに使ってください。\n\n```json\n" + recordJson() + "\n```\n";
+  return `${REC_REPO}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+}
+$("result").addEventListener("click", e => {
+  if (!G || !G.record) return;
+  if (e.target.id === "btnFormRec") window.open(recordFormUrl(), "_blank", "noopener");
+  if (e.target.id === "btnSendRec") window.open(recordIssueUrl(), "_blank", "noopener");
+  if (e.target.id === "btnSaveRec") {
+    const url = URL.createObjectURL(new Blob([recordJson() + "\n"], {type: "application/json"}));
+    const link = document.createElement("a");
+    link.href = url; link.download = `carcassonne-game-${G.seed}-${G.human_seat}.json`;
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+});
 // スマホ: 盤の高さを「画面 − 操作欄（得点・引いたタイル）」にする
 function layoutMobile() {
   const mob = matchMedia("(max-width: 760px)").matches;
@@ -967,6 +1064,7 @@ async function init() {
   // 初めての人向けに「やさしい」と初心者モードを既定にする（前回の選択があればそれ）
   const lv = store.get("cc_level");
   $("fLevel").value = lv && LEVELS[lv] ? lv : (LEVELS.greedy ? "greedy" : Object.keys(LEVELS)[0]);
+  setAreas(store.get("cc_areas") === "1");
   if (store.get("cc_coach") !== null) $("fCoach").checked = store.get("cc_coach") === "1";
   $("fName").value = store.get("cc_name") || "";
   const st = await api("/api/state");

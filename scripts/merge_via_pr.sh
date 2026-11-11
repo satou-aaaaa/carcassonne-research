@@ -24,8 +24,8 @@ prefix=${1:?ブランチ名の頭}
 title=${2:?PRのタイトル}
 body_file=${3:-}
 
-# 自動で入れてよいのは生成物だけ（重み・公開ページ・クイズ・コツ集の保留メモ）
-AUTO_PATHS=${AUTO_PATHS:-'^(docs/|models/eval_champion\.(npy|json)$|data/puzzles\.json$|data/tips_blocked\.json$)'}
+# 自動で入れてよいのは生成物だけ（重み・公開ページ・クイズ・コツ集の保留メモ・人から受け取った棋譜）
+AUTO_PATHS=${AUTO_PATHS:-'^(docs/|models/eval_champion\.(npy|json)$|data/puzzles\.json$|data/tips_blocked\.json$|data/human_games\.jsonl$)'}
 CHECK_WORKFLOWS=${CHECK_WORKFLOWS:-"test.yml secret-scan.yml"}
 CHECK_TIMEOUT=${CHECK_TIMEOUT:-2400} # 検査を待つ上限（秒）
 CHECK_POLL=${CHECK_POLL:-20}

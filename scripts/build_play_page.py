@@ -38,6 +38,7 @@ DOCS = ROOT / "docs"
 WEB = ROOT / "web"
 EVAL = "models/eval_champion.npy"  # 自己対戦ループの最新チャンピオン（selfplay-state の loop/models/ から複写）
 CHAMPION = "models/eval_champion.json"  # その世代名・採用日（画面の表示用）
+FORM = "data/human_games_form.json"  # 棋譜を送る Google フォーム（空なら送るボタンを出さない）
 COPIES = [
     "carcassonne_engine.js",
     "play_features.js",
@@ -98,7 +99,23 @@ def play_data(lang: str = "ja") -> dict:
         "tiles": tile_library(),
         "eval": {"path": EVAL, "champion": info, "w": [round(float(x), 12) for x in w]},
         "levels": levels,
+        "form": form_info(),
     }
+
+
+def form_info() -> dict | None:
+    """棋譜を送る Google フォーム {"url", "entry"}。設定が空なら None（ボタンを出さない）。"""
+    f = json.loads((ROOT / FORM).read_text(encoding="utf-8"))
+    url, entry = f.get("form", ""), f.get("entry", "")
+    if not (url and entry):
+        return None
+    if not (url.startswith("https://docs.google.com/forms/") and url.endswith("/viewform")):
+        raise SystemExit(
+            f"{FORM} の form は https://docs.google.com/forms/…/viewform の形にしてください"
+        )
+    if not entry.startswith("entry.") or not entry[6:].isdigit():
+        raise SystemExit(f"{FORM} の entry は entry.数字 の形にしてください")
+    return {"url": url, "entry": entry}
 
 
 def write_scripts(out: Path, lang: str) -> None:
