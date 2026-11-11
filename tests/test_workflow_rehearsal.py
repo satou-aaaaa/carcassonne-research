@@ -34,6 +34,10 @@ REHEARSED = {
         "答えが変わったクイズを Issue で知らせる",
         "言い切りが合わずコツ集を前の版で残したら Issue で知らせる",
     ],
+    "human-games.yml": [
+        "棋譜を検査して足す",
+        "Issue に結果を書いて閉じる",
+    ],
 }
 
 GH_BODY_MAX = 65536  # GitHub の Issue・PR・コメントの本文の上限
@@ -75,6 +79,7 @@ case "$1 $2" in
     if [[ "$jq" == *"| .html_url" ]]; then
       [ -e "$GH_LOG.created" ] && echo "https://github.com/o/r/issues/99"; true
     elif [ -n "${FAKE_OPEN:-}" ]; then echo "$FAKE_OPEN"; fi ;;
+  "api repos/o/r/issues/"[0-9]*) echo '{"issue": {"number": 12, "body": "棋譜"}}' ;;  # 1件の Issue（--jq 済みの形）
   *) echo "知らない gh の呼び方: $*" >&2; exit 2 ;;
 esac
 """.replace("BODY_MAX", str(GH_BODY_MAX)).replace("TITLE_MAX", str(GH_TITLE_MAX))
@@ -247,3 +252,49 @@ def test_ai_content_tips_notice(tmp_path: Path, blocked: bool) -> None:
         assert log.count("gh issue create") == 1, log
     else:
         assert "gh issue close 8" in log, log
+
+
+def _human_games_stub(tmp_path: Path) -> None:
+    """scripts/human_games.py の代わり: 読んだイベントの Issue 本文を結果に写す。"""
+    (tmp_path / "scripts").mkdir(exist_ok=True)
+    (tmp_path / "scripts" / "human_games.py").write_text(
+        "import json, sys\n"
+        "a = sys.argv\n"
+        "ev = json.load(open(a[a.index('--event') + 1], encoding='utf-8'))\n"
+        "out = {'status': 'added', 'message': ev['issue']['body']}\n"
+        "json.dump(out, open(a[a.index('--result') + 1], 'w', encoding='utf-8'))\n"
+    )
+
+
+@pytest.mark.parametrize("dispatch", [True, False])
+def test_human_games_reads_issue(tmp_path: Path, dispatch: bool) -> None:
+    """棋譜の受け取り：Issue が開かれたときはイベントを、手で起こしたときは API で Issue を読む。"""
+    _human_games_stub(tmp_path)
+    event = tmp_path / "event_in.json"
+    event.write_text(
+        json.dumps({"issue": {"number": 12, "body": "イベントの棋譜"}}, ensure_ascii=False)
+    )
+    r, log = rehearse(
+        tmp_path,
+        "human-games.yml",
+        "棋譜を検査して足す",
+        GITHUB_EVENT_NAME="workflow_dispatch" if dispatch else "issues",
+        GITHUB_EVENT_PATH=str(event),
+        ISSUE="12",
+    )
+    assert r.returncode == 0, r.stdout + r.stderr
+    got = json.loads((tmp_path / "result.json").read_text(encoding="utf-8"))
+    assert got["message"] == ("棋譜" if dispatch else "イベントの棋譜")
+    assert ("gh api repos/o/r/issues/12" in log) is dispatch, log
+
+
+@pytest.mark.parametrize(("status", "reason"), [("added", "completed"), ("invalid", "not planned")])
+def test_human_games_answers_and_closes_issue(tmp_path: Path, status: str, reason: str) -> None:
+    """結果を Issue に書いて閉じる。504 でも落ちない。受け取れなかったものは「対応しない」で閉じる。"""
+    (tmp_path / "result.json").write_text(
+        json.dumps({"status": status, "message": "結果" * 40000}, ensure_ascii=False)
+    )
+    r, log = rehearse(tmp_path, "human-games.yml", "Issue に結果を書いて閉じる", ISSUE="12")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert log.count("gh issue comment 12") == 2, log  # 504 を1回やり直す
+    assert f"gh issue close 12 --reason {reason}" in log, log
