@@ -15,7 +15,7 @@
   const C0 = 72; // 開始タイルの座標オフセット
   const NT = 72; // タイル総数
   const MEEPLES = 7;
-  const NF = 36; // 特徴量数（fast_eval.NF）
+  const NF = 38; // 特徴量数（fast_eval.NF）
   const HARD = 3; // fast_eval.HARD
   const SC_N = 0, SC_PL = 1, SC_S0 = 2, SC_S1 = 3, SC_SUP0 = 4, SC_OVER = 6, SC_DRAW = 7, SC_CUR = 8, SC_DISC = 9;
   const SC_LEN = 10;
@@ -593,6 +593,9 @@
       out[28] *= rem;
       out[33] = (out[29] - out[30]) * rem;
       out[35] = out[34] * rem;
+      // 手持ちミープルの不足（2個を切った分。相手の分を引く）
+      out[36] = Math.max(0, 2 - mysup) - Math.max(0, 2 - thsup);
+      out[37] = out[36] * rem;
     }
 
     // ---- 探索（fast_mcts.run_tree / search_stats / search） ------------------

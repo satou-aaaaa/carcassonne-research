@@ -65,7 +65,8 @@ jobs:
         run: |
           rm -f state/loop/lock
           python -c "import json;print(sum(h['promoted'] for h in json.load(open('state/loop/state.json'))['history']))" > before.txt
-          python scripts/selfplay_loop.py run --root state/loop --minutes "$MINUTES"
+          # 挑戦者（models/loop_challenge.json）があれば、試行の切れ目で1度だけ判定する
+          python scripts/selfplay_loop.py run --root state/loop --minutes "$MINUTES" --challenge models/loop_challenge.json
       - name: 古い自己対戦データを消す（学習に使うのは直近 window 試行分だけ）
         if: always() && steps.state.outputs.exists == 'true'
         run: |
