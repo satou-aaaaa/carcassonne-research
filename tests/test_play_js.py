@@ -14,7 +14,7 @@ import pytest
 
 from carcassonne import State, load_tileset
 from carcassonne.fast import Fast
-from carcassonne.fast_eval import NF, features
+from carcassonne.fast_eval import NF, features, load_eval
 from carcassonne.state import Move
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -66,6 +66,28 @@ def test_engine_matches_python():
             assert step["projected"] == st.projected_scores()
         assert st.over
     assert n_meeple_moves > 100  # ミープルを置く手も十分に確かめている
+
+
+def test_next_tile_value_matches_python():
+    """選び直しに使う「次のタイルで平均した評価値」（相手の返し手あり・なし）が Python 版と一致する。"""
+    from carcassonne.fast_mcts import next_tile_reply_value, next_tile_value
+
+    fast = Fast()
+    sc = fast.scratch
+    w, _ = load_eval(str(ROOT / "models" / "eval_champion.npy"))  # 公開ページと同じ重み
+    res = run_js({"cmd": "ntv", "seeds": [1, 2, 3], "plies": 40})
+    assert res
+    for r in res:
+        S = fast.new_game(r["deck"])
+        for x, y, ti, vi, piece in r["history"]:
+            fast.apply(S, x, y, ti, vi, piece)
+        c = np.array([m[0] for m in r["cands"]], np.int64)
+        g = np.array([m[1] for m in r["cands"]], np.int64)
+        p = np.array([m[2] for m in r["cands"]], np.int64)
+        for fn, key in ((next_tile_value, "plain"), (next_tile_reply_value, "reply")):
+            v = fn(S, fast.T, fast.P, c, g, p, w, 1, np.zeros(NF), sc.stamp, sc.stamp_box,
+                   sc.out_cell, sc.out_g)  # fmt: skip
+            np.testing.assert_allclose(r[key], v, atol=1e-6)
 
 
 def test_search_returns_legal_moves():

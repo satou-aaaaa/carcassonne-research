@@ -25,10 +25,13 @@ from .tiles import load_tileset
 ROOT = Path(__file__).resolve().parents[2]
 KIND_JA = {"C": "都市", "R": "道", "F": "草原", "M": "修道院"}
 LEVELS = {
-    "strong": "最強（MCTS 12000回＋短いロールアウト10手＋評価関数）",
+    "strong": "最強（MCTS 12000回＋短いロールアウト10手＋評価関数＋相手の返し手まで読む選び直し）",
     "standard": "標準（MCTS 2000回＋評価関数）",
     "greedy": "貪欲法（練習用）",
 }
+
+# 最強の選び直しの設定（scripts/build_play_page.py のブラウザ版もこれを使う）
+STRONG_RESELECT = {"rsel": 0.5, "rk": 6, "rr": 1}
 
 
 def best_eval_path() -> str:
@@ -66,6 +69,14 @@ def make_agent(level: str):
     sims = {"strong": 12000, "standard": 2000}[level]
     # 最強は評価前に10手のロールアウトを挟む（docs/EXPERIMENTS.md「探索の構造」。標準は従来どおり）
     depth = 10 if level == "strong" else None
+    if level == "strong":
+        # 最強は探索の上位6候補を、相手の一番良い返し手まで読んだ評価と半々で選び直す
+        # （docs/EXPERIMENTS.md「相手の返し手まで読む選び直し」。ブラウザ版も同じ設定）
+        return FastMCTSAgent(
+            n_sims=sims, rollout_depth=depth, eval_path=champion_eval_path(),
+            reselect=STRONG_RESELECT["rsel"], reselect_k=STRONG_RESELECT["rk"],
+            reselect_reply=bool(STRONG_RESELECT["rr"]),
+        )  # fmt: skip
     return FastMCTSAgent(n_sims=sims, rollout_depth=depth, eval_path=champion_eval_path())
 
 

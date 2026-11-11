@@ -137,6 +137,92 @@ def test_reselect_plays_full_game_with_legal_moves():
         st.apply(m)
 
 
+def test_reselect_reply_plays_full_game_with_legal_moves():
+    agent = FastMCTSAgent(
+        n_sims=40, rollout_depth=4, eval_path=EVAL, reselect=0.5, reselect_reply=True
+    )
+    assert "rr=1" in agent.name
+    st = State.new_game(31)
+    rng = random.Random(12)
+    while not st.over:
+        m = agent.act(st, rng)
+        assert m in st.legal_moves()
+        st.apply(m)
+
+
+def test_reply_value_on_last_tile_is_exact_final_score():
+    """相手が最後の1枚を置く局面では、返し手まで読んだ値は相手の最善の終局得点差そのもの。"""
+    import numpy as np
+
+    from carcassonne.fast import (
+        NT,
+        SC_CUR,
+        SC_DRAW,
+        SC_PL,
+        SC_S0,
+        SC_S1,
+        SC_SUP0,
+        apply_move,
+        copy_state,
+        gen_placements,
+        piece_free,
+    )
+    from carcassonne.fast_mcts import next_tile_reply_value
+
+    agent = FastMCTSAgent(n_sims=10, eval_path=EVAL)
+    f, sc = agent.fast, agent.fast.scratch
+    st = State.new_game(32)
+    rng = random.Random(13)
+    S = agent.to_fast(st)
+    while int(S[10][SC_DRAW]) < NT - 2:  # 自分の手のあと、相手の1枚で終局する所まで進める
+        m = rng.choice(st.legal_moves())
+        st.apply(m)
+        S = agent.to_fast(st)
+    if st.over:
+        pytest.skip("途中で終局した")
+    me = int(S[10][SC_PL])
+    sc.stamp_box[0] += 1
+    gen_placements(S, f.T, S[10][SC_CUR], sc.stamp, sc.stamp_box[0], sc.out_cell, sc.out_g, False)
+    c, g = int(sc.out_cell[0]), int(sc.out_g[0])
+    got = next_tile_reply_value(
+        S, f.T, f.P, np.array([c]), np.array([g]), np.array([-1]), agent.eval_w,
+        agent.eval_mode, agent.fbuf, sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g,
+    )[0]  # fmt: skip
+    X = copy_state(S)
+    apply_move(X, f.T, f.P, c, g, -1, sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g)
+    if X[10][SC_CUR] < 0:
+        pytest.skip("最後のタイルが置けなかった")
+    sc.stamp_box[0] += 1
+    k = gen_placements(
+        X, f.T, X[10][SC_CUR], sc.stamp, sc.stamp_box[0], sc.out_cell, sc.out_g, False
+    )
+    opts = [(int(sc.out_cell[q]), int(sc.out_g[q])) for q in range(k)]
+    best = None
+    for cc, gg in opts:
+        for pi in [-1] + list(range(int(f.T[1][gg]))):
+            if pi >= 0 and (
+                X[10][SC_SUP0 + 1 - me] == 0 or not piece_free(X, f.T, f.P, cc, gg, pi)
+            ):
+                continue
+            Y = copy_state(X)
+            apply_move(Y, f.T, f.P, cc, gg, pi, sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g)
+            d = float(Y[10][SC_S0] - Y[10][SC_S1]) * (1 if me == 0 else -1)
+            best = d if best is None else min(best, d)
+    assert got == pytest.approx(best)
+
+
+def test_scale_decay_sharpens_reward_late():
+    agent = FastMCTSAgent(n_sims=10, eval_path=EVAL, scale_decay=1.0, scale_min=5.0)
+    st = State.new_game(33)
+    early = agent.scale_for(agent.to_fast(st))
+    rng = random.Random(14)
+    for _ in range(60):
+        st.apply(rng.choice(st.legal_moves()))
+    late = agent.scale_for(agent.to_fast(st))
+    assert early == pytest.approx(30.0, rel=0.05) and late == pytest.approx(5.0)
+    assert FastMCTSAgent(n_sims=10).scale_for(agent.to_fast(st)) == 30.0
+
+
 def test_reselect_off_by_default_and_without_eval():
     assert FastMCTSAgent(n_sims=10, eval_path=EVAL).reselect == 0.0
     agent = FastMCTSAgent(n_sims=10, reselect=0.3)  # 評価関数なしでは使わない
@@ -147,7 +233,7 @@ def test_next_tile_value_ignores_true_deck_order():
     import numpy as np
 
     from carcassonne.fast import NT, SC_CUR, SC_DRAW, gen_placements
-    from carcassonne.fast_mcts import next_tile_value
+    from carcassonne.fast_mcts import next_tile_reply_value, next_tile_value
 
     agent = FastMCTSAgent(n_sims=10, eval_path=EVAL)
     st = State.new_game(29)
@@ -165,19 +251,21 @@ def test_next_tile_value_ignores_true_deck_order():
     gs = sc.out_g[:k].astype(np.int64).copy()
     pieces = np.full(k, -1, np.int64)
 
-    def values(S):
-        return next_tile_value(
-            S, f.T, f.P, cells, gs, pieces, agent.eval_w, agent.eval_mode, agent.fbuf,
-            sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g,
-        )  # fmt: skip
+    for fn in (next_tile_value, next_tile_reply_value):
 
-    v0 = values(S)
-    lo = int(S[10][SC_DRAW])
-    rest = S[11][lo : NT - 1].copy()
-    np.random.default_rng(0).shuffle(rest)
-    S[11][lo : NT - 1] = rest
-    assert np.allclose(v0, values(S))
-    assert np.all(np.isfinite(v0))
+        def values(S, fn=fn):
+            return fn(
+                S, f.T, f.P, cells, gs, pieces, agent.eval_w, agent.eval_mode, agent.fbuf,
+                sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g,
+            )  # fmt: skip
+
+        v0 = values(S)
+        lo = int(S[10][SC_DRAW])
+        rest = S[11][lo : NT - 1].copy()
+        np.random.default_rng(0).shuffle(rest)
+        S[11][lo : NT - 1] = rest
+        assert np.allclose(v0, values(S))
+        assert np.all(np.isfinite(v0))
 
 
 def test_reselect_can_override_the_most_visited_candidate(monkeypatch):

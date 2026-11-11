@@ -305,7 +305,7 @@ summary { padding-block: 6px; }
 <aside class="note">
   <h2>About the numbers on this page</h2>
   <ul>
-    <li>The strong AI is the same AI as "Strongest" on the play page (gen1144, adopted 2026-11-11: a learned evaluation function + 12,000 Monte Carlo tree search simulations + 10-move lookahead). Each time the AI gets stronger, we replay the games and rebuild the numbers and diagrams on this page. It may have habits that differ from how strong human players play.</li>
+    <li>The strong AI is the same AI as "Strongest" on the play page (gen1144, adopted 2026-11-11: a learned evaluation function + 12,000 Monte Carlo tree search simulations + 10-move lookahead + a final check of the top candidates against the opponent's best reply). Each time the AI gets stronger, we replay the games and rebuild the numbers and diagrams on this page. It may have habits that differ from how strong human players play.</li>
     <li>With only 48 strong-AI games, differences of a few percent are within the margin of error. This page covers only trends with large differences.</li>
     <li>Rules: base game, two players, farmers score 3 points per completed city (3rd edition).</li>
     <li>To reproduce: record with <code>scripts/record_habits.py</code>, aggregate with <code>scripts/summarize_habits.py</code>, and build this page with <code>scripts/pick_examples.py</code> and <code>scripts/build_tips_page.py</code>.</li>
