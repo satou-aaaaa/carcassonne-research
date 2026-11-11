@@ -184,3 +184,31 @@ def test_loop_survives_state_passed_through_git(tmp_path):
     assert "やり直" in loop.step()
     loop.step()  # 自己対戦（以前はここで FileNotFoundError）
     assert loop.state["phase"] == "train"
+
+
+def test_challenge_runs_once_at_attempt_boundary(tmp_path):
+    """挑戦者は試行の切れ目で1度だけ判定し、基準を満たせばチャンピオンになる。"""
+    cfg = Config(games=1, chunk=1, sims=10, depth=2, gate_chunk=1, anchor_seeds=0, workers=1)
+    loop = Loop(tmp_path, cfg, "models/eval_v6_lin.npy")
+    ch = {
+        "name": "keep",
+        "weights": {"meeple_short": -1.0, "meeple_short_x_remaining": -1.0},
+        "seeds": 1,
+        "min_win_rate": 0.0,
+        "min_mean_diff": -999.0,
+    }
+    path = tmp_path / "challenge.json"
+    path.write_text(json.dumps(ch), encoding="utf-8")
+    loop.set_challenge(path)
+    msg = loop.step()
+    assert "採用" in msg, msg
+    st = loop.state
+    assert st["champion"] == "models/gen001_keep.npy" and st["phase"] == "selfplay"
+    w, _ = load_eval(str(tmp_path / st["champion"]))
+    assert w[NF - 2] == -1.0 and w[NF - 1] == -1.0
+    assert st["history"][-1]["challenge"] == "keep"
+    # 済んだ挑戦者は2度と判定しない
+    loop = Loop(tmp_path)
+    loop.set_challenge(path)
+    assert loop.step().startswith("試行1: 自己対戦")
+    assert "挑戦者 keep" in (tmp_path / "progress.md").read_text(encoding="utf-8")

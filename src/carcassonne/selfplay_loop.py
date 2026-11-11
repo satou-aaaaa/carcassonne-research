@@ -28,7 +28,7 @@ from pathlib import Path
 import numpy as np
 
 from .arena import run_match
-from .fast_eval import NF, fit_mlp, load_eval
+from .fast_eval import FEATURE_NAMES, NF, fit_mlp, load_eval
 from .fast_mcts import FastMCTSAgent
 from .ridge_stats import solve_ridge, stats_of
 from .selfplay import generate
@@ -171,7 +171,75 @@ class Loop:
     # ---- 単位作業 ----
     def step(self) -> str:
         """作業を1単位進め、何をしたかを返す。"""
+        if self.state["phase"] == "selfplay" and self._pending_challenge() is not None:
+            self.state["phase"] = "challenge"
+            self.save()
         return getattr(self, f"_{self.state['phase']}")()
+
+    # ---- 外からの挑戦者（手で作った重みの変更を、ループの判定で確かめてから入れる） ----
+    def set_challenge(self, path: str | Path | None) -> None:
+        """挑戦者の定義（JSON）を読む。試行の切れ目（自己対戦の前）に1度だけ判定する。
+
+        JSON: {"name": 名前, "weights": {特徴量名: 重み}, "seeds": 組数, "min_win_rate": 勝率,
+        "min_mean_diff": 得点差}。候補は「その時のチャンピオンの重みのうち、weights の特徴量だけ
+        書き換えたもの」。学習で見つけにくい手の選び方（例: ミープルを残す）を入れるために使う。
+        """
+        self.challenge = None
+        if path is not None and Path(path).exists():
+            self.challenge = json.loads(Path(path).read_text(encoding="utf-8"))
+
+    def _pending_challenge(self):
+        ch = getattr(self, "challenge", None)
+        if not ch or ch["name"] in self.state.get("challenges_done", []):
+            return None
+        a = self.attempt
+        if any((self.root / "data").glob(f"a{a:03d}_*.npz")):
+            return None  # 試行の途中では割り込まない
+        return ch
+
+    def _challenge(self) -> str:
+        ch, a = self._pending_challenge(), self.attempt
+        if ch is None:
+            self.state["phase"] = "selfplay"
+            self.save()
+            return f"試行{a}: 挑戦者なし"
+        cand = f"models/gen{a:03d}_{ch['name']}.npy"
+        if not (self.root / cand).exists():
+            w, mode = load_eval(self.path(self.state["champion"]))
+            if mode != 1:
+                raise ValueError("挑戦者は線形のチャンピオンにしか作れません")
+            for k, v in ch["weights"].items():
+                w[FEATURE_NAMES.index(k)] = v
+            np.save(self.root / cand, w)
+        res, msg = self._match_chunks(
+            f"a{a:03d}_{ch['name']}", cand, self.state["champion"], ch["seeds"], 400_000 + a * 1000
+        )
+        if res is None:
+            return f"試行{a}: 挑戦者 {ch['name']} の判定 {msg}"
+        n, wins, dsum = res
+        rate, diff = wins / n, dsum / n
+        promoted = rate >= ch["min_win_rate"] and diff >= ch["min_mean_diff"]
+        self.state["history"].append(
+            {
+                "attempt": a,
+                "candidate": cand,
+                "champion_before": self.state["champion"],
+                "games": n,
+                "win_rate": round(rate, 3),
+                "mean_diff": round(diff, 2),
+                "promoted": promoted,
+                "challenge": ch["name"],
+                "date": time.strftime("%Y-%m-%d"),
+            }
+        )
+        if promoted:
+            self.state["champion"] = cand
+        self.state.setdefault("challenges_done", []).append(ch["name"])
+        self.state["phase"] = "selfplay"
+        self.save()
+        self.write_progress()
+        word = "採用" if promoted else "不採用"
+        return f"試行{a}: 挑戦者 {ch['name']} {n}局 勝率{rate:.3f} 得点差{diff:+.2f} → {word}"
 
     def _selfplay(self) -> str:
         c, a = self.cfg, self.attempt
@@ -378,7 +446,7 @@ class Loop:
             vi = h.get("vs_initial")
             vs = f"{vi['win_rate']:.3f}（{vi['mean_diff']:+.1f}点, {vi['games']}局）" if vi else ""
             lines.append(
-                f"| {h['attempt']} | {h['date']} | {h['win_rate']:.3f}（{h['games']}局） "
+                f"| {h['attempt']}{'（挑戦者 ' + h['challenge'] + '）' if h.get('challenge') else ''} | {h['date']} | {h['win_rate']:.3f}（{h['games']}局） "
                 f"| {h['mean_diff']:+.2f} | {'**採用**' if h['promoted'] else '不採用'} "
                 f"| {h.get('positions', '')} | {h.get('r2_candidate', '')}/{h.get('r2_champion', '')} "
                 f"| {vs} |"

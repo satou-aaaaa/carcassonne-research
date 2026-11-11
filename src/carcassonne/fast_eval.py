@@ -104,7 +104,9 @@ def min_fit(S, T, P, out):
                             out[r] = min(out[r], n_fit(S, T, c, cnt, req))
 
 
-NF = 36
+NF = 38
+NF_V9 = 36  # 手持ちミープル不足の特徴量（36・37）を足す前の数（旧形式のMLPの読み込み用）
+SHORT = 2  # 手持ちがこの数を下回った分を「不足」とする
 NF_V6 = 22  # v6 までの特徴量数（旧形式の重み・MLPの読み込み用）
 NF_V7 = 29  # 妨害・農民の特徴量（29〜35）を足す前の数（旧形式のMLP・nn_v1 の入力用）
 FEATURE_NAMES = (
@@ -144,6 +146,8 @@ FEATURE_NAMES = (
     "dead_x_remaining",
     "field_open_cities",
     "field_open_cities_x_remaining",
+    "meeple_short",
+    "meeple_short_x_remaining",
 )
 
 
@@ -239,6 +243,9 @@ def features(S, T, P, me, out):
     out[28] *= rem
     out[33] = (out[29] - out[30]) * rem
     out[35] = out[34] * rem
+    # 手持ちミープルの不足（2個を切った分。相手の分を引く）。使い切ると次の好機に置けない
+    out[36] = max(0, SHORT - mysup) - max(0, SHORT - thsup)
+    out[37] = out[36] * rem
 
 
 @njit(cache=True)
@@ -317,7 +324,7 @@ def load_eval(path: str) -> tuple[np.ndarray, int]:
     w = np.load(path).astype(np.float64)
     if len(w) <= NF:
         return np.concatenate([w, np.zeros(NF - len(w))]), 1
-    for nf in (NF, NF_V7, NF_V6):
+    for nf in (NF, NF_V9, NF_V7, NF_V6):
         H = (len(w) - 2 * nf - 1) // (nf + 2)
         # 長さだけでは形式が決まらないことがあるので、標準偏差の欄がすべて正であることも確かめる
         if H > 0 and 2 * nf + nf * H + 2 * H + 1 == len(w) and np.all(w[nf : 2 * nf] > 0):

@@ -28,6 +28,11 @@ def main() -> None:
     ap.add_argument("cmd", choices=["run", "status", "prune"])
     ap.add_argument("--root", default="runs/loop", help="状態・データ・重みを置くフォルダ")
     ap.add_argument("--minutes", type=float, default=50)
+    ap.add_argument(
+        "--challenge",
+        default=None,
+        help="挑戦者の定義（JSON、Loop.set_challenge）。済んだものは飛ばす",
+    )
     best = json.loads((ROOT / "models" / "best.json").read_text(encoding="utf-8"))["best"]
     ap.add_argument("--initial", default=str(ROOT / best))
     defaults = Config()
@@ -48,6 +53,7 @@ def main() -> None:
         return
     cfg = Config(**{k: getattr(args, k) for k in vars(defaults)})
     loop = Loop(root, cfg, args.initial)
+    loop.set_challenge(args.challenge)
     log_path = root / "log.txt"
 
     def log(msg: str) -> None:

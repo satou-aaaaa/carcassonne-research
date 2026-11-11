@@ -1,0 +1,8 @@
+{
+  "name": "meeple_keep",
+  "note": "手持ちミープルが2個を切ると減点（-1点/個＋序盤ほど-1点/個）。2026-11-11 2000回/手で gen1144 に600局 0.538・+1.4点",
+  "weights": {"meeple_short": -1.0, "meeple_short_x_remaining": -1.0},
+  "seeds": 200,
+  "min_win_rate": 0.5,
+  "min_mean_diff": 0.0
+}
