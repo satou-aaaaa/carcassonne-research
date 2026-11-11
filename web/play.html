@@ -976,10 +976,19 @@ function resultHtml() {
     `<table><tr><th></th><th style="color:${PCOL[h]}">あなた</th><th style="color:${PCOL[a]}">AI</th></tr>` +
     rows.map(([l, f]) => tr(l, f)).join("") + tr("合計", p => G.scores[p], "sum") + "</table>" +
     (G.saved === false ? "" : `<div style="font-size:12px;color:var(--muted);margin-top:4px">記録を保存しました。</div>`) +
-    (G.record ? `<div class="share"><b>棋譜を研究に使わせてください</b><br>人との対局から、AIの弱点を探して学習に使います。` +
-      `<div class="row"><button type="button" id="btnSendRec">GitHubで棋譜を送る</button><button type="button" id="btnSaveRec">ファイルに保存</button></div>` +
-      `送るのは山札・指し手・得点・AIの強さだけで、名前は入りません。開いた GitHub の画面で内容を確かめ、送信ボタンを押すと届きます（GitHub のアカウントが要り、送った棋譜とアカウント名は公開されます）。ファイルは送らずに手元に残せます。</div>` : "");
+    (G.record ? shareHtml() : "");
 }
+// 終局後の「棋譜を送る」欄。Google フォーム（アカウント不要）は設定があるときだけ出す（data/human_games_form.json）
+function shareHtml() {
+  const form = REC_FORM ? `<button type="button" class="primary" id="btnFormRec">棋譜を送る（アカウント不要）</button>` : "";
+  return `<div class="share"><b>棋譜を研究に使わせてください</b><br>人との対局から、AIの弱点を探して学習に使います。` +
+    `<div class="row">${form}<button type="button" id="btnSendRec">GitHubで送る</button><button type="button" id="btnSaveRec">ファイルに保存</button></div>` +
+    `送るのは山札・指し手・得点・AIの強さだけで、名前は入りません。開いた画面で内容を確かめ、送信ボタンを押すと届きます。` +
+    (REC_FORM ? `「棋譜を送る」は Google フォームで、アカウントもメールアドレスも要りません。` : "") +
+    `GitHub で送ると、棋譜とアカウント名が公開されます。ファイルは送らずに手元に残せます。</div>`;
+}
+const REC_FORM = window.PLAY_DATA ? window.PLAY_DATA.form : null;
+function recordFormUrl() { return `${REC_FORM.url}?usp=pp_url&${REC_FORM.entry}=${encodeURIComponent(recordJson())}`; }
 // 棋譜の送り先（Issue の画面を内容入りで開く。受け取りは .github/workflows/human-games.yml）
 const REC_REPO = "https://github.com/satou-aaaaa/carcassonne-research";
 function recordJson() { return JSON.stringify(G.record); }
@@ -991,6 +1000,7 @@ function recordIssueUrl() {
 }
 $("result").addEventListener("click", e => {
   if (!G || !G.record) return;
+  if (e.target.id === "btnFormRec") window.open(recordFormUrl(), "_blank", "noopener");
   if (e.target.id === "btnSendRec") window.open(recordIssueUrl(), "_blank", "noopener");
   if (e.target.id === "btnSaveRec") {
     const url = URL.createObjectURL(new Blob([recordJson() + "\n"], {type: "application/json"}));

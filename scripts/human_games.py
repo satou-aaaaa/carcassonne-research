@@ -3,6 +3,8 @@
     py scripts/human_games.py add 棋譜.json ...          # ファイルで受け取った棋譜を検査して足す
     py scripts/human_games.py ingest-issue --event イベント.json --result 結果.json
                                                         # GitHub の Issue で届いた棋譜（human-games.yml から呼ぶ）
+    py scripts/human_games.py ingest-form --result 結果.json
+                                                        # Google フォームの回答（公開 CSV）を取り込む（human-games.yml から毎日）
     py scripts/human_games.py report                    # docs/results/human_games.md を作り直す
 
 棋譜は data/human_games.jsonl に1局1行でためる（形と検査は src/carcassonne/human_games.py）。
@@ -23,6 +25,7 @@ from carcassonne import human_games as hg
 
 GAMES = ROOT / "data" / "human_games.jsonl"
 REPORT = ROOT / "docs" / "results" / "human_games.md"
+FORM = ROOT / "data" / "human_games_form.json"
 
 
 def cmd_add(a) -> int:
@@ -47,6 +50,23 @@ def cmd_ingest_issue(a) -> int:
         json.dumps({"status": status, "message": message}, ensure_ascii=False), encoding="utf-8"
     )
     print(status, message)
+    return 0
+
+
+def cmd_ingest_form(a) -> int:
+    import urllib.request
+
+    url = json.loads(FORM.read_text(encoding="utf-8")).get("csv", "")
+    if not url:
+        out = {"added": 0, "duplicate": 0, "invalid": 0, "note": "フォームの設定が空"}
+    else:
+        if not url.startswith("https://docs.google.com/spreadsheets/"):
+            raise SystemExit(f"{FORM} の csv は Google スプレッドシートの公開 URL にしてください")
+        with urllib.request.urlopen(url, timeout=60) as r:
+            text = r.read().decode("utf-8-sig")
+        out = hg.ingest_rows(hg.form_texts(text), a.games)
+    Path(a.result).write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
+    print(out)
     return 0
 
 
@@ -76,6 +96,11 @@ def main() -> int:
     p.add_argument("--event", required=True, help="GitHub のイベント（$GITHUB_EVENT_PATH）")
     p.add_argument("--result", required=True, help="結果（status・message）を書く JSON")
     p.set_defaults(func=cmd_ingest_issue)
+    p = sub.add_parser("ingest-form")
+    p.add_argument(
+        "--result", required=True, help="結果（added・duplicate・invalid の数）を書く JSON"
+    )
+    p.set_defaults(func=cmd_ingest_form)
     p = sub.add_parser("report")
     p.add_argument("--out", default=str(REPORT))
     p.set_defaults(func=cmd_report)
