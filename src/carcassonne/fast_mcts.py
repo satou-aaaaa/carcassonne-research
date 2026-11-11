@@ -516,6 +516,76 @@ def next_tile_value(
     return out
 
 
+@njit(cache=True)
+def next_tile_reply_value(
+    S, T, P, cells, gs, pieces, eval_w, eval_mode, fbuf, stamp, stamp_box, out_cell, out_g
+):
+    """`next_tile_value` の2手版: 次に相手が引くタイル種別ごとに、相手の一番良い返し手（評価値で選ぶ）
+    まで進めた局面の評価値（手番側視点の得点差）を、未公開の枚数で平均する。
+
+    相手の返し手は配置×（ミープルなし＋置ける断片）をすべて試す。実際の山札の並びは使わない。
+    """
+    me = S[10][SC_PL]
+    lo = S[10][SC_DRAW]
+    out = np.zeros(len(cells))
+    X = copy_state(S)
+    Y = copy_state(S)
+    seen = np.zeros(128, np.bool_)
+    rc = np.zeros(len(out_cell), np.int32)
+    rg = np.zeros(len(out_cell), np.int16)
+    for ci in range(len(cells)):
+        if lo >= S[10][SC_END]:  # この手で終局
+            copy_into(X, S)
+            apply_move(X, T, P, cells[ci], gs[ci], pieces[ci], stamp, stamp_box, out_cell, out_g)
+            d = float(X[10][SC_S0] - X[10][SC_S1])
+            out[ci] = d if me == 0 else -d
+            continue
+        seen[:] = False
+        tot = 0.0
+        wsum = 0.0
+        for j in range(lo, NT - 1):
+            t = S[11][j]
+            if seen[t]:
+                continue
+            seen[t] = True
+            n = 0
+            for q in range(lo, NT - 1):
+                if S[11][q] == t:
+                    n += 1
+            copy_into(X, S)
+            X[11][lo] = t
+            X[11][j] = S[11][lo]
+            apply_move(X, T, P, cells[ci], gs[ci], pieces[ci], stamp, stamp_box, out_cell, out_g)
+            if X[10][SC_OVER] != 0 or X[10][SC_CUR] != t or X[10][SC_DRAW] != lo + 1:
+                continue
+            opp = X[10][SC_PL]
+            stamp_box[0] += 1
+            k = gen_placements(X, T, t, stamp, stamp_box[0], out_cell, out_g, False)
+            for q in range(k):
+                rc[q] = out_cell[q]
+                rg[q] = out_g[q]
+            best = 1e30  # 手番側視点の値の最小（相手にとって最良）
+            for q in range(k):
+                npc = T[1][rg[q]] if X[10][SC_SUP0 + opp] > 0 else 0
+                for pi in range(-1, npc):
+                    if pi >= 0 and not piece_free(X, T, P, rc[q], rg[q], pi):
+                        continue
+                    copy_into(Y, X)
+                    apply_move(Y, T, P, rc[q], rg[q], pi, stamp, stamp_box, out_cell, out_g)
+                    if Y[10][SC_OVER] != 0:
+                        d = float(Y[10][SC_S0] - Y[10][SC_S1])
+                        v = d if me == 0 else -d
+                    else:
+                        features(Y, T, P, me, fbuf)
+                        v = eval_value(eval_w, eval_mode, fbuf)
+                    best = min(best, v)
+            if best < 1e29:
+                tot += n * best
+                wsum += n
+        out[ci] = tot / wsum if wsum > 0 else np.nan
+    return out
+
+
 class FastMCTSAgent:
     """`MCTSAgent` と同じ探索をNumbaで行うエージェント（Pythonの `State` に着手を返す）。"""
 
@@ -538,6 +608,9 @@ class FastMCTSAgent:
         rollout_reshuffle: bool = False,
         reselect: float = 0.0,
         reselect_k: int = 6,
+        reselect_reply: bool = False,
+        scale_decay: float = 0.0,
+        scale_min: float = 5.0,
     ) -> None:
         """eval_path に線形評価関数の重み(.npy)を渡すと、葉をその評価関数で評価する。
 
@@ -554,6 +627,12 @@ class FastMCTSAgent:
         # この重みで混ぜて選び直す（`choose_reselect`）。評価関数があるときだけ
         self.reselect = reselect if eval_path else 0.0
         self.reselect_k = max(1, int(reselect_k))
+        # True なら選び直しの1手先評価を、相手の一番良い返し手まで読んだ値にする（`next_tile_reply_value`）
+        self.reselect_reply = reselect_reply
+        # 0より大きいと、報酬の尺度を残りタイルの割合の scale_decay 乗で縮める（下限 scale_min）。
+        # 終盤ほど点差より勝ち負けを重く見る
+        self.scale_decay = scale_decay
+        self.scale_min = scale_min
         self.n_sims = n_sims
         self.n_det = n_det
         self.c = c
@@ -588,6 +667,8 @@ class FastMCTSAgent:
             + ("" if rollout_farm else ",rf=0")
             + (",rs=1" if rollout_reshuffle else "")
             + (f",rsel={reselect:g},rk={reselect_k}" if self.reselect > 0 else "")
+            + (",rr=1" if self.reselect > 0 and reselect_reply else "")
+            + (f",sd={scale_decay:g},smin={scale_min:g}" if scale_decay > 0 else "")
             + (
                 f",nn={nn_path.replace(chr(92), '/').split('/')[-1]},topk={nn_topk}"
                 if nn_path
@@ -602,6 +683,15 @@ class FastMCTSAgent:
         for x, y, ti, vi, piece in state.history:
             self.fast.apply(S, x, y, ti, vi, piece)
         return S
+
+    def scale_for(self, S) -> float:
+        """この局面で使う報酬の尺度（負なら勝敗報酬）。"""
+        scale = -1.0 if self.reward_scale is None else float(self.reward_scale)
+        if scale > 0 and self.scale_decay > 0:
+            sc = S[10]
+            frac = max(0, int(sc[SC_END]) - int(sc[SC_DRAW]) + 1) / (NT - 1)
+            scale = max(self.scale_min, scale * frac**self.scale_decay)
+        return scale
 
     def choose(self, S):
         """Numba状態 S（手番側が指す局面）から (マス, 向きID, 断片) を返す。乱数は seed_rng 済みとする。"""
@@ -618,7 +708,7 @@ class FastMCTSAgent:
             self.n_sims,
             self.n_det,
             self.c,
-            -1.0 if self.reward_scale is None else self.reward_scale,
+            self.scale_for(S),
             self.meeple_prob,
             depth,
             sc.stamp,
@@ -645,7 +735,7 @@ class FastMCTSAgent:
         `next_tile_value` を (1-reselect):reselect で混ぜた値で選び直す。"""
         f = self.fast
         sc = f.scratch
-        scale = -1.0 if self.reward_scale is None else self.reward_scale
+        scale = self.scale_for(S)
         cells, gs, a1, _, a2, w2 = search_stats(
             S, f.T, f.P, self.n_sims, self.n_det, self.c, scale, self.meeple_prob, depth,
             sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g, sc.free, sc.rec, self.eval_w,
@@ -660,7 +750,8 @@ class FastMCTSAgent:
         ks, qs = ks[order], qs[order]
         if len(ks) == 1 or scale <= 0:
             return int(cells[ks[0]]), int(gs[ks[0]]), int(qs[0]) - 1
-        val = next_tile_value(
+        fn = next_tile_reply_value if self.reselect_reply else next_tile_value
+        val = fn(
             S, f.T, f.P, cells[ks].astype(np.int64), gs[ks].astype(np.int64),
             (qs - 1).astype(np.int64), self.eval_w, self.eval_mode, self.fbuf,
             sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g,

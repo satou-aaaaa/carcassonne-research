@@ -42,6 +42,7 @@ BOOL_KEYS = {
     "chance": "chance",
     "rf": "rollout_farm",
     "rs": "rollout_reshuffle",
+    "rr": "reselect_reply",
 }
 FLOAT_KEYS = {
     "c": "c",
@@ -50,6 +51,8 @@ FLOAT_KEYS = {
     "mp": "meeple_prob",
     "fpu": "fpu",
     "rsel": "reselect",
+    "sd": "scale_decay",
+    "smin": "scale_min",
 }
 
 

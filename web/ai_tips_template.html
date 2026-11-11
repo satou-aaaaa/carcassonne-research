@@ -288,7 +288,7 @@ a { color: var(--field); }
 <aside class="note">
   <h2>このページの数字について</h2>
   <ul>
-    <li>強いAIは、対戦ページの「最強」と同じAI（{{ai_name}}{{ai_when}}。学習した評価関数＋モンテカルロ木探索12000回＋10手の先読み）です。AIが強くなるたびに対局を取り直し、このページの数字と図を作り直しています。人間の上級者の打ち方とは違う癖もあり得ます。</li>
+    <li>強いAIは、対戦ページの「最強」と同じAI（{{ai_name}}{{ai_when}}。学習した評価関数＋モンテカルロ木探索12000回＋10手の先読み＋相手の返し手まで読む選び直し）です。AIが強くなるたびに対局を取り直し、このページの数字と図を作り直しています。人間の上級者の打ち方とは違う癖もあり得ます。</li>
     <li>強いAIは{{games_strong}}局と少なめなので、数%の差は誤差の範囲です。このページでは差の大きい傾向だけを取り上げました。</li>
     <li>ルールは基本セット・2人対戦、農民は完成した都市1つにつき3点（第3版）です。</li>
     <li>再現方法: <code>scripts/record_habits.py</code> で記録、<code>scripts/summarize_habits.py</code> で集計、<code>scripts/pick_examples.py</code> と <code>scripts/build_tips_page.py</code> でこのページを作成。</li>

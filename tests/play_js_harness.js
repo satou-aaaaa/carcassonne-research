@@ -6,6 +6,7 @@
 // search: 局面を少し進めてから探索し、返した手が合法か
 // match:  ブラウザ版のAI同士の対局結果
 // record: ランダムに指した対局の棋譜（公開ページが研究用に書き出す形。human_games.py が読む）
+// ntv:    ランダムに進めた局面で、候補手ごとの「次のタイルで平均した評価値」（返し手あり・なし）
 // move:   山札と着手列 [x, y, 種別, 向き, 断片] の局面で、ブラウザ版のAIが選ぶ手
 "use strict";
 const path = require("path");
@@ -62,6 +63,24 @@ if (args.cmd === "games") {
       history.push(m);
     }
     out.push(gameRecord(C, eng, DATA, { S, deck, history, human_seat: seed % 2, level: "strong", coach: false, hints: 0, undos: 1 }));
+  }
+  console.log(JSON.stringify(out));
+} else if (args.cmd === "ntv") {
+  const out = [];
+  const w = Float64Array.from(DATA.eval.w);
+  for (const seed of args.seeds) {
+    eng.rng.seed(seed);
+    const deck = eng.shuffledDeck(seed);
+    const S = eng.newGame(deck);
+    const history = [];
+    for (let i = 0; i < args.plies && !S.sc[C.SC_OVER]; i++) {
+      const m = eng.randomMove(S, 0.5);
+      history.push(mv(m));
+      eng.applyMove(S, m[0], m[1], m[2]);
+    }
+    if (S.sc[C.SC_OVER]) continue;
+    const cands = eng.legalMoves(S).slice(0, 4);
+    out.push({ deck, history, cands, plain: eng.nextTileValue(S, cands, w, false), reply: eng.nextTileValue(S, cands, w, true) });
   }
   console.log(JSON.stringify(out));
 } else if (args.cmd === "search") {

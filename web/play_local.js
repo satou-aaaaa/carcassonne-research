@@ -18,7 +18,7 @@
     return eng.search(S, searchOpts(data, lv));
   }
   function searchOpts(data, lv) {
-    return { sims: lv.sims, depth: lv.depth, c: 0.5, scale: 30, meepleProb: 0.3, w: Float64Array.from(data.eval.w) };
+    return { sims: lv.sims, depth: lv.depth, c: 0.5, scale: 30, meepleProb: 0.3, w: Float64Array.from(data.eval.w), rsel: lv.rsel || 0, rk: lv.rk || 6, rr: !!lv.rr };
   }
   // 人間の手の採点用に、最強設定で候補手を解析する（webplay.make_coach）
   function analyzeMoves(eng, data, S, seed) {

@@ -44,6 +44,8 @@ GitHub Pages で公開するには、リポジトリの Settings → Pages で�
   貪欲法に勝率87%（+27点）、以前の最強（ロールアウト無し）に勝率65%（+9点）。詳細は [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md)。
 - 2026-10-14: 公開論文の手法を再現したAIに勝率82%（+16点、Jappert 2022型）と全勝（Ameneyro 2020型）。
   探索回数・ロールアウト・学習データ量を変えても強さは横ばいで、今の構成は頭打ち（`docs/EXPERIMENTS.md`「「世界最強」を目指した検証」）。
+- 2026-11-11: 探索の上位6候補を「相手が次に引くタイルごとの、相手の一番良い返し手」まで読んだ評価と半々で選び直す仕組みを
+  「最強」に入れた。同じ探索の現チャンピオンに200局で勝率64%（+5.3点）（`docs/EXPERIMENTS.md`「相手の返し手まで読む選び直し」）。
 
 ## 環境構築
 
@@ -96,7 +98,7 @@ python scripts/eval_rank.py models/eval_v6_lin.npy --positions 40 --rollouts 30 
 ## 人間と対戦する
 
 公開ページの [AIと対戦](https://satou-aaaaa.github.io/carcassonne-research/play.html) なら、インストールなしでブラウザだけで遊べる。
-AI（自己対戦ループの最新チャンピオンの評価関数＋MCTS 12000回＋10手のロールアウト）を JavaScript に移したもの（`web/carcassonne_engine.js`）が
+AI（自己対戦ループの最新チャンピオンの評価関数＋MCTS 12000回＋10手のロールアウト＋相手の返し手まで読む選び直し）を JavaScript に移したもの（`web/carcassonne_engine.js`）が
 ブラウザの中で考える。ルールと特徴量は Python 版と毎手一致することを `tests/test_play_js.py` で確かめている（node が必要）。
 評価関数は `models/eval_champion.npy`（世代名は `models/eval_champion.json`）。自己対戦ループで新しいチャンピオンが採用されると、
 `.github/workflows/selfplay.yml` が `scripts/update_champion.py` で差し替えて公開ページを作り直し、PR を作ってすぐマージする（main は PR 必須。`scripts/merge_via_pr.sh`）。
