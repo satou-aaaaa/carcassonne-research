@@ -775,7 +775,11 @@ def texts(st: dict, lang: str) -> dict[str, str]:
     t["table_games"] = games_table(st, lang)
     t["table_fair"] = fairness_table(st, lang)
     ft = fairness_texts(st, lang)
-    t["fair_komi"], t["fair_tiles"] = ft["komi4"], ft["tiles70"]
+    # 英語は2つの文のあいだに空白が要る
+    t["fair_komi"], t["fair_tiles"] = (
+        ft["komi4"] + ("" if ja or not ft["komi4"] else " "),
+        ft["tiles70"],
+    )
     fp = st["first_player"]
     tie = {k["komi"]: k["tie_second"] for k in st["fairness"]["komi_sim"]}
     t["tie_fp"] = f"<b>{pct(fp['tie_second'])}</b>"
