@@ -1,0 +1,83 @@
+name: Human games
+
+# 対戦ページ（docs/play.html）から GitHub の Issue で送ってもらった棋譜を受け取る。
+# 本文に目印（carcassonne-game-record）のある Issue が開かれたら、棋譜を検査して（ルールどおり再生できるか・
+# 得点が合うか。src/carcassonne/human_games.py）data/human_games.jsonl に足し、弱点分析のまとめ
+# docs/results/human_games.md を作り直して、PR で main に入れる（main は PR 必須なので scripts/merge_via_pr.sh）。
+# 最後に結果を Issue に書いて閉じる（受け取れなかったものは「対応しない」で閉じる）。
+# ためた棋譜は自己対戦ループの学習に混ざる（selfplay_loop.Config.human_games）。
+# Issue の本文は誰でも書けるので、シェルに埋め込まず、イベントのファイルを Python が読む。
+# 入れられないとき（検査が通らない・PR を作れない）はジョブを失敗にし（ci-failure-issue.yml が知らせる）、
+# Issue は開いたまま残す（直したあと workflow_dispatch で番号を指定して受け取り直す）。
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: "受け取り直す Issue の番号"
+        required: true
+
+concurrency:
+  group: human-games
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  pages: write # マージ後に公開を起こす（GITHUB_TOKEN のコミットでは自動で走らない）
+  actions: write # merge_via_pr.sh が、マージ前の検査（test・Secret scan）を workflow_dispatch で起こす
+
+jobs:
+  ingest:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.issue.body, 'carcassonne-game-record')
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      ISSUE: ${{ github.event.issue.number || inputs.issue }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version-file: .python-version
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: 棋譜を検査して足す
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            source scripts/gh_retry.sh
+            ghr gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE" --jq '{issue: .}' > event.json
+          else
+            cp "$GITHUB_EVENT_PATH" event.json
+          fi
+          python scripts/human_games.py ingest-issue --event event.json --result result.json
+      - name: PR で main へ入れる
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          status=$(python -c "import json;print(json.load(open('result.json'))['status'])")
+          [ "$status" = "added" ] || exit 0
+          python scripts/human_games.py report
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/human_games.jsonl docs/results/human_games.md
+          git commit -q -m "人との対局の棋譜を受け取る（Issue #$ISSUE、自動）"
+          bash scripts/merge_via_pr.sh human-games "人との対局の棋譜を受け取る（Issue #$ISSUE、自動）"
+      - name: Issue に結果を書いて閉じる
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          source scripts/gh_retry.sh
+          python -c "import json;print(json.load(open('result.json'))['message'])" > body.md
+          python scripts/cap_body.py body.md
+          status=$(python -c "import json;print(json.load(open('result.json'))['status'])")
+          reason=completed
+          [ "$status" = "invalid" ] && reason="not planned"
+          ghr gh issue comment "$ISSUE" --body-file body.md
+          ghr gh issue close "$ISSUE" --reason "$reason"

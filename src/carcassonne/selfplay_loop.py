@@ -51,11 +51,17 @@ class Config:
     threshold: float = 0.55  # 採用に必要な勝率
     anchor_seeds: int = 20  # 採用時に初代と対戦する組数（0で省略）
     workers: int = 4
+    # 人がAIと指した棋譜（対戦ページから送ってもらったもの。リポジトリからの相対パス、空なら使わない）。
+    # 全局を毎回の学習に混ぜる。human_weight は1局を何局ぶんに数えるか（0で使わない）。
+    # 判定の対戦は変わらないので、混ぜて弱くなれば採用されない。
+    human_games: str = "data/human_games.jsonl"
+    human_weight: int = 1
 
 
 # root の下のフォルダ。状態は git のブランチで受け渡すので、空になったフォルダは次の実行では無い
 # （git は空のフォルダを残さない。2026-11-07 試行1003、Issue #143）。読み込むたびに作り直す。
 _SUBDIRS = ("data", "models", "gate")
+REPO = Path(__file__).resolve().parents[2]
 
 _DATA_NAME = re.compile(r"^a(\d+)_")
 
@@ -187,9 +193,39 @@ class Loop:
         self.save()
         return f"試行{a}: 自己対戦は済み"
 
+    def load_human(self):
+        """人との対局の棋譜を学習データにする。無ければ None。"""
+        c = self.cfg
+        path = REPO / c.human_games if c.human_games else None
+        if path is None or c.human_weight <= 0 or not path.exists():
+            return None
+        from . import human_games
+        from .fast import Fast
+
+        games = human_games.load(path)
+        if not games:
+            return None
+        X, y, p, g = human_games.to_data(Fast(), games)
+        k, n = c.human_weight, len(games)
+        return (
+            np.tile(X, (k, 1)),
+            np.tile(y, k),
+            np.tile(p, k),
+            np.concatenate([g + i * n for i in range(k)]),
+        )
+
     def load_window(self):
         a, w = self.attempt, self.cfg.window
         Xs, ys, ps, gs, off = [], [], [], [], 0
+        # 人との対局は先頭に置く（検証に使う後半20%の対局は自己対戦のまま）
+        human = self.load_human()
+        self.n_human = 0 if human is None else len(human[1])
+        if human is not None:
+            Xs.append(human[0])
+            ys.append(human[1])
+            ps.append(human[2])
+            gs.append(human[3])
+            off = int(human[3].max()) + 1
         for f in data_files(self.root / "data"):
             if not a - w < data_attempt(f) <= a:
                 continue
@@ -236,6 +272,7 @@ class Loop:
 
         self.state["train"] = {
             "positions": len(y),
+            "human_positions": self.n_human,
             "r2_candidate": round(r2(eval_np(cw, cm, X[va])), 4),
             "r2_champion": round(r2(eval_np(champ, mode, X[va])), 4),
         }

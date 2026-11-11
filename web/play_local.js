@@ -33,11 +33,29 @@
     return aiMove(eng, data, S, job.level, job.seed);
   }
 
+  // 終局した対局の棋譜（研究用に送ってもらう形。src/carcassonne/human_games.py が検査して読む）。
+  // C は Carcassonne（エンジンの定数）、g は LocalGame（deck・history・S・human_seat など）。名前は入れない
+  function gameRecord(C, eng, data, g) {
+    const sc = g.S.sc;
+    return {
+      v: 1,
+      deck: Array.from(g.deck),
+      moves: g.history.map(([cell, gi, piece]) => { const [x, y] = C.xyOf(cell); return [x, y, eng.gVi[gi], piece]; }),
+      human_seat: g.human_seat,
+      level: g.level,
+      ai: data.eval.champion ? data.eval.champion.name : null,
+      coach: !!g.coach,
+      hints: g.hints || 0,
+      undos: g.undos || 0,
+      scores: [sc[C.SC_S0], sc[C.SC_S0 + 1]],
+    };
+  }
+
   if (typeof module !== "undefined" && module.exports) {
-    module.exports = { aiMove, analyzeMoves, runJob };
+    module.exports = { aiMove, analyzeMoves, runJob, gameRecord };
     return;
   }
-  root.CarcassonneLocal = { aiMove, analyzeMoves, runJob };
+  root.CarcassonneLocal = { aiMove, analyzeMoves, runJob, gameRecord };
   if (typeof document === "undefined") return; // Worker の中では画面用の部分は不要
 
   const C = root.Carcassonne, DATA = root.PLAY_DATA;
@@ -189,6 +207,8 @@
       this.events.push({ player, text, x, y });
     }
 
+    record() { return gameRecord(C, eng, DATA, this); }
+
     view() {
       const S = this.S, sc = S.sc, over = !!sc[C.SC_OVER];
       const placements = [];
@@ -219,6 +239,7 @@
         player: sc[C.SC_PL],
         over,
         saved: false,
+        record: over ? this.record() : null,
         scores: [sc[C.SC_S0], sc[C.SC_S0 + 1]],
         projected: eng.projected(S),
         supply: [sc[C.SC_SUP0], sc[C.SC_SUP0 + 1]],

@@ -5,13 +5,14 @@
 // games:  ランダムに指した対局の毎手の記録（合法手・着手・着手後の得点など・着手前の特徴量）
 // search: 局面を少し進めてから探索し、返した手が合法か
 // match:  ブラウザ版のAI同士の対局結果
+// record: ランダムに指した対局の棋譜（公開ページが研究用に書き出す形。human_games.py が読む）
 // move:   山札と着手列 [x, y, 種別, 向き, 断片] の局面で、ブラウザ版のAIが選ぶ手
 "use strict";
 const path = require("path");
 const DOCS = path.join(__dirname, "..", "docs");
 const C = require(path.join(DOCS, "carcassonne_engine.js"));
 const DATA = require(path.join(DOCS, "play_data.js"));
-const { aiMove } = require(path.join(DOCS, "play_local.js"));
+const { aiMove, gameRecord } = require(path.join(DOCS, "play_local.js"));
 
 const eng = new C.Engine(DATA.tables);
 const args = JSON.parse(process.argv[2]);
@@ -46,6 +47,21 @@ if (args.cmd === "games") {
       steps.push({ legal, move: mv(m), snap: snap(S), projected: eng.projected(S), feats });
     }
     out.push({ seed, deck, start: snap(eng.newGame(deck)), steps });
+  }
+  console.log(JSON.stringify(out));
+} else if (args.cmd === "record") {
+  const out = [];
+  for (const seed of args.seeds) {
+    eng.rng.seed(seed);
+    const deck = eng.shuffledDeck(seed);
+    const S = eng.newGame(deck);
+    const history = [];
+    while (!S.sc[C.SC_OVER]) {
+      const m = eng.randomMove(S, 0.5);
+      eng.applyMove(S, m[0], m[1], m[2]);
+      history.push(m);
+    }
+    out.push(gameRecord(C, eng, DATA, { S, deck, history, human_seat: seed % 2, level: "strong", coach: false, hints: 0, undos: 1 }));
   }
   console.log(JSON.stringify(out));
 } else if (args.cmd === "search") {
