@@ -54,6 +54,15 @@ jobs:
       - name: "準備: Playwright と Chromium"
         run: |
           npm install --no-save --no-package-lock playwright@1.56.1
-          npx playwright install --with-deps chromium
+          # 依存パッケージ（フォントなど）は apt で入れる。ランナーの apt ミラーが名前解決に失敗することがある
+          # （2026-11-11 #166 で2回続けて落ちた）ので、間をおいて3回まで試す。
+          # それでもだめなら Chromium だけ入れて続ける（ubuntu-24.04 のイメージには動かすのに要るライブラリが入っている）
+          for i in 1 2 3; do
+            sudo apt-get update -o Acquire::Retries=3 || true
+            if npx playwright install --with-deps chromium; then exit 0; fi
+            echo "::warning::Playwright の依存パッケージを入れられませんでした（${i}回目）"
+            sleep $((i * 20))
+          done
+          npx playwright install chromium
       - name: "確認: UI 点検（scripts/ui_check.mjs）"
         run: node scripts/ui_check.mjs
