@@ -18,7 +18,12 @@
   "p_value": 1.32e-10,
   "mean_diff": 3.98,
   "se_diff": 0.45,
-  "draw_rate": 0.0195
+  "draw_rate": 0.0195,
+  "tie_second": 0.5615,
+  "tie_second_ci": [
+   0.5397,
+   0.5831
+  ]
  },
  "scores": {
   "mean": 97.8,
@@ -1237,7 +1242,12 @@
     "p_value": 1.32e-10,
     "mean_diff": 3.98,
     "se_diff": 0.45,
-    "draw_rate": 0.0195
+    "draw_rate": 0.0195,
+    "tie_second": 0.5615,
+    "tie_second_ci": [
+     0.5397,
+     0.5831
+    ]
    },
    {
     "rule": "komi4",
@@ -1253,7 +1263,12 @@
     "p_value": 0.0731,
     "mean_diff": 1.32,
     "se_diff": 0.64,
-    "draw_rate": 0.023
+    "draw_rate": 0.023,
+    "tie_second": 0.517,
+    "tie_second_ci": [
+     0.486,
+     0.5478
+    ]
    },
    {
     "rule": "tiles70",
@@ -1269,49 +1284,62 @@
     "p_value": 0.463,
     "mean_diff": 0.52,
     "se_diff": 0.61,
-    "draw_rate": 0.016
+    "draw_rate": 0.016,
+    "tie_second": 0.504,
+    "tie_second_ci": [
+     0.4731,
+     0.5349
+    ]
    }
   ],
   "komi_sim": [
    {
     "komi": 0,
     "score": 0.5713,
-    "draw": 0.0195
+    "draw": 0.0195,
+    "tie_second": 0.5615
    },
    {
     "komi": 1,
     "score": 0.554,
-    "draw": 0.015
+    "draw": 0.015,
+    "tie_second": 0.5465
    },
    {
     "komi": 2,
     "score": 0.5373,
-    "draw": 0.0185
+    "draw": 0.0185,
+    "tie_second": 0.528
    },
    {
     "komi": 3,
     "score": 0.519,
-    "draw": 0.018
+    "draw": 0.018,
+    "tie_second": 0.51
    },
    {
     "komi": 4,
     "score": 0.4988,
-    "draw": 0.0225
+    "draw": 0.0225,
+    "tie_second": 0.4875
    },
    {
     "komi": 5,
     "score": 0.4773,
-    "draw": 0.0205
+    "draw": 0.0205,
+    "tie_second": 0.467
    },
    {
     "komi": 6,
     "score": 0.4547,
-    "draw": 0.0245
+    "draw": 0.0245,
+    "tie_second": 0.4425
    },
    {
     "komi": 7,
     "score": 0.435,
-    "draw": 0.015
+    "draw": 0.015,
+    "tie_second": 0.4275
    }
   ]
  }

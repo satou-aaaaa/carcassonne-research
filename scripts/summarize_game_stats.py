@@ -51,6 +51,8 @@ def first_player(games: list[dict]) -> dict:
     d = n - w - loss
     score = (w + 0.5 * d) / n
     lo, hi = wilson(w + 0.5 * d, n)
+    # 大会ルール（日本選手権・ドイツ選手権など）: 同点は後手の勝ち
+    lo2, hi2 = wilson(w, n)
     diffs = [g["scores"][0] - g["scores"][1] for g in games]
     mean = statistics.fmean(diffs)
     se = statistics.stdev(diffs) / math.sqrt(n)
@@ -65,6 +67,8 @@ def first_player(games: list[dict]) -> dict:
         "mean_diff": _r(mean, 2),
         "se_diff": _r(se, 2),
         "draw_rate": _r(d / n, 4),
+        "tie_second": _r(w / n, 4),
+        "tie_second_ci": [_r(lo2, 4), _r(hi2, 4)],
     }
 
 
@@ -351,7 +355,14 @@ def fairness(d: Path, games: list[dict]) -> dict:
     for k in range(8):
         w = sum(x > k for x in diffs)
         t = sum(x == k for x in diffs)
-        sim.append({"komi": k, "score": _r((w + 0.5 * t) / n, 4), "draw": _r(t / n, 4)})
+        sim.append(
+            {
+                "komi": k,
+                "score": _r((w + 0.5 * t) / n, 4),
+                "draw": _r(t / n, 4),
+                "tie_second": _r(w / n, 4),
+            }
+        )
     return {"played": rows, "komi_sim": sim}
 
 

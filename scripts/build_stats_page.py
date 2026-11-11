@@ -433,14 +433,21 @@ def balanced(r: dict) -> bool:
 def fairness_table(st: dict, lang: str) -> str:
     li = 0 if lang == "ja" else 1
     head = (
-        ("ルール", "局数", "先手の勝率", "95%の範囲", "先手の平均点差")
+        ("ルール", "局数", "先手の勝率", "95%の範囲", "同点を後手勝ちにすると", "先手の平均点差")
         if lang == "ja"
-        else ("Rule", "Games", "First player scores", "95% interval", "First player's avg margin")
+        else (
+            "Rule",
+            "Games",
+            "First player scores",
+            "95% interval",
+            "If ties go to the second player",
+            "First player's avg margin",
+        )
     )
     rows = []
     for r in st["fairness"]["played"]:
         cells = [f"{r['games']:,}", pct(r["score"]), f"{pct(r['ci'][0])}–{pct(r['ci'][1])}",
-                 f"{r['mean_diff']:+.1f}"]  # fmt: skip
+                 pct(r["tie_second"]), f"{r['mean_diff']:+.1f}"]  # fmt: skip
         rows.append(
             f"<tr><th>{RULE[r['rule']][li]}</th>"
             + "".join(
@@ -597,6 +604,13 @@ def failed_claims(st: dict) -> list[str]:
     sim = {k["komi"]: k["score"] for k in st["fairness"]["komi_sim"]}
     if not (sim[3] > 0.51 and sim[5] < 0.49):
         bad.append("試算で3点では足りず、5点では後手が有利")
+    tie = {k["komi"]: k["tie_second"] for k in st["fairness"]["komi_sim"]}
+    if not (fp["tie_second"] > 0.53 and fp["tie_second_ci"][0] > 0.5):
+        bad.append("同点を後手勝ちにしても先手がはっきり有利（9節）")
+    if not 0 < fp["score"] - fp["tie_second"] < 0.02:
+        bad.append("同点を後手勝ちにしても先手の勝率は約1ポイントしか下がらない（9節）")
+    if not (0.5 < tie[3] < 0.53 and 0.47 < tie[4] < 0.5):
+        bad.append("同点を後手勝ちにしたうえで3〜4点あげるとほぼ五分（9節）")
     k4, t70 = fair(st, "komi4"), fair(st, "tiles70")
     if k4 is None or not balanced(k4):
         bad.append("コミ4点で先後の差が誤差の範囲に収まる（9節の「学び」）")
@@ -761,7 +775,17 @@ def texts(st: dict, lang: str) -> dict[str, str]:
     t["table_games"] = games_table(st, lang)
     t["table_fair"] = fairness_table(st, lang)
     ft = fairness_texts(st, lang)
-    t["fair_komi"], t["fair_tiles"] = ft["komi4"], ft["tiles70"]
+    # 英語は2つの文のあいだに空白が要る
+    t["fair_komi"], t["fair_tiles"] = (
+        ft["komi4"] + ("" if ja or not ft["komi4"] else " "),
+        ft["tiles70"],
+    )
+    fp = st["first_player"]
+    tie = {k["komi"]: k["tie_second"] for k in st["fairness"]["komi_sim"]}
+    t["tie_fp"] = f"<b>{pct(fp['tie_second'])}</b>"
+    t["tie_base"] = pct(fp["score"])
+    t["tie_drop"] = f"{(fp['score'] - fp['tie_second']) * 100:.1f}"
+    t["tie_k3"], t["tie_k4"] = pct(tie[3]), pct(tie[4])
     t["fair_games"] = f"{min(r['games'] for r in st['fairness']['played']):,}"
     t["chart_komi"] = hbars(
         [
