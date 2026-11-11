@@ -1,0 +1,6 @@
+{
+  "_説明": "棋譜を送る Google フォーム（アカウント不要）。form は事前入力リンクの viewform まで、entry は棋譜の欄の entry.番号、csv は回答の表を「ウェブに公開」した CSV の URL。空のあいだは対戦ページにボタンを出さず、取り込みもしない。docs/HUMAN_EVAL.md",
+  "form": "https://docs.google.com/forms/d/e/1FAIpQLSfZixr0hMZhERUfykLg2zzthjyV0UrvDEyDDdj4xGwbG28ydQ/viewform",
+  "entry": "entry.1648260257",
+  "csv": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSRD1QoKnMC-ckVSW6E5813FMvcBocsZoeyRpDpeFpsh6n7q8Fuyc5Yw_TAvr-PUzpuDfJ5AVmk2-z9/pub?output=csv"
+}

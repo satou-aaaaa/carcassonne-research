@@ -982,10 +982,19 @@ function resultHtml() {
     `<table><tr><th></th><th style="color:${PCOL[h]}">You</th><th style="color:${PCOL[a]}">AI</th></tr>` +
     rows.map(([l, f]) => tr(l, f)).join("") + tr("Total", p => G.scores[p], "sum") + "</table>" +
     (G.saved === false ? "" : `<div style="font-size:12px;color:var(--muted);margin-top:4px">Record saved.</div>`) +
-    (G.record ? `<div class="share"><b>Share this game for research</b><br>Games against people help us find the AI's weak spots and train it.` +
-      `<div class="row"><button type="button" id="btnSendRec">Send via GitHub</button><button type="button" id="btnSaveRec">Save as file</button></div>` +
-      `Only the tile order, moves, scores and AI level are sent; your name is not included. Check the content on the GitHub page that opens, then press the submit button (a GitHub account is needed, and the game record and your account name will be public). Saving as a file keeps it on your device without sending anything.</div>` : "");
+    (G.record ? shareHtml() : "");
 }
+// 終局後の「棋譜を送る」欄。Google フォーム（アカウント不要）は設定があるときだけ出す（data/human_games_form.json）
+function shareHtml() {
+  const form = REC_FORM ? `<button type="button" class="primary" id="btnFormRec">Send game (no account needed)</button>` : "";
+  return `<div class="share"><b>Share this game for research</b><br>Games against people help us find the AI's weak spots and train it.` +
+    `<div class="row">${form}<button type="button" id="btnSendRec">Send via GitHub</button><button type="button" id="btnSaveRec">Save as file</button></div>` +
+    `Only the tile order, moves, scores and AI level are sent; your name is not included. Check the content on the page that opens, then press its submit button.` +
+    (REC_FORM ? `“Send game” uses a Google Form: no account or email address needed.` : "") +
+    `Sending via GitHub makes the game record and your account name public. Saving as a file keeps it on your device without sending anything.</div>`;
+}
+const REC_FORM = window.PLAY_DATA ? window.PLAY_DATA.form : null;
+function recordFormUrl() { return `${REC_FORM.url}?usp=pp_url&${REC_FORM.entry}=${encodeURIComponent(recordJson())}`; }
 // 棋譜の送り先（Issue の画面を内容入りで開く。受け取りは .github/workflows/human-games.yml）
 const REC_REPO = "https://github.com/satou-aaaaa/carcassonne-research";
 function recordJson() { return JSON.stringify(G.record); }
@@ -997,6 +1006,7 @@ function recordIssueUrl() {
 }
 $("result").addEventListener("click", e => {
   if (!G || !G.record) return;
+  if (e.target.id === "btnFormRec") window.open(recordFormUrl(), "_blank", "noopener");
   if (e.target.id === "btnSendRec") window.open(recordIssueUrl(), "_blank", "noopener");
   if (e.target.id === "btnSaveRec") {
     const url = URL.createObjectURL(new Blob([recordJson() + "\n"], {type: "application/json"}));

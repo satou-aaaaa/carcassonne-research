@@ -114,3 +114,21 @@ def test_browser_record_is_accepted():
     for rec in run_js({"cmd": "record", "seeds": [1, 2]}):
         out = hg.normalize(rec, TS)
         assert out["undos"] == 1 and out["moves"] == rec["moves"]
+
+
+def test_form_rows_are_checked_and_added(tmp_path):
+    """Google フォームの回答（公開 CSV）から、正しい棋譜だけを足す。"""
+    import csv
+    import io
+
+    good = json.dumps(make_record(7))
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["タイムスタンプ", "棋譜"])
+    w.writerows(
+        [["2026/11/12 3:00:00", good], ["2026/11/12 3:01:00", good], ["x", "test"], ["y", ""]]
+    )
+    texts = hg.form_texts(buf.getvalue())
+    assert len(texts) == 3
+    got = hg.ingest_rows(texts, tmp_path / "g.jsonl", TS)
+    assert got == {"added": 1, "duplicate": 1, "invalid": 1}

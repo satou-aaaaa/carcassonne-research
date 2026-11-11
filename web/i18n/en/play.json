@@ -113,9 +113,12 @@
  "盤のミープル: 立っているのは都市・道・修道院、寝ているのは草原の農民（実物のゲームと同じ置き方）。「陣地」ボタンで、ミープルが乗っている範囲を持ち主の色（同数は黄色）で塗り分けます。": "Meeples on the board: standing ones are on cities, roads and monasteries; lying ones are farmers on fields (as in the real game). The Areas button shades every claimed feature in its owner's colour (yellow when tied).",
  "棋譜を研究に使わせてください": "Share this game for research",
  "人との対局から、AIの弱点を探して学習に使います。": "Games against people help us find the AI's weak spots and train it.",
- "GitHubで棋譜を送る": "Send via GitHub",
  "ファイルに保存": "Save as file",
- "送るのは山札・指し手・得点・AIの強さだけで、名前は入りません。開いた GitHub の画面で内容を確かめ、送信ボタンを押すと届きます（GitHub のアカウントが要り、送った棋譜とアカウント名は公開されます）。ファイルは送らずに手元に残せます。": "Only the tile order, moves, scores and AI level are sent; your name is not included. Check the content on the GitHub page that opens, then press the submit button (a GitHub account is needed, and the game record and your account name will be public). Saving as a file keeps it on your device without sending anything.",
  "[棋譜] ${r.scores[h]} − ${r.scores[a]}（AI: ${r.level}）": "[Game record] ${r.scores[h]} − ${r.scores[a]} (AI: ${r.level})",
- "\\n対戦ページで指した対局の棋譜です。AIの学習と弱点探しに使ってください。\\n\\n": "\\nA game record from the play page, for training the AI and finding its weak spots.\\n\\n"
+ "\\n対戦ページで指した対局の棋譜です。AIの学習と弱点探しに使ってください。\\n\\n": "\\nA game record from the play page, for training the AI and finding its weak spots.\\n\\n",
+ "棋譜を送る（アカウント不要）": "Send game (no account needed)",
+ "GitHubで送る": "Send via GitHub",
+ "送るのは山札・指し手・得点・AIの強さだけで、名前は入りません。開いた画面で内容を確かめ、送信ボタンを押すと届きます。": "Only the tile order, moves, scores and AI level are sent; your name is not included. Check the content on the page that opens, then press its submit button.",
+ "「棋譜を送る」は Google フォームで、アカウントもメールアドレスも要りません。": "“Send game” uses a Google Form: no account or email address needed.",
+ "GitHub で送ると、棋譜とアカウント名が公開されます。ファイルは送らずに手元に残せます。": "Sending via GitHub makes the game record and your account name public. Saving as a file keeps it on your device without sending anything."
 }

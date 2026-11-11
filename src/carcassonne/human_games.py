@@ -264,6 +264,31 @@ def report_md(fast: Fast, games: list[dict], w: np.ndarray) -> str:
     return "\n".join(lines) + "\n"
 
 
+def ingest_rows(texts, path: str | Path, ts: TileSet | None = None) -> dict:
+    """Google フォームの回答（棋譜の JSON の文字列の並び）を検査して足す。数を返す（added / duplicate / invalid）。"""
+    ts = ts or load_tileset()
+    out = {"added": 0, "duplicate": 0, "invalid": 0}
+    for text in texts:
+        try:
+            if len(text) > MAX_BODY:
+                raise RecordError("長すぎます")
+            rec = normalize(json.loads(text), ts)
+        except (RecordError, json.JSONDecodeError, TypeError):
+            out["invalid"] += 1
+            continue
+        out["added" if add(path, rec) else "duplicate"] += 1
+    return out
+
+
+def form_texts(csv_text: str) -> list[str]:
+    """フォームの回答の表（CSV。1列目はタイムスタンプ、2列目が棋譜）から棋譜の文字列を取り出す。"""
+    import csv
+    import io
+
+    rows = list(csv.reader(io.StringIO(csv_text)))
+    return [r[1] for r in rows[1:] if len(r) > 1 and r[1].strip()]
+
+
 def ingest_issue(body: str, path: str | Path, ts: TileSet | None = None) -> tuple[str, str]:
     """Issue の本文の棋譜を検査して足す。(結果, 知らせる文) を返す。結果は added / duplicate / invalid。"""
     try:
