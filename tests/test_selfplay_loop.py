@@ -212,3 +212,16 @@ def test_challenge_runs_once_at_attempt_boundary(tmp_path):
     loop.set_challenge(path)
     assert loop.step().startswith("試行1: 自己対戦")
     assert "挑戦者 keep" in (tmp_path / "progress.md").read_text(encoding="utf-8")
+
+
+def test_loop_search_settings_reach_agents(tmp_path):
+    """選び直しの設定が自己対戦・判定のAIに渡る。古い state.json（設定なし）は既定値で読める。"""
+    cfg = Config(sims=10, depth=2, reselect=0.5, reselect_k=4, reselect_reply=1, workers=1)
+    loop = Loop(tmp_path, cfg, "models/eval_v6_lin.npy")
+    agent = loop.agent("models/gen000.npy")()
+    assert agent.reselect == 0.5 and agent.reselect_k == 4 and agent.reselect_reply
+    st = json.loads((tmp_path / "state.json").read_text(encoding="utf-8"))
+    for k in ("reselect", "reselect_k", "reselect_reply"):
+        del st["config"][k]
+    (tmp_path / "state.json").write_text(json.dumps(st), encoding="utf-8")
+    assert Loop(tmp_path).search_kwargs() == {"rollout_depth": 2}  # 既定は選び直しなし
