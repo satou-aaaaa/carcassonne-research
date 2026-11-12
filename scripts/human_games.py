@@ -132,7 +132,8 @@ def write_public(games: list[dict], out: Path = PUBLIC) -> None:
     print(f"{out} に {len(games)} 局を書きました（{len(files) - 1} ファイル）")
 
 
-def read_cache(path: Path = FINDINGS_CACHE) -> dict:
+def read_cache(path: Path | None = None) -> dict:
+    path = path or FINDINGS_CACHE
     if not path.exists():
         return {}
     text = path.read_text(encoding="utf-8").strip()
@@ -141,8 +142,9 @@ def read_cache(path: Path = FINDINGS_CACHE) -> dict:
     return {k: v for k, v in (json.loads(line) for line in text.splitlines() if line.strip())}
 
 
-def write_cache(cache: dict, path: Path = FINDINGS_CACHE) -> None:
+def write_cache(cache: dict, path: Path | None = None) -> None:
     """1局1行（[key, 採点]）。局が増えても差分は増えた行だけになる。"""
+    path = path or FINDINGS_CACHE
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         "".join(
