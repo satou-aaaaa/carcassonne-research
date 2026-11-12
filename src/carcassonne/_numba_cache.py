@@ -17,6 +17,7 @@ SOURCES = (
     "fast_eval.py",
     "fast_eval_ext.py",
     "fast_mcts.py",
+    "endgame.py",
     "nn_encode.py",
     "rollout_fit.py",
 )

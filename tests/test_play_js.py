@@ -90,6 +90,23 @@ def test_next_tile_value_matches_python():
             np.testing.assert_allclose(r[key], v, atol=1e-6)
 
 
+def test_endgame_matches_python():
+    """終盤の厳密解（勝率最大の手と値）が Python 版（endgame.py）と一致する。"""
+    from carcassonne.endgame import OBJ_WIN, best_move, solve
+
+    fast = Fast()
+    res = run_js({"cmd": "endgame", "seeds": list(range(6)), "bag": 2})
+    assert len(res) >= 4
+    for r in res:
+        S = fast.new_game(r["deck"])
+        for x, y, ti, vi, piece in r["history"]:
+            fast.apply(S, x, y, ti, vi, piece)
+        v, _, _ = solve(fast, S, OBJ_WIN)
+        assert r["value"] == pytest.approx(v)
+        m, _ = best_move(fast, S, prefer=tuple(r["prefer"]))
+        assert list(m) == r["move"]
+
+
 def test_search_returns_legal_moves():
     for level in ("standard", "greedy"):
         res = run_js({"cmd": "search", "seeds": [1, 2, 3], "plies": 20, "level": level})

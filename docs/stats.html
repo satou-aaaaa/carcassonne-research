@@ -272,6 +272,20 @@ summary { padding-block: 6px; }
   </ul></div>
 </section>
 
+<section id="endgame">
+  <h2><span class="no">10</span>終盤を読み切ると</h2>
+  <p>山札が残り数枚になると、残りのタイルの出方と2人の手をすべて調べて、勝つ確率がいちばん高い手を正確に求められます。ゲーム理論でいう最善手で、ポーカーでは「GTO」と呼ばれる考え方です。カルカソンヌは盤面も残りのタイルの種類と枚数も2人に見えていて、隠れているのは引く順番の運だけです。そのため、ポーカーのように手を確率で混ぜる必要はなく、最善手はいつも決まった手になります。</p>
+  <p>AIどうしの400局から、最後の4手（山札の残り3枚〜0枚の1,600局面）を読み切りました。</p>
+  <div class="tablewrap"><table class="cards"><thead><tr><th>山札の残り</th><th>局面</th><th>勝ち負けが動く局面</th><th>AIが最善手を選んだ</th></tr></thead><tbody><tr><th>3枚</th><td data-label="局面"><span>400</span></td><td data-label="勝ち負けが動く局面"><span>101（25%）</span></td><td data-label="AIが最善手を選んだ"><span>76%</span></td></tr><tr><th>2枚</th><td data-label="局面"><span>400</span></td><td data-label="勝ち負けが動く局面"><span>67（17%）</span></td><td data-label="AIが最善手を選んだ"><span>84%</span></td></tr><tr><th>1枚</th><td data-label="局面"><span>400</span></td><td data-label="勝ち負けが動く局面"><span>38（10%）</span></td><td data-label="AIが最善手を選んだ"><span>100%</span></td></tr><tr><th>0枚（最後の1枚）</th><td data-label="局面"><span>400</span></td><td data-label="勝ち負けが動く局面"><span>37（9%）</span></td><td data-label="AIが最善手を選んだ"><span>100%</span></td></tr></tbody></table></div>
+  <p>最後の4手のうち<b class="num">85%</b>の局面は、どこに置いても勝つ確率が変わりませんでした。勝ち負けが動く局面は、着手前の点差が20点以内だと20%、20点より大きいと5%です。対戦ページの「最強」と同じ探索（gen1144）は、勝ち負けが動く局面の86%で最善手を選んでいました。外したのは残り2〜3枚の局面だけで、勝率にすると1人あたり約1.4ポイント分です。いまの対戦ページのAIは、山札が残り3枚になったらこの読み切りで指します。</p>
+  <p>点をいちばん多く取る手と、勝つ確率がいちばん高い手が分かれた局面は、1,200局面中5局面だけでした（残り2枚以下で調べた数）。</p>
+  <div class="box learn"><span class="k">学び</span><ul>
+    <li>終盤に点差が大きく開いていれば、勝ち負けはほぼ決まっています。考える時間は、僅差の終盤に使いましょう。</li>
+    <li>ほとんどの局面では、点をいちばん多く取る手が勝つ確率でも最善です。ただし僅差の最終盤では、残りのタイルを数えて「どのタイルが出たら勝ちか負けか」まで考えると、点を少し捨てても勝つ確率が上がる手が見つかることがあります。</li>
+  </ul></div>
+  <p class="note">読み切りは、残りのタイルの種類ごとに引く確率で重み付けし、手番の側は勝つ確率（引き分けは0.5勝）が最大の手を選ぶとして終局まで調べたものです（期待ミニマックス法。<a href="https://aima.cs.berkeley.edu/4th-ed/pdfs/newchap06.pdf">Russell &amp; Norvig『AIMA』6章</a>）。残り3枚なら1手数秒以内で読めますが、4枚では1局面に数分かかることがあり、対戦ページでは使っていません。局面はAIどうしの対局の棋譜から取り、「最強」の手はその局面から改めて探索させました。プログラムは <code>src/carcassonne/endgame.py</code>・<code>scripts/gto_endgame.py</code>、集計結果は <code>docs/results/gto_endgame.json</code>。</p>
+</section>
+
 <section id="method">
   <h2>測り方について</h2>
   <p class="note">AIは集計した時点の対戦ページの「標準」と同じ設定（1手2000回の探索＋評価関数 gen975。2026-11-11 からの「標準」は、相手の返し手まで読む選び直しが加わってもう少し強い）。1,000通りの山札を、指し手の乱数だけ変えて2回ずつ指しました（2026-11-05時点）。勝率の範囲はWilsonの95%信頼区間、先手有利の検定は引き分けを除いた二項検定（p < 0.001）。「見込みの点」は、その時点でゲームが終わったとして未完成の場所と草原を数えた点です。強さ別の対戦は、同じ山札で先後を入れ替えた2局を1組にしています。ルールを変えた対局は、AIもそのルールを知ったうえで指しています（コミは後手の初期点、70枚は山札の最後の1枚を伏せたまま使わない）。人間同士の対局とは数字が違うかもしれません。集計は <code>scripts/collect_game_stats.py</code>・<code>scripts/summarize_game_stats.py</code>、集計結果は <code>docs/results/game_stats.json</code>。</p>

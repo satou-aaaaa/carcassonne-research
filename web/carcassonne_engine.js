@@ -850,6 +850,141 @@
       return best[this.rng.randint(0, best.length)];
     }
 
+    // ---- 終盤の厳密解（src/carcassonne/endgame.py の OBJ_WIN と best_move） --------------
+    // 山札の残りが少ない局面を終局まで読み切り、勝つ確率（勝ち1・引き分け0.5・負け0）が最大の手を選ぶ。
+    // 運の節点は残りの種類ごとに枚数で重み付け平均し、αβ（運の節点は Star1）で枝刈りする。値は先手視点。
+
+    bagLeft(S) { return NT - 1 - S.sc[SC_DRAW]; }
+
+    egState(d) {
+      if (!this.egPool) this.egPool = [];
+      while (this.egPool.length <= d) this.egPool.push(makeState(this.P));
+      return this.egPool[d];
+    }
+
+    // applyMove から引き（draw）を除いたもの
+    applyNoDraw(S, cell, g, piece) {
+      const sc = S.sc, player = sc[SC_PL];
+      this.placeTile(S, cell, g);
+      if (piece >= 0) {
+        const r = find(S.parent, (S.grid[cell] - 1) * this.P + piece);
+        S.meep[r * 2 + player]++;
+        sc[SC_SUP0 + player]--;
+      }
+      this.scoreAfterPlacement(S, cell, g);
+      sc[SC_PL] = 1 - player;
+    }
+
+    egTerminal(S) {
+      const d = S.sc[SC_S0] - S.sc[SC_S0 + 1];
+      return d > 0 ? 1 : d === 0 ? 0.5 : 0;
+    }
+
+    // 手番の着手 [マス, 向きID, 断片] の一覧。order なら置いた直後の点差の良い順（安定な並べ替え）
+    egMoves(S, order, d) {
+      const sc = S.sc, me = sc[SC_PL];
+      const k = this.genPlacements(S, sc[SC_CUR], false);
+      const cells = this.outCell.slice(0, k), gs = this.outG.slice(0, k), out = [];
+      const X = this.egState(d);
+      for (let q = 0; q < k; q++) {
+        const npc = sc[SC_SUP0 + me] > 0 ? this.npc[gs[q]] : 0;
+        for (let pi = -1; pi < npc; pi++) {
+          if (pi >= 0 && !this.pieceFree(S, cells[q], gs[q], pi)) continue;
+          let key = 0;
+          if (order) {
+            copyInto(X, S);
+            this.applyNoDraw(X, cells[q], gs[q], pi);
+            const df = X.sc[SC_S0] - X.sc[SC_S0 + 1];
+            key = me === 0 ? -df : df;
+          }
+          out.push([cells[q], gs[q], pi, key]);
+        }
+      }
+      if (order) out.sort((a, b) => a[3] - b[3]);
+      return out;
+    }
+
+    // 着手の直後（まだ引いていない）局面の値
+    egChance(S, alpha, beta, d) {
+      const lo = S.sc[SC_DRAW], end = NT - 1;
+      const X = this.egState(d);
+      if (lo >= end) {
+        copyInto(X, S);
+        X.sc[SC_CUR] = -1;
+        this.finish(X);
+        return this.egTerminal(X);
+      }
+      const n = end - lo, seen = new Uint8Array(128);
+      let done = 0, rem = 1;
+      for (let j = lo; j < end; j++) {
+        const t = S.deck[j];
+        if (seen[t]) continue;
+        seen[t] = 1;
+        let c = 0;
+        for (let q = lo; q < end; q++) if (S.deck[q] === t) c++;
+        const p = c / n;
+        rem -= p;
+        const a = Math.max(0, (alpha - done - rem) / p), b = Math.min(1, (beta - done) / p);
+        copyInto(X, S);
+        X.deck[j] = X.deck[lo];
+        X.deck[lo] = t;
+        X.sc[SC_DRAW] = lo + 1;
+        let v;
+        if (this.genPlacements(X, t, true) > 0) {
+          X.sc[SC_CUR] = t;
+          v = this.egDecide(X, a, b, d + 1);
+        } else {
+          X.sc[SC_DISC]++; // 置けないタイルは捨てて引き直す
+          v = this.egChance(X, a, b, d + 1);
+        }
+        done += p * v;
+        if (done + rem <= alpha) return done + rem;
+        if (done >= beta) return done;
+      }
+      return done;
+    }
+
+    // 手番の局面の値（先手は最大、後手は最小を選ぶ）
+    egDecide(S, alpha, beta, d) {
+      const me = S.sc[SC_PL];
+      const moves = this.egMoves(S, S.sc[SC_DRAW] < NT - 1, d);
+      const X = this.egState(d);
+      let best = me === 0 ? -1 : 2;
+      for (const [cell, g, piece] of moves) {
+        copyInto(X, S);
+        this.applyNoDraw(X, cell, g, piece);
+        if (me === 0) {
+          const v = this.egChance(X, Math.max(alpha, best), beta, d + 1);
+          if (v > best) best = v;
+          if (best >= beta) return best;
+        } else {
+          const v = this.egChance(X, alpha, Math.min(beta, best), d + 1);
+          if (v < best) best = v;
+          if (best <= alpha) return best;
+        }
+      }
+      return best;
+    }
+
+    // 勝率最大の手 [マス, 向きID, 断片] と値（先手視点）。prefer（探索の手）より厳密に良い手が無ければ prefer
+    endgameBest(S, prefer) {
+      const eps = 1e-9, me = S.sc[SC_PL];
+      let moves = this.egMoves(S, true, 0).map(m => [m[0], m[1], m[2]]);
+      if (prefer) moves = [prefer].concat(moves.filter(m => !(m[0] === prefer[0] && m[1] === prefer[1] && m[2] === prefer[2])));
+      const X = this.egState(0);
+      let best = null, bm = null;
+      for (const m of moves) {
+        let a = 0, b = 1;
+        if (best !== null) { if (me === 0) a = best + eps; else b = best - eps; }
+        if (a > b) break; // もう必勝・必敗に届いている
+        copyInto(X, S);
+        this.applyNoDraw(X, m[0], m[1], m[2]);
+        const v = this.egChance(X, a, b, 1);
+        if (best === null || (me === 0 && v > best + eps) || (me === 1 && v < best - eps)) { best = v; bm = m; }
+      }
+      return [bm, best];
+    }
+
     // ---- 表示・検証用 --------------------------------------------------------
 
     // 合法手の一覧 [マス, 向きID, 断片(-1はなし)]

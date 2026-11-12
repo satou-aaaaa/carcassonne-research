@@ -8,6 +8,7 @@
 // record: ランダムに指した対局の棋譜（公開ページが研究用に書き出す形。human_games.py が読む）
 // ntv:    ランダムに進めた局面で、候補手ごとの「次のタイルで平均した評価値」（返し手あり・なし）
 // replay: 棋譜（records）を再生ページの仕組み（LOCAL_API の /api/replay）で開き、途中と最後の盤・得点
+// endgame: ランダムに残り bag 枚まで進めた局面で、終盤の厳密解（endgameBest）の手と値・かかった時間
 // move:   山札と着手列 [x, y, 種別, 向き, 断片] の局面で、ブラウザ版のAIが選ぶ手
 "use strict";
 const path = require("path");
@@ -104,6 +105,25 @@ if (args.cmd === "games") {
     if (S.sc[C.SC_OVER]) continue;
     const cands = eng.legalMoves(S).slice(0, 4);
     out.push({ deck, history, cands, plain: eng.nextTileValue(S, cands, w, false), reply: eng.nextTileValue(S, cands, w, true) });
+  }
+  console.log(JSON.stringify(out));
+} else if (args.cmd === "endgame") {
+  const out = [];
+  for (const seed of args.seeds) {
+    eng.rng.seed(seed);
+    const deck = eng.shuffledDeck(seed);
+    const S = eng.newGame(deck);
+    const history = [];
+    while (!S.sc[C.SC_OVER] && eng.bagLeft(S) > args.bag) {
+      const m = eng.randomMove(S, 0.5);
+      history.push(mv(m));
+      eng.applyMove(S, m[0], m[1], m[2]);
+    }
+    if (S.sc[C.SC_OVER]) continue;
+    const prefer = eng.legalMoves(S)[0];
+    const t = Date.now();
+    const [m, v] = eng.endgameBest(S, prefer);
+    out.push({ deck, history, prefer, move: m, value: v, ms: Date.now() - t });
   }
   console.log(JSON.stringify(out));
 } else if (args.cmd === "search") {

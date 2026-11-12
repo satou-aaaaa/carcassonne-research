@@ -36,6 +36,7 @@ INT_KEYS = {
     "pv": "prior_visits",
     "topk": "nn_topk",
     "rk": "reselect_k",
+    "eg": "endgame",
 }
 BOOL_KEYS = {
     "fact": "factored",

@@ -611,6 +611,7 @@ class FastMCTSAgent:
         reselect_reply: bool = False,
         scale_decay: float = 0.0,
         scale_min: float = 5.0,
+        endgame: int = 0,
     ) -> None:
         """eval_path に線形評価関数の重み(.npy)を渡すと、葉をその評価関数で評価する。
 
@@ -633,6 +634,9 @@ class FastMCTSAgent:
         # 終盤ほど点差より勝ち負けを重く見る
         self.scale_decay = scale_decay
         self.scale_min = scale_min
+        # 1以上なら、山札の残りがこの枚数以下の局面は終局まで読み切った勝率最大の手（GTO）で指す
+        # （`endgame.best_move`。探索の手が最善なら、それをそのまま使う）
+        self.endgame = int(endgame)
         self.n_sims = n_sims
         self.n_det = n_det
         self.c = c
@@ -669,6 +673,7 @@ class FastMCTSAgent:
             + (f",rsel={reselect:g},rk={reselect_k}" if self.reselect > 0 else "")
             + (",rr=1" if self.reselect > 0 and reselect_reply else "")
             + (f",sd={scale_decay:g},smin={scale_min:g}" if scale_decay > 0 else "")
+            + (f",eg={self.endgame}" if self.endgame > 0 else "")
             + (
                 f",nn={nn_path.replace(chr(92), '/').split('/')[-1]},topk={nn_topk}"
                 if nn_path
@@ -695,6 +700,15 @@ class FastMCTSAgent:
 
     def choose(self, S):
         """Numba状態 S（手番側が指す局面）から (マス, 向きID, 断片) を返す。乱数は seed_rng 済みとする。"""
+        move = self.choose_search(S)
+        if self.endgame > 0 and int(S[10][SC_END]) - int(S[10][SC_DRAW]) <= self.endgame:
+            from .endgame import best_move
+
+            move, _ = best_move(self.fast, S, prefer=move)
+        return move
+
+    def choose_search(self, S):
+        """探索だけで選んだ手（終盤の読み切りなし）。"""
         depth = (
             self.rollout_depth if self.rollout_depth is not None else (0 if self.eval_path else -1)
         )

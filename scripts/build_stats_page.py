@@ -25,6 +25,7 @@ from site_nav import NAV_CSS, nav_html, support_html
 from carcassonne.tiles import load_tileset
 
 STATS = ROOT / "docs" / "results" / "game_stats.json"
+ENDGAME = ROOT / "docs" / "results" / "gto_endgame.json"  # scripts/gto_endgame.py --summary
 TS = load_tileset()
 
 KINDS = ["C", "R", "M", "F"]
@@ -413,6 +414,63 @@ def ladder_table(ladder: list[dict], lang: str) -> str:
     )
 
 
+def endgame_table(eg: dict, lang: str) -> str:
+    """10節: 山札の残り枚数ごとの、勝ち負けが動く局面とAIが最善手を選んだ割合。"""
+    head = (
+        ("山札の残り", "局面", "勝ち負けが動く局面", "AIが最善手を選んだ")
+        if lang == "ja"
+        else (
+            "Tiles left in the bag",
+            "Positions",
+            "Positions where the move matters",
+            "AI found the best move",
+        )
+    )
+    rows = []
+    for bag in sorted(eg["by_bag"], key=int, reverse=True):
+        b = eg["by_bag"][bag]
+        left = (f"{bag}枚" if lang == "ja" else f"{bag}") + (
+            "（最後の1枚）" if lang == "ja" and bag == "0" else " (last tile)" if bag == "0" else ""
+        )
+        cells = [
+            f"{b['positions']:,}",
+            f"{b['decisive']}（{pct(b['decisive'] / b['positions'], 0)}）"
+            if lang == "ja"
+            else f"{b['decisive']} ({pct(b['decisive'] / b['positions'], 0)})",
+            pct(b["champ_optimal"] / b["decisive"], 0) if b["decisive"] else "—",
+        ]
+        rows.append(
+            f"<tr><th>{left}</th>"
+            + "".join(
+                f'<td data-label="{h}"><span>{c}</span></td>' for h, c in zip(head[1:], cells)
+            )
+            + "</tr>"
+        )
+    return (
+        '<div class="tablewrap"><table class="cards"><thead><tr>'
+        + "".join(f"<th>{h}</th>" for h in head)
+        + f"</tr></thead><tbody>{''.join(rows)}</tbody></table></div>"
+    )
+
+
+def endgame_claims(eg: dict) -> list[str]:
+    """10節の言い切りの確かめ。"""
+    bad = []
+    a, bl, dv = eg["all"], eg["by_lead"], eg["diff_vs_win"]
+    if not 1 - a["decisive"] / a["positions"] >= 0.75:
+        bad.append("最後の4手の大半はどこに置いても勝つ確率が変わらない")
+    share = {k: v["decisive"] / max(1, v["positions"]) for k, v in bl.items()}
+    if not share["close"] > 2 * share["far"]:
+        bad.append("点差が大きく開いていれば勝ち負けはほぼ決まっている（僅差より明らかに少ない）")
+    if any(b["champ_optimal"] != b["decisive"] for k, b in eg["by_bag"].items() if int(k) < 2):
+        bad.append("AIが外したのは残り2〜3枚の局面だけ")
+    if not dv["conflict"] / max(1, dv["positions"]) < 0.02:
+        bad.append("点を最大にする手と勝つ確率を最大にする手が分かれるのはまれ")
+    if not dv["conflict"] > 0:
+        bad.append("分かれる局面が少しはある（学びの2つ目）")
+    return bad
+
+
 RULE = {
     "base": ("いまのルール（71枚・調整なし）", "Current rules (71 tiles, no adjustment)"),
     "komi4": ("後手に最初から4点（コミ4点）", "Second player starts with 4 points (komi 4)"),
@@ -620,7 +678,7 @@ def failed_claims(st: dict) -> list[str]:
 
 
 def check_claims(st: dict) -> None:
-    bad = failed_claims(st)
+    bad = failed_claims(st) + endgame_claims(st["endgame"])
     if bad:
         raise SystemExit(
             "集計値が本文の言い切りと合いません。scripts/build_stats_page.py の本文を直してください:\n  "
@@ -787,6 +845,22 @@ def texts(st: dict, lang: str) -> dict[str, str]:
     t["tie_drop"] = f"{(fp['score'] - fp['tie_second']) * 100:.1f}"
     t["tie_k3"], t["tie_k4"] = pct(tie[3]), pct(tie[4])
     t["fair_games"] = f"{min(r['games'] for r in st['fairness']['played']):,}"
+    eg = st["endgame"]
+    a, bl = eg["all"], eg["by_lead"]
+    t["table_endgame"] = endgame_table(eg, lang)
+    t |= {
+        "eg_games": f"{eg['games']:,}",
+        "eg_positions": f"{a['positions']:,}",
+        "eg_settled": pct(1 - a["decisive"] / a["positions"], 0),
+        "eg_close": pct(bl["close"]["decisive"] / bl["close"]["positions"], 0),
+        "eg_far": pct(bl["far"]["decisive"] / bl["far"]["positions"], 0),
+        "eg_champ": pct(a["champ_optimal"] / a["decisive"], 0),
+        "eg_ai": eg["ai"],
+        # 1局で両者が手放した勝率の合計の半分＝1人あたり
+        "eg_gain": f"{eg['champ_loss_per_game'] / 2 * 100:.1f}",
+        "eg_diff_positions": f"{eg['diff_vs_win']['positions']:,}",
+        "eg_conflict": str(eg["diff_vs_win"]["conflict"]),
+    }
     t["chart_komi"] = hbars(
         [
             ((f"{k['komi']}点" if ja else f"{k['komi']} pts"), k["score"] * 100, f"{k['score'] * 100:.1f}")
@@ -809,6 +883,7 @@ def fill(html: str, t: dict) -> str:
 
 def main() -> None:
     st = json.loads(STATS.read_text(encoding="utf-8"))
+    st["endgame"] = json.loads(ENDGAME.read_text(encoding="utf-8"))
     check_claims(st)
     tpl = (ROOT / "web" / "stats_template.html").read_text(encoding="utf-8")
     base = (
