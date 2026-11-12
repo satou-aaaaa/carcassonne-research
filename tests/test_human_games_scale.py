@@ -99,7 +99,7 @@ def test_form_skips_known_games_without_rechecking(tmp_path, games, monkeypatch)
     monkeypatch.setattr(hg, "normalize", norm)
     monkeypatch.setattr(hg, "load", load)
     got = hg.ingest_rows(texts + texts, path, TS)
-    assert got == {"added": 4, "duplicate": 10, "invalid": 0}
+    assert got == {"added": 4, "duplicate": 10, "invalid": 0, "errors": []}
     assert calls == {"normalize": 4, "load": 1}
     assert len(real_load(path)) == 7
 

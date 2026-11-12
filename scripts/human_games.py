@@ -4,7 +4,7 @@
     py scripts/human_games.py ingest-issue --event イベント.json --result 結果.json
                                                         # GitHub の Issue で届いた棋譜（human-games.yml から呼ぶ）
     py scripts/human_games.py ingest-form --result 結果.json
-                                                        # Google フォームの回答（公開 CSV）を取り込む（human-games.yml から毎日）
+                                                        # Google フォームの回答（公開 CSV）を取り込む（human-games.yml から毎朝）
     py scripts/human_games.py report                    # human_games.md・公開する棋譜 docs/human_games/・研究ノートの集計 human_findings.json を作り直す
     py scripts/human_games.py x-draft --title 題.txt --body 本文.md  # 10局ごとの X 投稿の下書き（human-games.yml が Issue に）
 
@@ -21,6 +21,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
+
+from datetime import UTC
 
 from carcassonne import human_games as hg
 
@@ -76,9 +78,15 @@ def cmd_ingest_form(a) -> int:
     else:
         if not url.startswith("https://docs.google.com/spreadsheets/"):
             raise SystemExit(f"{FORM} の csv は Google スプレッドシートの公開 URL にしてください")
+        from datetime import datetime
+
         with urllib.request.urlopen(url, timeout=60) as r:
             text = r.read().decode("utf-8-sig")
-        out = hg.ingest_rows(hg.form_texts(text), a.games)
+        rows = hg.form_rows(text)
+        # 取り込みが止まっていなかったか（送ってから LATE_HOURS 時間より長く待たせた棋譜）を、取り込む前に調べる
+        late = hg.late_rows(rows, hg.known_keys(a.games), datetime.now(UTC))
+        out = hg.ingest_rows([t for _, t in rows], a.games)
+        out["late"] = late
     Path(a.result).write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
     print(out)
     return 0

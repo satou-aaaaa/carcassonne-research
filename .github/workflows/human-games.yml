@@ -6,7 +6,7 @@ name: Human games
 # docs/results/human_games.md を作り直して、PR で main に入れる（main は PR 必須なので scripts/merge_via_pr.sh）。
 # 最後に結果を Issue に書いて閉じる（受け取れなかったものは「対応しない」で閉じる）。
 # ためた棋譜は自己対戦ループの学習に混ざる（selfplay_loop.Config.human_games）。
-# Google フォーム（アカウント不要、data/human_games_form.json）の回答は、公開 CSV を毎日読んで同じように取り込む（form ジョブ）。
+# Google フォーム（アカウント不要、data/human_games_form.json）の回答は、公開 CSV を毎朝読んで同じように取り込む（form ジョブ）。
 # Issue の本文・フォームの回答は誰でも書けるので、シェルに埋め込まず、イベントのファイルを Python が読む。
 # 入れられないとき（検査が通らない・PR を作れない）はジョブを失敗にし（ci-failure-issue.yml が知らせる）、
 # Issue は開いたまま残す（直したあと workflow_dispatch で番号を指定して受け取り直す）。
@@ -15,7 +15,14 @@ on:
   issues:
     types: [opened]
   schedule:
-    - cron: "17 21 * * *" # 毎朝 6:17 JST にフォームの回答を取り込む
+    # 毎朝 6:17 JST にフォームの回答を取り込む。
+    # GitHub の schedule は混むと何時間も遅れたり、飛ばされたりする（2026-11-12 は5時間遅れ、11-13 は来なかった）。
+    # https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows#schedule
+    # そのため同じ日のうちに予備の回を2つ置く（8:47・12:47 JST）。取り込み済みの局は数えるだけなので、
+    # 朝の回が動いていれば予備の回は何もしない（human_games.ingest_rows）。
+    - cron: "17 21 * * *"
+    - cron: "47 23 * * *"
+    - cron: "47 3 * * *"
   workflow_dispatch:
     inputs:
       issue:
@@ -100,7 +107,19 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - name: フォームの回答を検査して足す
-        run: python scripts/human_games.py ingest-form --result result.json
+        run: |
+          python scripts/human_games.py ingest-form --result result.json
+          # 受け取れなかった行は理由を要約に出す（黙って捨てると、送った人の棋譜が出ない理由が分からない）
+          python - <<'PY'
+          import json, os
+          r = json.load(open("result.json"))
+          lines = [f"フォームの棋譜: 追加 {r['added']}・受け取り済み {r['duplicate']}・受け取れない {r['invalid']}"]
+          lines += [f"- {e}" for e in r.get("errors", [])]
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as f:
+              f.write("\n".join(lines) + "\n")
+          for e in r.get("errors", []):
+              print(f"::notice title=受け取れなかったフォームの回答::{e}")
+          PY
       - name: PR で main へ入れる
         env:
           GH_TOKEN: ${{ github.token }}
@@ -127,3 +146,14 @@ jobs:
             --jq "[.[] | select(.title == \"$title\")] | length" | awk '{s += $1} END {print s + 0}')
           [ "$seen" -gt 0 ] && exit 0
           gh_issue_create_once "$title" xdraft.md > /dev/null
+      - name: 取り込みが止まっていなかったか
+        run: |
+          # 送ってから 36 時間より長く取り込まれなかった棋譜があれば、朝の回も予備の回も動かなかった日がある。
+          # 棋譜は上で取り込み済み。ジョブを失敗にして ci-failure-issue.yml の Issue で知らせる（次に成功すると閉じる）
+          python - <<'PY'
+          import json, sys
+          late = json.load(open("result.json")).get("late", [])
+          for m in late:
+              print(f"::error title=フォームの取り込みが止まっていた::{m}")
+          sys.exit(1 if late else 0)
+          PY

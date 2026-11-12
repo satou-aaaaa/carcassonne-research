@@ -343,9 +343,9 @@ def report_md(fast: Fast, games: list[dict], w: np.ndarray, sw: list[dict] | Non
 def ingest_rows(texts, path: str | Path, ts: TileSet | None = None) -> dict:
     """Google フォームの回答（棋譜の JSON の文字列の並び）を検査して足す。数を返す（added / duplicate / invalid）。"""
     ts = ts or load_tileset()
-    out = {"added": 0, "duplicate": 0, "invalid": 0}
+    out = {"added": 0, "duplicate": 0, "invalid": 0, "errors": []}
     known = known_keys(path)
-    for text in texts:
+    for row, text in enumerate(texts, start=1):  # 棋譜の欄が空でない回答の何件目か
         try:
             if len(text) > MAX_BODY:
                 raise RecordError("長すぎます")
@@ -354,20 +354,68 @@ def ingest_rows(texts, path: str | Path, ts: TileSet | None = None) -> dict:
                 out["duplicate"] += 1
                 continue
             rec = normalize(obj, ts)
-        except (RecordError, json.JSONDecodeError, TypeError):
+        except (RecordError, json.JSONDecodeError, TypeError) as e:
             out["invalid"] += 1
+            out["errors"].append(f"{row}件目: {e}"[:200])  # 黙って捨てない（ジョブの要約に出す）
             continue
         out["added" if add(path, rec, known) else "duplicate"] += 1
     return out
 
 
-def form_texts(csv_text: str) -> list[str]:
-    """フォームの回答の表（CSV。1列目はタイムスタンプ、2列目が棋譜）から棋譜の文字列を取り出す。"""
+def form_rows(csv_text: str) -> list[tuple[str, str]]:
+    """フォームの回答の表（CSV。1列目はタイムスタンプ、2列目が棋譜）から (タイムスタンプ, 棋譜の文字列) を取り出す。"""
     import csv
     import io
 
     rows = list(csv.reader(io.StringIO(csv_text)))
-    return [r[1] for r in rows[1:] if len(r) > 1 and r[1].strip()]
+    return [(r[0], r[1]) for r in rows[1:] if len(r) > 1 and r[1].strip()]
+
+
+def form_texts(csv_text: str) -> list[str]:
+    """フォームの回答の表から棋譜の文字列だけを取り出す。"""
+    return [t for _, t in form_rows(csv_text)]
+
+
+# 送ってから取り込むまでに、これより長くかかったら取り込みが止まっていたとみなす（1日1回＋予備の回の遅れを見込む）
+LATE_HOURS = 36
+
+
+def parse_form_time(stamp: str):
+    """フォームの表のタイムスタンプ（例 2026/11/12 6:17:00、日本時間）を時刻に。読めなければ None。"""
+    from datetime import datetime, timedelta, timezone
+
+    for fmt in ("%Y/%m/%d %H:%M:%S", "%Y-%m-%d %H:%M:%S", "%m/%d/%Y %H:%M:%S"):
+        try:
+            return datetime.strptime(stamp.strip(), fmt).replace(
+                tzinfo=timezone(timedelta(hours=9))
+            )
+        except ValueError:
+            continue
+    return None
+
+
+def late_rows(
+    rows: list[tuple[str, str]], known: set[str], now, hours: float = LATE_HOURS
+) -> list[str]:
+    """まだ取り込んでいない回答のうち、送られてから hours 時間より前のもの（取り込みが止まっていた印）。
+
+    取り込みの前に呼ぶ（known は取り込む前の `known_keys`）。棋譜として読めない行は数えない。
+    """
+    out = []
+    for stamp, text in rows:
+        t = parse_form_time(stamp)
+        if t is None:
+            continue
+        try:
+            k = _raw_key(json.loads(text))
+        except (json.JSONDecodeError, TypeError):
+            continue
+        if k is None or k in known:
+            continue
+        age = (now - t).total_seconds() / 3600
+        if age > hours:
+            out.append(f"{stamp} に届いた棋譜が {age:.0f} 時間取り込まれていなかった")
+    return out
 
 
 def ingest_issue(body: str, path: str | Path, ts: TileSet | None = None) -> tuple[str, str]:

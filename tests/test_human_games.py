@@ -134,7 +134,12 @@ def test_form_rows_are_checked_and_added(tmp_path):
     texts = hg.form_texts(buf.getvalue())
     assert len(texts) == 3
     got = hg.ingest_rows(texts, tmp_path / "g.jsonl", TS)
-    assert got == {"added": 1, "duplicate": 1, "invalid": 1}
+    assert {k: got[k] for k in ("added", "duplicate", "invalid")} == {
+        "added": 1,
+        "duplicate": 1,
+        "invalid": 1,
+    }
+    assert len(got["errors"]) == 1
 
 
 @pytest.mark.skipif(__import__("shutil").which("node") is None, reason="node が必要")
@@ -169,3 +174,43 @@ def test_browser_replay_steps_through_record():
     assert "4手目" in got["out"][2]["error"]
     assert "71枚" in got["out"][3]["error"]
     assert got["closed"] is None  # 再生の前に対局がなければ、閉じると何もない
+
+
+def test_form_ingest_has_backup_runs_and_detects_missed_days():
+    """朝の取り込みが動かなくても、その日のうちに取り込み、動かなかったことに気づく。
+
+    2026-11-13: GitHub の schedule が朝 6:17 の回を出さず、届いた4局がページに出なかった。
+    """
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    wf = (root / ".github/workflows/human-games.yml").read_text(encoding="utf-8")
+    crons = re.findall(r'cron:\s*"([^"]+)"', wf)
+    assert "17 21 * * *" in crons, "朝 6:17 JST の回が要る"
+    assert len({c.split()[1] for c in crons}) >= 3, "同じ日に予備の回を（別の時刻で）2つ以上"
+    assert "取り込みが止まっていなかったか" in wf
+
+
+def test_late_rows_flags_games_waiting_too_long():
+    from datetime import datetime, timedelta, timezone
+
+    jst = timezone(timedelta(hours=9))
+    now = datetime(2026, 11, 13, 7, 0, tzinfo=jst)
+    rec = json.dumps(make_record(7))
+    rows = [
+        ("2026/11/11 6:00:00", rec),
+        ("2026/11/12 20:00:00", rec),
+        ("x", rec),
+        ("2026/11/10 1:00:00", "壊れた"),
+    ]
+    late = hg.late_rows(rows, set(), now)
+    assert len(late) == 1 and late[0].startswith("2026/11/11 6:00:00")
+    assert hg.late_rows(rows, {hg.key(json.loads(rec))}, now) == []  # 取り込み済みなら数えない
+
+
+def test_ingest_rows_reports_why_rows_were_rejected(tmp_path):
+    """受け取れなかった行は理由を返す（黙って捨てると、ページに出ない理由が分からない）。"""
+    out = hg.ingest_rows(["{壊れた", '{"v": 1}'], tmp_path / "g.jsonl")
+    assert out["invalid"] == 2 and out["added"] == 0
+    assert len(out["errors"]) == 2 and out["errors"][0].startswith("1件目")
