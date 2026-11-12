@@ -38,6 +38,7 @@ REHEARSED = {
         "棋譜を検査して足す",
         "Issue に結果を書いて閉じる",
         "削除の依頼を Issue で知らせる",
+        "10局たまったら X 投稿の下書きを Issue で届ける",
     ],
 }
 
@@ -328,3 +329,38 @@ def test_human_games_deletion_request_opens_issue_once(tmp_path: Path) -> None:
         log
     )  # 閉じた Issue があれば作らない
     assert (tmp_path / "body.md").read_text(encoding="utf-8").startswith("依頼の本文 3"), log
+
+
+def _x_draft_stub(tmp_path: Path, title: str) -> None:
+    (tmp_path / "scripts").mkdir(exist_ok=True)
+    (tmp_path / "scripts" / "human_games.py").write_text(
+        "import sys\n"
+        "a = sys.argv\n"
+        f"open(a[a.index('--title') + 1], 'w', encoding='utf-8').write({title!r})\n"
+        "open(a[a.index('--body') + 1], 'w', encoding='utf-8').write('下書き')\n",
+        encoding="utf-8",
+    )
+
+
+def test_human_games_x_draft_opens_issue_once(tmp_path: Path) -> None:
+    """10局の区切りで X の下書きの Issue を1件。504 でも2件にしない。"""
+    _x_draft_stub(tmp_path, "X投稿の下書き: 人との対局 10局\n")
+    r, log = rehearse(tmp_path, "human-games.yml", "10局たまったら X 投稿の下書きを Issue で届ける")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert log.count("gh issue create --title X投稿の下書き: 人との対局 10局") == 1, log
+
+
+@pytest.mark.parametrize(
+    "title, seen", [("", ""), ("X投稿の下書き: 人との対局 10局\n", "人との対局 10局")]
+)
+def test_human_games_x_draft_skips(tmp_path: Path, title: str, seen: str) -> None:
+    """区切りの前（題が空）や、同じ題の Issue が（閉じていても）あるときは作らない。"""
+    _x_draft_stub(tmp_path, title)
+    r, log = rehearse(
+        tmp_path,
+        "human-games.yml",
+        "10局たまったら X 投稿の下書きを Issue で届ける",
+        FAKE_SEEN=seen,
+    )
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "issue create" not in log, log

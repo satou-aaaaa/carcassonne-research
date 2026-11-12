@@ -48,6 +48,7 @@
 - **再生リンク**: `play.html#rec=…`（棋譜の JSON を base64url）。サーバーには何も送らず、リンクを開いた人のブラウザで再生する。
 - **みんなの対局**（`docs/games.html`、`scripts/build_games_page.py`。開いたときに一覧を読むので棋譜が増えても作り直し不要）: 送ってもらった棋譜の一覧 `docs/human_games.json`（`scripts/human_games.py report` が名前などを落とした検査済みの形で書く）。`play.html#replay=3&ply=20` で3局目の20手目から。`human_games.md` の各局・「大きく下がった手」からもこのリンクで開ける。
 - **研究ノート**（みんなの対局ページの「人との対局から分かったこと」、`src/carcassonne/human_findings.py`）: `report` が人の手を1手ずつ最強AIで採点し（対戦ページのヒントと同じ `webplay.make_coach`）、悪手（3点以上の損）の種類・時期、大きく損した手、AIの見積もりが外れた手を `docs/human_findings.json` に書く。採点は1局約30秒なので、局ごとの結果を `docs/results/human_findings_cache.json` に覚えて新しい局だけ採点する。10局未満のあいだは、ページは「傾向ではなく例」と書く。
+- **X への発信**（小江戸カルカソンヌ部）: human-games.yml の form ジョブが毎朝、届いた対局が10局・20局…の区切りに届いたら、集計から作った投稿文の下書き（研究ノートの更新と次の一手クイズ、画像の案つき）を Issue「X投稿の下書き: 人との対局 N局」で届ける（`scripts/human_games.py x-draft`、文は `human_findings.x_posts`、280字に収まるかをテストで確かめる）。投稿は人がする。
 
 ## 測定の手順（推奨）
 

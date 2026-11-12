@@ -6,6 +6,7 @@
     py scripts/human_games.py ingest-form --result 結果.json
                                                         # Google フォームの回答（公開 CSV）を取り込む（human-games.yml から毎日）
     py scripts/human_games.py report                    # human_games.md・human_games.json・研究ノートの集計 human_findings.json を作り直す
+    py scripts/human_games.py x-draft --title 題.txt --body 本文.md  # 10局ごとの X 投稿の下書き（human-games.yml が Issue に）
     py scripts/human_games.py remove 3                  # 送った人の依頼で3局目を消す（もう取り込まない）
 
 棋譜は data/human_games.jsonl に1局1行でためる（形と検査は src/carcassonne/human_games.py）。
@@ -143,6 +144,18 @@ def write_findings(games: list[dict], w) -> None:
     print(f"{FINDINGS} を書きました")
 
 
+def cmd_x_draft(a) -> int:
+    """区切り（10局ごと）の X 下書き。区切りに届いていなければ何も書かない（題も空）。"""
+    from carcassonne import human_findings as hf
+
+    s = json.loads(FINDINGS.read_text(encoding="utf-8")) if FINDINGS.exists() else {"games": 0}
+    m = hf.milestone(s["games"])
+    Path(a.title).write_text(f"X投稿の下書き: 人との対局 {m}局\n" if m else "", encoding="utf-8")
+    if m:
+        Path(a.body).write_text(hf.x_issue_body(s), encoding="utf-8")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("--games", default=str(GAMES), help="棋譜をためるファイル")
@@ -165,6 +178,10 @@ def main() -> int:
     p = sub.add_parser("deletion-body")
     p.add_argument("--game", type=int, required=True)
     p.set_defaults(func=cmd_deletion_body)
+    p = sub.add_parser("x-draft")
+    p.add_argument("--title", required=True, help="Issue の題を書くファイル（区切り前なら空）")
+    p.add_argument("--body", required=True, help="Issue の本文を書くファイル")
+    p.set_defaults(func=cmd_x_draft)
     p = sub.add_parser("report")
     p.add_argument("--out", default=str(REPORT))
     p.set_defaults(func=cmd_report)
