@@ -61,6 +61,10 @@ ol.games .res { font-size: 14px; font-weight: 700; grid-row: 1 / span 2; grid-co
 ol.games .res.win { color: var(--field); }
 ol.games .go { color: var(--field); }
 p a { color: var(--field); }
+.thanks { font-weight: 700; color: var(--field); }
+h3 { font-size: 17px; margin: 8px 0 0; }
+.tools input { font: inherit; font-size: 15px; width: 6em; min-height: 44px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--ink); }
+.tools button { font: inherit; font-size: 15px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); cursor: pointer; }
 .empty { background: var(--paper); border: 1px dashed var(--line); border-radius: 6px; padding: 16px; }
 .next { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
 .next a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 999px; background: var(--field); color: var(--paper); text-decoration: none; font-weight: 700; }
@@ -92,6 +96,7 @@ summary { padding-block: 6px; }
   <div class="eyebrow">COMMUNITY GAMES</div>
   <h1>みんなの<span class="accent">対局</span></h1>
   <p class="lede">対戦ページで指した人が、研究用に送ってくれたAIとの対局です。押すと対戦ページが開き、盤面を ◀ ▶ で一手ずつ再生できます。名前などの個人の情報は入っていません。</p>
+  <p class="thanks">棋譜を送ってくださった皆さん、研究への協力をありがとうございます。</p>
 </header>
 
 <section id="summary">
@@ -110,11 +115,20 @@ summary { padding-block: 6px; }
   <p class="note" id="loadErr" hidden>対局の一覧を読み込めませんでした。時間をおいて開き直してください。</p>
 </section>
 
+<section id="use">
+  <h2>送ってもらった棋譜の使い道</h2>
+  <div class="tiles-row" id="useStats"></div>
+  <p>人の手はAIの手と打ち方が違うので、AIがまだ知らない局面を教えてくれます。届いた棋譜の局面は、自己対戦の学習に毎回まぜています。人の手のあとにAIの見積もりが大きく下がった場面（AIが読めていなかった手）は、<a href="https://github.com/satou-aaaaa/carcassonne-research/blob/main/docs/results/human_games.md">弱点レポート</a>（GitHub）にまとめ、AIを直す手がかりにしています。</p>
+</section>
+
 <section id="how">
   <h2>対局を送るには・自分の対局を見るには</h2>
   <p>対戦ページで1局指し終えると、結果の欄に「棋譜を送る（アカウント不要）」が出ます。届いた棋譜はルールどおりか確かめてから、毎朝この一覧に足しています。送るのは山札・指し手・得点・AIの強さだけで、名前は入りません。</p>
+  <p>送るかどうかは自由です。送らなくても、対戦も自分の対局の再生も、これまでどおり使えます。</p>
   <p>自分の対局は、送らなくても対戦ページの「棋譜を再生」から見られます（このブラウザに最近の20局が残ります）。「再生リンクをコピー」で、友だちに見せることもできます。</p>
-  <p class="note">集めた対局は、AIの弱点探しと学習にも使っています。分析は <a href="https://github.com/satou-aaaaa/carcassonne-research/blob/main/docs/results/human_games.md">弱点レポート</a>（GitHub）にあります。</p>
+  <h3>送った対局を消してほしいとき</h3>
+  <p>一覧の番号（#3 など）を入れて「消してほしいと伝える」を押すと、フォームが開きます。送信すると作者に届き、確かめてから消します（アカウントは要りません）。理由を書く必要はありません。</p>
+  <div class="tools" id="delBox"><label>対局の番号 # <input id="delNo" type="number" min="1" inputmode="numeric"></label><button type="button" id="delBtn">消してほしいと伝える</button></div>
   <div class="next">
     <a href="play.html">AIと対戦する</a>
     <a class="sub" href="ai_tips.html">強いAIに学ぶコツ</a>
@@ -157,10 +171,20 @@ summary { padding-block: 6px; }
     const avg = n ? games.reduce((s, r) => s + r.scores[r.human_seat] - r.scores[1 - r.human_seat], 0) / n : 0;
     $("stats").innerHTML = stat(n, "届いた対局") + stat(n ? Math.round(100 * win / n) + "%" : "−", "人の勝率") +
       stat(n ? (avg > 0 ? "+" : "") + avg.toFixed(1) : "−", "人から見た平均点差");
+    const pos = games.reduce((s, r) => s + r.moves.length, 0);
+    $("useStats").innerHTML = stat(pos, "学習にまぜている局面") + stat(n, "弱点探しに使った対局");
     for (const k of Object.keys(LEVELS)) if (games.some(r => r.level === k)) {
       const o = document.createElement("option"); o.value = k; o.textContent = LEVELS[k]; $("fLevel").appendChild(o);
     }
   }
+  // 消してほしいという依頼: 棋譜を送るのと同じ Google フォームに「削除 #番号」を入れて開く（human-games.yml が Issue で知らせる）
+  const FORM = {"url": "https://docs.google.com/forms/d/e/1FAIpQLSfZixr0hMZhERUfykLg2zzthjyV0UrvDEyDDdj4xGwbG28ydQ/viewform", "entry": "entry.1648260257"};
+  if (!FORM) $("delBox").hidden = true;
+  $("delBtn").onclick = () => {
+    const n = parseInt($("delNo").value, 10);
+    if (!(n >= 1)) { $("delNo").focus(); return; }
+    window.open(`${FORM.url}?usp=pp_url&${FORM.entry}=${encodeURIComponent("削除 #" + n)}`, "_blank", "noopener");
+  };
   $("fLevel").onchange = draw; $("fSort").onchange = draw;
   fetch(SRC).then(r => r.json()).then(g => { games = Array.isArray(g) ? g : []; summary(); draw(); })
     .catch(() => { $("loadErr").hidden = false; summary(); });

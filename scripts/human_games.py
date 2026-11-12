@@ -6,6 +6,7 @@
     py scripts/human_games.py ingest-form --result 結果.json
                                                         # Google フォームの回答（公開 CSV）を取り込む（human-games.yml から毎日）
     py scripts/human_games.py report                    # docs/results/human_games.md と docs/human_games.json を作り直す
+    py scripts/human_games.py remove 3                  # 送った人の依頼で3局目を消す（もう取り込まない）
 
 棋譜は data/human_games.jsonl に1局1行でためる（形と検査は src/carcassonne/human_games.py）。
 ためた棋譜は自己対戦ループの学習に混ざる（selfplay_loop.Config.human_games）。
@@ -66,8 +67,21 @@ def cmd_ingest_form(a) -> int:
         with urllib.request.urlopen(url, timeout=60) as r:
             text = r.read().decode("utf-8-sig")
         out = hg.ingest_rows(hg.form_texts(text), a.games)
+        out["delete"] = hg.deletion_requests(text)
     Path(a.result).write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
     print(out)
+    return 0
+
+
+def cmd_remove(a) -> int:
+    rec = hg.remove(a.games, a.game)
+    h = rec["human_seat"]
+    print(f"{a.game}局目（人 {rec['scores'][h]} − AI {rec['scores'][1 - h]}）を消しました。report で作り直してください")
+    return 0
+
+
+def cmd_deletion_body(a) -> int:
+    print(hg.deletion_body(hg.load(a.games), a.game), end="")
     return 0
 
 
@@ -104,6 +118,12 @@ def main() -> int:
         "--result", required=True, help="結果（added・duplicate・invalid の数）を書く JSON"
     )
     p.set_defaults(func=cmd_ingest_form)
+    p = sub.add_parser("remove")
+    p.add_argument("game", type=int, help="消す対局の番号（1始まり。みんなの対局ページの #番号）")
+    p.set_defaults(func=cmd_remove)
+    p = sub.add_parser("deletion-body")
+    p.add_argument("--game", type=int, required=True)
+    p.set_defaults(func=cmd_deletion_body)
     p = sub.add_parser("report")
     p.add_argument("--out", default=str(REPORT))
     p.set_defaults(func=cmd_report)

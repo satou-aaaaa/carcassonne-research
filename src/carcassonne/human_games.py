@@ -38,6 +38,8 @@ MARK = "carcassonne-game-record"  # Issue の本文に入れる目印（ワー�
 LEVELS = ("strong", "standard", "greedy")
 KEEP = ("v", "deck", "moves", "human_seat", "level", "ai", "coach", "hints", "undos", "scores")
 MAX_BODY = 20000  # Issue 本文の上限（これより長いものは読まない）
+# フォームで「削除 #3」のように送ると、その対局を消してほしいという依頼（みんなの対局ページから送る）
+DELETE_RE = re.compile(r"^\s*(?:削除|delete)\s*#?\s*(\d{1,6})\s*$", re.IGNORECASE)
 
 
 class RecordError(ValueError):
@@ -133,15 +135,83 @@ def load(path: str | Path) -> list[dict]:
     return [json.loads(line) for line in p.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
-def add(path: str | Path, rec: dict) -> bool:
-    """棋譜を1行足す。同じ対局がもうあれば足さずに False。"""
+def removed_path(path: str | Path) -> Path:
+    """消した棋譜の key を1行ずつ書くファイル（フォームの表に残っていても、もう足さないため）。"""
     p = Path(path)
-    if any(key(r) == key(rec) for r in load(p)):
+    return p.with_name(p.stem + "_removed.txt")
+
+
+def removed_keys(path: str | Path) -> set[str]:
+    r = removed_path(path)
+    return set(r.read_text(encoding="utf-8").split()) if r.exists() else set()
+
+
+def add(path: str | Path, rec: dict) -> bool:
+    """棋譜を1行足す。同じ対局がもうある・送った人の依頼で消したものなら、足さずに False。"""
+    p = Path(path)
+    if key(rec) in removed_keys(p) or any(key(r) == key(rec) for r in load(p)):
         return False
     p.parent.mkdir(parents=True, exist_ok=True)
     with p.open("a", encoding="utf-8") as f:
         f.write(json.dumps(rec, ensure_ascii=False, separators=(",", ":")) + "\n")
     return True
+
+
+def remove(path: str | Path, game: int) -> dict:
+    """game 局目（1始まり）を消し、もう足さないよう key を覚える。消した棋譜を返す。"""
+    p = Path(path)
+    games = load(p)
+    if not 1 <= game <= len(games):
+        raise RecordError(f"{game}局目はありません（全{len(games)}局）")
+    rec = games.pop(game - 1)
+    with removed_path(p).open("a", encoding="utf-8") as f:
+        f.write(key(rec) + "\n")
+    p.write_text(
+        "".join(json.dumps(r, ensure_ascii=False, separators=(",", ":")) + "\n" for r in games),
+        encoding="utf-8",
+    )
+    return rec
+
+
+def deletion_requests(csv_text: str) -> list[dict]:
+    """フォームの回答のうち「削除 #番号」の依頼。受付時刻（フォームのタイムスタンプ）と番号。"""
+    import csv
+    import io
+
+    out = []
+    for r in list(csv.reader(io.StringIO(csv_text)))[1:]:
+        m = DELETE_RE.match(r[1]) if len(r) > 1 else None
+        if m:
+            ts = re.sub(r"[^0-9/:\- ]", "", r[0])[:30].strip()  # 題に入れるので数字と区切りだけ
+            out.append({"ts": ts, "game": int(m.group(1))})
+    return out
+
+
+def deletion_body(games: list[dict], game: int) -> str:
+    """削除の依頼を知らせる Issue の本文。依頼の時点のその番号の対局を書いておく（消すと番号がずれるため）。"""
+    lines = [
+        f"「みんなの対局」の #{game} を消してほしい、という依頼がフォームで届きました。",
+        "送ってくれた人の善意に応えるため、確かめて早めに消してください。",
+        "",
+    ]
+    if 1 <= game <= len(games):
+        r = games[game - 1]
+        h = r["human_seat"]
+        lines.append(
+            f"依頼の時点の #{game}: 人 {r['scores'][h]} − AI {r['scores'][1 - h]}"
+            f"（{r['level']}、{len(r['moves'])}手、key {key(r)[:12]}）"
+        )
+    else:
+        lines.append(f"依頼の時点で #{game} はありませんでした（番号の間違いかもしれません）。")
+    lines += [
+        "",
+        "消し方:",
+        f"1. `py scripts/human_games.py remove {game}`（上の対局と同じか確かめてから。消すと後ろの番号が1つずつ詰まる）",
+        "2. PR で main に入れる（docs/human_games.json・弱点レポートも作り直される）",
+        "3. Google フォームの回答の表から、その棋譜の行と依頼の行を消す（表は CSV で公開しているため）",
+        "4. GitHub の Issue で送られた棋譜なら、その Issue も消す（リポジトリの管理者だけができる）",
+    ]
+    return "\n".join(lines) + "\n"
 
 
 def replay(fast: Fast, rec: dict):
@@ -291,6 +361,8 @@ def ingest_rows(texts, path: str | Path, ts: TileSet | None = None) -> dict:
     ts = ts or load_tileset()
     out = {"added": 0, "duplicate": 0, "invalid": 0}
     for text in texts:
+        if DELETE_RE.match(text):  # 削除の依頼（deletion_requests で別に扱う）
+            continue
         try:
             if len(text) > MAX_BODY:
                 raise RecordError("長すぎます")

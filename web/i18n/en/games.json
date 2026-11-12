@@ -15,7 +15,6 @@
  "対局を送るには・自分の対局を見るには": "Sending a game, and replaying your own",
  "対戦ページで1局指し終えると、結果の欄に「棋譜を送る（アカウント不要）」が出ます。届いた棋譜はルールどおりか確かめてから、毎朝この一覧に足しています。送るのは山札・指し手・得点・AIの強さだけで、名前は入りません。": "When you finish a game on the play page, the result panel shows a button to send the game record (no account needed). Records are checked against the rules and added to this list every morning. Only the deck, the moves, the scores and the AI level are sent; no names.",
  "自分の対局は、送らなくても対戦ページの「棋譜を再生」から見られます（このブラウザに最近の20局が残ります）。「再生リンクをコピー」で、友だちに見せることもできます。": "You can replay your own games without sending them, from \"Replay a game\" on the play page (this browser keeps your last 20 games). Use \"Copy replay link\" to show a game to a friend.",
- "集めた対局は、AIの弱点探しと学習にも使っています。分析は <a href=\"https://github.com/satou-aaaaa/carcassonne-research/blob/main/docs/results/human_games.md\">弱点レポート</a>（GitHub）にあります。": "The games are also used to find the AI's weaknesses and to train it. The analysis is in the <a href=\"https://github.com/satou-aaaaa/carcassonne-research/blob/main/docs/results/human_games.md\">weakness report</a> (GitHub, Japanese).",
  "<a href=\"play.html\">AIと対戦する</a>\n    <a class=\"sub\" href=\"ai_tips.html\">強いAIに学ぶコツ</a>": "<a href=\"play.html\">Play the AI</a>\n    <a class=\"sub\" href=\"ai_tips.html\">Lessons from the AI</a>",
  "最強": "Strongest",
  "標準": "Standard",
@@ -30,5 +29,16 @@
  "▶ 再生": "▶ Replay",
  "届いた対局": "Games received",
  "人の勝率": "Human win rate",
- "人から見た平均点差": "Average margin for the human"
+ "人から見た平均点差": "Average margin for the human",
+ "棋譜を送ってくださった皆さん、研究への協力をありがとうございます。": "To everyone who sent in their games: thank you for helping the research.",
+ "送ってもらった棋譜の使い道": "How your games are used",
+ "人の手はAIの手と打ち方が違うので、AIがまだ知らない局面を教えてくれます。届いた棋譜の局面は、自己対戦の学習に毎回まぜています。人の手のあとにAIの見積もりが大きく下がった場面（AIが読めていなかった手）は、<a href=\"https://github.com/satou-aaaaa/carcassonne-research/blob/main/docs/results/human_games.md\">弱点レポート</a>（GitHub）にまとめ、AIを直す手がかりにしています。": "People play differently from the AI, so their games show it positions it has not learned yet. The positions from every game received are mixed into each round of self-play training. Moves after which the AI's own estimate dropped sharply (moves it had not seen coming) are collected in the <a href=\"https://github.com/satou-aaaaa/carcassonne-research/blob/main/docs/results/human_games.md\">weakness report</a> (GitHub, Japanese) and used as clues to improve it.",
+ "送るかどうかは自由です。送らなくても、対戦も自分の対局の再生も、これまでどおり使えます。": "Sending is entirely up to you. Without sending anything, you can still play and replay your own games as before.",
+ "送った対局を消してほしいとき": "If you want a game you sent removed",
+ "一覧の番号（#3 など）を入れて「消してほしいと伝える」を押すと、フォームが開きます。送信すると作者に届き、確かめてから消します（アカウントは要りません）。理由を書く必要はありません。": "Enter the game's number from the list (such as #3) and press \"Ask to remove\". A form opens; when you submit it, the request reaches the author, who checks it and removes the game (no account needed). You don't need to give a reason.",
+ "対局の番号 #": "Game number #",
+ "消してほしいと伝える": "Ask to remove",
+ "学習にまぜている局面": "Positions used in training",
+ "弱点探しに使った対局": "Games used to find weak spots",
+ "削除 #": "delete #"
 }

@@ -85,6 +85,7 @@
   #rpRange { width:100%; }
   #result .share { margin-top:8px; padding-top:8px; border-top:1px solid var(--line); font-size:12.5px; color:var(--muted); line-height:1.5; }
   #result .share b { color:var(--ink); }
+  #result .share .pubnote { margin:6px 0 0; padding:6px 8px; border-left:4px solid var(--accent); background:var(--bg); color:var(--ink); font-size:13.5px; }
   #result .share .row { margin:6px 0 4px; flex-wrap:wrap; }
   #result .share button { min-height:36px; }
   #home { font-size:12.5px; color:var(--muted); }
@@ -1032,7 +1033,8 @@ function resultHtml() {
 function shareHtml() {
   const form = REC_FORM ? `<button type="button" class="primary" id="btnFormRec">Send game (no account needed)</button>` : "";
   const again = `<div class="row"><button type="button" id="btnReplayThis">Replay this game</button><button type="button" id="btnLinkThis">Copy replay link</button></div>`;
-  return again + `<div class="share"><b>Share this game for research</b><br>Games against people help us find the AI's weak spots and train it.` +
+  return again + `<div class="share"><b>If you like, let us use your game for research (optional)</b><br>Games against people help us find the AI's weak spots and train it. Without sending, you can still play and replay as before.` +
+    `<p class="pubnote">Games you send are published on the <a href="games.html" target="_blank" rel="noopener">Community Games</a> page, where anyone can see them (no names are shown). If you later want it removed, you can ask on that page.</p>` +
     `<div class="row">${form}<button type="button" id="btnSendRec">Send via GitHub</button><button type="button" id="btnSaveRec">Save as file</button></div>` +
     `Only the tile order, moves, scores and AI level are sent; your name is not included. Check the content on the page that opens, then press its submit button.` +
     (REC_FORM ? `“Send game” uses a Google Form: no account or email address needed.` : "") +
@@ -1046,7 +1048,7 @@ function recordJson() { return JSON.stringify(G.record); }
 function recordIssueUrl() {
   const r = G.record, h = r.human_seat, a = 1 - h;
   const title = `[Game record] ${r.scores[h]} − ${r.scores[a]} (AI: ${r.level})`;
-  const body = "<!-- carcassonne-game-record -->\nA game record from the play page, for training the AI and finding its weak spots.\n\n```json\n" + recordJson() + "\n```\n";
+  const body = "<!-- carcassonne-game-record -->\nA game record from the play page, for training the AI and finding its weak spots.\nRecords you send can be seen by anyone on the Community Games page (https://satou-aaaaa.github.io/carcassonne-research/en/games.html).\n\n```json\n" + recordJson() + "\n```\n";
   return `${REC_REPO}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
 }
 $("result").addEventListener("click", e => {

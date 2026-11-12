@@ -7,6 +7,7 @@ name: Human games
 # 最後に結果を Issue に書いて閉じる（受け取れなかったものは「対応しない」で閉じる）。
 # ためた棋譜は自己対戦ループの学習に混ざる（selfplay_loop.Config.human_games）。
 # Google フォーム（アカウント不要、data/human_games_form.json）の回答は、公開 CSV を毎日読んで同じように取り込む（form ジョブ）。
+# フォームで「削除 #番号」が届いたら、消してほしいという依頼として Issue で知らせる（消すのは人が確かめてから）。
 # Issue の本文・フォームの回答は誰でも書けるので、シェルに埋め込まず、イベントのファイルを Python が読む。
 # 入れられないとき（検査が通らない・PR を作れない）はジョブを失敗にし（ci-failure-issue.yml が知らせる）、
 # Issue は開いたまま残す（直したあと workflow_dispatch で番号を指定して受け取り直す）。
@@ -101,6 +102,22 @@ jobs:
       - run: pip install -r requirements.txt
       - name: フォームの回答を検査して足す
         run: python scripts/human_games.py ingest-form --result result.json
+      - name: 削除の依頼を Issue で知らせる
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # フォームの「削除 #番号」（みんなの対局ページから送る）。同じ依頼は表に残り続けるので、
+          # 閉じたものも含めて同じ題の Issue があれば作らない（受付時刻を題に入れて依頼ごとに1件）
+          source scripts/gh_retry.sh
+          python -c "import json;[print(f\"{d['game']}\t{d['ts']}\") for d in json.load(open('result.json')).get('delete', [])]" > delete.tsv
+          while IFS=$'\t' read -r n ts; do
+            title="棋譜の削除依頼: #$n（$ts 受付）"
+            seen=$(ghr gh api "repos/$GITHUB_REPOSITORY/issues?state=all&per_page=100" --paginate \
+              --jq "[.[] | select(.title == \"$title\")] | length" | awk '{s += $1} END {print s + 0}')
+            [ "$seen" -gt 0 ] && continue
+            python scripts/human_games.py deletion-body --game "$n" > body.md
+            gh_issue_create_once "$title" body.md > /dev/null
+          done < delete.tsv
       - name: PR で main へ入れる
         env:
           GH_TOKEN: ${{ github.token }}
