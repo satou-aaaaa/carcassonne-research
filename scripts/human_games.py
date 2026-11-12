@@ -4,7 +4,7 @@
     py scripts/human_games.py ingest-issue --event イベント.json --result 結果.json
                                                         # GitHub の Issue で届いた棋譜（human-games.yml から呼ぶ）
     py scripts/human_games.py ingest-form --result 結果.json
-                                                        # Google フォームの回答（公開 CSV）を取り込む（human-games.yml から毎日）
+                                                        # Google フォームの回答（公開 CSV）を取り込む（human-games.yml から1時間ごと）
     py scripts/human_games.py report                    # human_games.md・公開する棋譜 docs/human_games/・研究ノートの集計 human_findings.json を作り直す
     py scripts/human_games.py x-draft --title 題.txt --body 本文.md  # 10局ごとの X 投稿の下書き（human-games.yml が Issue に）
 

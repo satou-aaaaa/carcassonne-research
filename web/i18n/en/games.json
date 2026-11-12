@@ -13,7 +13,7 @@
  "まだ届いた対局はありません。対戦ページで1局指して、終局後の「棋譜を送る」から送ってください。": "No games have arrived yet. Play a game on the play page and send it with \"Send game record\" when it ends.",
  "対局の一覧を読み込めませんでした。時間をおいて開き直してください。": "Could not load the game list. Please try again later.",
  "対局を送るには・自分の対局を見るには": "Sending a game, and replaying your own",
- "対戦ページで1局指し終えると、結果の欄に「規約に同意して送る（アカウント不要）」が出ます。届いた棋譜はルールどおりか確かめてから、毎朝この一覧に足しています。送るのは山札・指し手・得点・AIの強さだけで、名前は入りません。": "When you finish a game on the play page, the result panel shows a button to send the game record (no account needed). Records are checked against the rules and added to this list every morning. Only the deck, the moves, the scores and the AI level are sent; no names.",
+ "対戦ページで1局指し終えると、結果の欄に「規約に同意して送る（アカウント不要）」が出ます。届いた棋譜はルールどおりか確かめてから、1時間ほどでこの一覧に足しています。送るのは山札・指し手・得点・AIの強さだけで、名前は入りません。": "When you finish a game on the play page, the result panel shows a button to send the game record (no account needed). Records are checked against the rules and added to this list within about an hour. Only the deck, the moves, the scores and the AI level are sent; no names.",
  "自分の対局は、送らなくても対戦ページの「棋譜を再生」から見られます（このブラウザに最近の20局が残ります）。「再生リンクをコピー」で、友だちに見せることもできます。": "You can replay your own games without sending them, from \"Replay a game\" on the play page (this browser keeps your last 20 games). Use \"Copy replay link\" to show a game to a friend.",
  "<a href=\"play.html\">AIと対戦する</a>\n    <a class=\"sub\" href=\"ai_tips.html\">強いAIに学ぶコツ</a>": "<a href=\"play.html\">Play the AI</a>\n    <a class=\"sub\" href=\"ai_tips.html\">Lessons from the AI</a>",
  "最強": "Strongest",

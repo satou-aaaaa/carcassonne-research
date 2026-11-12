@@ -6,7 +6,7 @@ name: Human games
 # docs/results/human_games.md を作り直して、PR で main に入れる（main は PR 必須なので scripts/merge_via_pr.sh）。
 # 最後に結果を Issue に書いて閉じる（受け取れなかったものは「対応しない」で閉じる）。
 # ためた棋譜は自己対戦ループの学習に混ざる（selfplay_loop.Config.human_games）。
-# Google フォーム（アカウント不要、data/human_games_form.json）の回答は、公開 CSV を毎日読んで同じように取り込む（form ジョブ）。
+# Google フォーム（アカウント不要、data/human_games_form.json）の回答は、公開 CSV を1時間ごとに読んで同じように取り込む（form ジョブ）。
 # Issue の本文・フォームの回答は誰でも書けるので、シェルに埋め込まず、イベントのファイルを Python が読む。
 # 入れられないとき（検査が通らない・PR を作れない）はジョブを失敗にし（ci-failure-issue.yml が知らせる）、
 # Issue は開いたまま残す（直したあと workflow_dispatch で番号を指定して受け取り直す）。
@@ -15,7 +15,9 @@ on:
   issues:
     types: [opened]
   schedule:
-    - cron: "17 21 * * *" # 毎朝 6:17 JST にフォームの回答を取り込む
+    # 1時間ごとにフォームの回答を取り込む（以前は1日1回で、送ってから最大1日ページに出なかった。2026-11-13）
+    # 取り込み済みの局は数えるだけなので、何度読んでも二重にならない（human_games.ingest_rows）
+    - cron: "17 * * * *"
   workflow_dispatch:
     inputs:
       issue:
@@ -100,7 +102,19 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - name: フォームの回答を検査して足す
-        run: python scripts/human_games.py ingest-form --result result.json
+        run: |
+          python scripts/human_games.py ingest-form --result result.json
+          # 受け取れなかった行は理由を要約に出す（黙って捨てると、送った人の棋譜が出ない理由が分からない）
+          python - <<'PY'
+          import json, os
+          r = json.load(open("result.json"))
+          lines = [f"フォームの棋譜: 追加 {r['added']}・受け取り済み {r['duplicate']}・受け取れない {r['invalid']}"]
+          lines += [f"- {e}" for e in r.get("errors", [])]
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as f:
+              f.write("\n".join(lines) + "\n")
+          for e in r.get("errors", []):
+              print(f"::notice title=受け取れなかったフォームの回答::{e}")
+          PY
       - name: PR で main へ入れる
         env:
           GH_TOKEN: ${{ github.token }}
@@ -118,7 +132,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # 区切り（10局・20局…）ごとに1件。投稿は人がする。閉じたもの（投稿済み）も含め同じ題があれば作らない
-          # Issue で届いた局も、次の朝のこの手順で数える
+          # Issue で届いた局も、次の回のこの手順で数える
           source scripts/gh_retry.sh
           python scripts/human_games.py x-draft --title xtitle.txt --body xdraft.md
           title=$(cat xtitle.txt)

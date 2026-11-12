@@ -343,9 +343,9 @@ def report_md(fast: Fast, games: list[dict], w: np.ndarray, sw: list[dict] | Non
 def ingest_rows(texts, path: str | Path, ts: TileSet | None = None) -> dict:
     """Google フォームの回答（棋譜の JSON の文字列の並び）を検査して足す。数を返す（added / duplicate / invalid）。"""
     ts = ts or load_tileset()
-    out = {"added": 0, "duplicate": 0, "invalid": 0}
+    out = {"added": 0, "duplicate": 0, "invalid": 0, "errors": []}
     known = known_keys(path)
-    for text in texts:
+    for row, text in enumerate(texts, start=1):  # 棋譜の欄が空でない回答の何件目か
         try:
             if len(text) > MAX_BODY:
                 raise RecordError("長すぎます")
@@ -354,8 +354,9 @@ def ingest_rows(texts, path: str | Path, ts: TileSet | None = None) -> dict:
                 out["duplicate"] += 1
                 continue
             rec = normalize(obj, ts)
-        except (RecordError, json.JSONDecodeError, TypeError):
+        except (RecordError, json.JSONDecodeError, TypeError) as e:
             out["invalid"] += 1
+            out["errors"].append(f"{row}件目: {e}"[:200])  # 黙って捨てない（ジョブの要約に出す）
             continue
         out["added" if add(path, rec, known) else "duplicate"] += 1
     return out

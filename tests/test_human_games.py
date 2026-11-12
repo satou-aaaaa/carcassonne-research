@@ -134,7 +134,12 @@ def test_form_rows_are_checked_and_added(tmp_path):
     texts = hg.form_texts(buf.getvalue())
     assert len(texts) == 3
     got = hg.ingest_rows(texts, tmp_path / "g.jsonl", TS)
-    assert got == {"added": 1, "duplicate": 1, "invalid": 1}
+    assert {k: got[k] for k in ("added", "duplicate", "invalid")} == {
+        "added": 1,
+        "duplicate": 1,
+        "invalid": 1,
+    }
+    assert len(got["errors"]) == 1
 
 
 @pytest.mark.skipif(__import__("shutil").which("node") is None, reason="node が必要")
@@ -169,3 +174,31 @@ def test_browser_replay_steps_through_record():
     assert "4手目" in got["out"][2]["error"]
     assert "71枚" in got["out"][3]["error"]
     assert got["closed"] is None  # 再生の前に対局がなければ、閉じると何もない
+
+
+def test_form_is_ingested_hourly_and_pages_say_so():
+    """送った棋譜がページに出るまで待たせない（2026-11-13: 1日1回の取り込みで、届いた4局が出ていなかった）。
+
+    フォームの取り込みは1時間ごと。ページの説明（いつ一覧に足すか）も同じ間隔を書く。
+    """
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    wf = (root / ".github/workflows/human-games.yml").read_text(encoding="utf-8")
+    crons = re.findall(r'cron:\s*"([^"]+)"', wf)
+    assert crons, "human-games.yml に schedule が要る"
+    for c in crons:
+        assert c.split()[1:] == ["*", "*", "*", "*"], f"フォームの取り込みは1時間ごとに（今は {c}）"
+    for name in ["web/games_template.html", "web/play.html", "docs/HUMAN_EVAL.md"]:
+        text = (root / name).read_text(encoding="utf-8")
+        assert "毎朝" not in text and "翌朝" not in text, (
+            f"{name} が取り込みの間隔を古いまま書いている"
+        )
+
+
+def test_ingest_rows_reports_why_rows_were_rejected(tmp_path):
+    """受け取れなかった行は理由を返す（黙って捨てると、ページに出ない理由が分からない）。"""
+    out = hg.ingest_rows(["{壊れた", '{"v": 1}'], tmp_path / "g.jsonl")
+    assert out["invalid"] == 2 and out["added"] == 0
+    assert len(out["errors"]) == 2 and out["errors"][0].startswith("1件目")

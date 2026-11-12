@@ -26,7 +26,7 @@
 - **規約に同意して送る（アカウント不要）**: 棋譜を入力済みの Google フォームを開く（Google の「事前入力した URL」）。
   本人が送信ボタンを押したときだけ届く。フォームはメールアドレスを集めない設定。フォームと回答の表は satou の Google アカウントにあり、
   回答の表は「ウェブに公開」（CSV）している。設定は `data/human_games_form.json`（空にするとボタンが消え、取り込みも止まる）。
-  `human-games.yml` の form ジョブが毎朝 CSV を読み、同じ検査をして足す。
+  `human-games.yml` の form ジョブが1時間ごとに CSV を読み、同じ検査をして足す。
 - **規約に同意してGitHubで送る**: 棋譜（山札・指し手・得点・AIの強さ。名前は入れない）を本文に入れた Issue の画面を開く
   （GitHub の「URL のクエリで Issue を作る」機能）。本人が内容を見て送信ボタンを押したときだけ届く。
   GitHub のアカウントが要り、Issue は公開される（画面に明記している）。
@@ -48,7 +48,7 @@
 - **再生リンク**: `play.html#rec=…`（棋譜の JSON を base64url）。サーバーには何も送らず、リンクを開いた人のブラウザで再生する。
 - **みんなの対局**（`docs/games.html`、`scripts/build_games_page.py`。開いたときに一覧を読むので棋譜が増えても作り直し不要）: 送ってもらった棋譜（`scripts/human_games.py report` が名前などを落とした検査済みの形で書く）。ページは軽い一覧 `docs/human_games/index.json` だけを読んで30局ずつ並べ、再生は100局ずつに分けた `docs/human_games/<番号>.json` のうちその局の1ファイルだけを読む（何千局になっても重くならない。5000局での点検は `scripts/ui_check.mjs`）。全局のダウンロード用に `docs/human_games.json`（1局1行）。最強AIでの採点は1回40局までで、残りは次の回にまわす。`play.html#replay=3&ply=20` で3局目の20手目から。`human_games.md` の各局・「大きく下がった手」からもこのリンクで開ける。
 - **研究ノート**（みんなの対局ページの「人との対局から分かったこと」、`src/carcassonne/human_findings.py`）: `report` が人の手を1手ずつ最強AIで採点し（対戦ページのヒントと同じ `webplay.make_coach`）、悪手（3点以上の損）の種類・時期、大きく損した手、AIの見積もりが外れた手を `docs/human_findings.json` に書く。採点は1局約30秒なので、局ごとの結果を `docs/results/human_findings_cache.json` に覚えて新しい局だけ採点する。10局未満のあいだは、ページは「傾向ではなく例」と書く。
-- **X への発信**（小江戸カルカソンヌ部）: human-games.yml の form ジョブが毎朝、届いた対局が10局・20局…の区切りに届いたら、集計から作った投稿文の下書き（研究ノートの更新と次の一手クイズ、画像の案つき）を Issue「X投稿の下書き: 人との対局 N局」で届ける（`scripts/human_games.py x-draft`、文は `human_findings.x_posts`、280字に収まるかをテストで確かめる）。投稿は人がする。
+- **X への発信**（小江戸カルカソンヌ部）: human-games.yml の form ジョブが1時間ごとに、届いた対局が10局・20局…の区切りに届いたら、集計から作った投稿文の下書き（研究ノートの更新と次の一手クイズ、画像の案つき）を Issue「X投稿の下書き: 人との対局 N局」で届ける（`scripts/human_games.py x-draft`、文は `human_findings.x_posts`、280字に収まるかをテストで確かめる）。投稿は人がする。
 
 ## 測定の手順（推奨）
 
