@@ -1,0 +1,5 @@
+finished: 2026-11-12T08:10Z
+exit_code: 0
+commit: f4fad40420efc8d92c788a34a6929c5d37d09b66
+run: https://github.com/satou-aaaaa/carcassonne-research/actions/runs/43180817110
+command: python -c "import carcassonne; print('ok')" && echo ok > "$RESEARCH_OUT/ok.txt"
