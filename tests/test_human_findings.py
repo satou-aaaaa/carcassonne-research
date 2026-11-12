@@ -65,3 +65,17 @@ def test_summarize_empty():
     assert s["games"] == 0 and s["bad_moves"] == 0 and s["mean_loss"] is None
     assert s["loss_small_per_game"] is None
     assert hf.top_cat(s) is None and hf.top_phase(s) is None
+
+
+def test_x_posts_fit_and_milestone():
+    recs = [make_record(5 + i, human_seat=i % 2) for i in range(10)]
+    loss = lambda ply: 9.0 if ply % 7 == 0 else 0.5
+    moves = [hf.analyze_game(r, fake_coach(loss), TS) for r in recs]
+    s = hf.summarize(recs, moves, [])
+    assert s["trend"] and hf.milestone(s["games"]) == 10 and hf.milestone(9) == 0
+    posts = hf.x_posts(s)
+    assert len(posts) == 2
+    assert all(hf.x_weight(p) <= 280 for p in posts), [hf.x_weight(p) for p in posts]
+    assert "届いた対局10局" in posts[0] and "#replay=" in posts[1]
+    body = hf.x_issue_body(s)
+    assert body.count("```") == 4 and "投稿は人が" in body
