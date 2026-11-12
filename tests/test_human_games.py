@@ -176,10 +176,10 @@ def test_browser_replay_steps_through_record():
     assert got["closed"] is None  # 再生の前に対局がなければ、閉じると何もない
 
 
-def test_form_is_ingested_hourly_and_pages_say_so():
-    """送った棋譜がページに出るまで待たせない（2026-11-13: 1日1回の取り込みで、届いた4局が出ていなかった）。
+def test_form_ingest_has_backup_runs_and_detects_missed_days():
+    """朝の取り込みが動かなくても、その日のうちに取り込み、動かなかったことに気づく。
 
-    フォームの取り込みは1時間ごと。ページの説明（いつ一覧に足すか）も同じ間隔を書く。
+    2026-11-13: GitHub の schedule が朝 6:17 の回を出さず、届いた4局がページに出なかった。
     """
     import re
     from pathlib import Path
@@ -187,14 +187,26 @@ def test_form_is_ingested_hourly_and_pages_say_so():
     root = Path(__file__).resolve().parents[1]
     wf = (root / ".github/workflows/human-games.yml").read_text(encoding="utf-8")
     crons = re.findall(r'cron:\s*"([^"]+)"', wf)
-    assert crons, "human-games.yml に schedule が要る"
-    for c in crons:
-        assert c.split()[1:] == ["*", "*", "*", "*"], f"フォームの取り込みは1時間ごとに（今は {c}）"
-    for name in ["web/games_template.html", "web/play.html", "docs/HUMAN_EVAL.md"]:
-        text = (root / name).read_text(encoding="utf-8")
-        assert "毎朝" not in text and "翌朝" not in text, (
-            f"{name} が取り込みの間隔を古いまま書いている"
-        )
+    assert "17 21 * * *" in crons, "朝 6:17 JST の回が要る"
+    assert len({c.split()[1] for c in crons}) >= 3, "同じ日に予備の回を（別の時刻で）2つ以上"
+    assert "取り込みが止まっていなかったか" in wf
+
+
+def test_late_rows_flags_games_waiting_too_long():
+    from datetime import datetime, timedelta, timezone
+
+    jst = timezone(timedelta(hours=9))
+    now = datetime(2026, 11, 13, 7, 0, tzinfo=jst)
+    rec = json.dumps(make_record(7))
+    rows = [
+        ("2026/11/11 6:00:00", rec),
+        ("2026/11/12 20:00:00", rec),
+        ("x", rec),
+        ("2026/11/10 1:00:00", "壊れた"),
+    ]
+    late = hg.late_rows(rows, set(), now)
+    assert len(late) == 1 and late[0].startswith("2026/11/11 6:00:00")
+    assert hg.late_rows(rows, {hg.key(json.loads(rec))}, now) == []  # 取り込み済みなら数えない
 
 
 def test_ingest_rows_reports_why_rows_were_rejected(tmp_path):
