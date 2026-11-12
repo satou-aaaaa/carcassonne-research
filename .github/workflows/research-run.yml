@@ -1,0 +1,32 @@
+name: research-run
+
+# 研究の重い計算（何百局の対戦・学習）を Actions で回す呼び出し。中身は shared-workflows の research-run.yml。
+# 研究の毎日の回（shared-workflows の routines/research-loop.md）が workflow_dispatch で起こす。
+# 結果はブランチ research-results の runs/<name>/ に残る（main には入れない）。
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: "実行の名前（英数字・-・_・.。例 r001-20261112）"
+        required: true
+      command:
+        description: "リポジトリの一番上で動かすコマンド（結果は $RESEARCH_OUT に書く）"
+        required: true
+      minutes:
+        description: "止めるまでの分数（最大 330）"
+        default: "300"
+      ref:
+        description: "動かすブランチ"
+        default: main
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    uses: satou-aaaaa/shared-workflows/.github/workflows/research-run.yml@main
+    with:
+      name: ${{ inputs.name }}
+      command: ${{ inputs.command }}
+      minutes: ${{ inputs.minutes }}
+      ref: ${{ inputs.ref }}
