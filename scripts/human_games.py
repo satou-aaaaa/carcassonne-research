@@ -6,7 +6,7 @@
     py scripts/human_games.py ingest-form --result 結果.json
                                                         # Google フォームの回答（公開 CSV）を取り込む（human-games.yml から毎日）
     py scripts/human_games.py report                    # human_games.md・公開する棋譜 docs/human_games/・研究ノートの集計 human_findings.json を作り直す
-    py scripts/human_games.py remove 3                  # 送った人の依頼で3局目を消す（もう取り込まない）
+    py scripts/human_games.py x-draft --title 題.txt --body 本文.md  # 10局ごとの X 投稿の下書き（human-games.yml が Issue に）
 
 棋譜は data/human_games.jsonl に1局1行でためる（形と検査は src/carcassonne/human_games.py）。
 ためた棋譜は自己対戦ループの学習に混ざる（selfplay_loop.Config.human_games）。
@@ -29,6 +29,9 @@ REPORT = ROOT / "docs" / "results" / "human_games.md"
 # 公開する棋譜。一覧（index.json）と、100局ずつに分けた本体（0.json, 1.json, …）。
 # 「みんなの対局」は一覧だけ、対戦ページの再生（play.html#replay=番号）はその局の入ったファイルだけを読む
 PUBLIC = ROOT / "docs" / "human_games"
+# 全局のダウンロード用（みんなの対局の「全局をダウンロード」。ページを開いただけでは読まない）。
+# 1局1行の JSON 配列にして、局が増えたときの差分を増えた行だけにする
+DOWNLOAD = ROOT / "docs" / "human_games.json"
 FINDINGS = ROOT / "docs" / "human_findings.json"  # 「みんなの対局」ページの研究ノートが読む集計
 FINDINGS_CACHE = (
     ROOT / "docs" / "results" / "human_findings_cache.json"
@@ -76,23 +79,8 @@ def cmd_ingest_form(a) -> int:
         with urllib.request.urlopen(url, timeout=60) as r:
             text = r.read().decode("utf-8-sig")
         out = hg.ingest_rows(hg.form_texts(text), a.games)
-        out["delete"] = hg.deletion_requests(text)
     Path(a.result).write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
     print(out)
-    return 0
-
-
-def cmd_remove(a) -> int:
-    rec = hg.remove(a.games, a.game)
-    h = rec["human_seat"]
-    print(
-        f"{a.game}局目（人 {rec['scores'][h]} − AI {rec['scores'][1 - h]}）を消しました。report で作り直してください"
-    )
-    return 0
-
-
-def cmd_deletion_body(a) -> int:
-    print(hg.deletion_body(hg.load(a.games), a.game), end="")
     return 0
 
 
@@ -116,8 +104,15 @@ def cmd_report(a) -> int:
     return 0
 
 
-def write_public(games: list[dict], out: Path = PUBLIC) -> None:
-    """公開する棋譜を、一覧と100局ずつのファイルに分けて書く（中身が同じファイルは書き換えない）。"""
+def write_public(games: list[dict], out: Path | None = None, download: Path | None = None) -> None:
+    """公開する棋譜を、一覧と100局ずつのファイルに分けて書く（中身が同じファイルは書き換えない）。
+
+    全局を1つにまとめたダウンロード用のファイルも書く。
+    """
+    out = out or PUBLIC
+    download = download or DOWNLOAD
+    rows = [json.dumps(r, ensure_ascii=False, separators=(",", ":")) for r in games]
+    download.write_text("[" + ",\n".join(rows) + "]\n", encoding="utf-8")
     out.mkdir(parents=True, exist_ok=True)
     files = {"index.json": hg.public_index(games)}
     files.update({f"{i}.json": c for i, c in enumerate(hg.public_chunks(games))})
@@ -189,6 +184,18 @@ def write_findings(games: list[dict], sw: list[dict], max_score: int = MAX_SCORE
     print(f"{FINDINGS} を書きました（採点待ち {s['pending']} 局）")
 
 
+def cmd_x_draft(a) -> int:
+    """区切り（10局ごと）の X 下書き。区切りに届いていなければ何も書かない（題も空）。"""
+    from carcassonne import human_findings as hf
+
+    s = json.loads(FINDINGS.read_text(encoding="utf-8")) if FINDINGS.exists() else {"games": 0}
+    m = hf.milestone(s["games"])
+    Path(a.title).write_text(f"X投稿の下書き: 人との対局 {m}局\n" if m else "", encoding="utf-8")
+    if m:
+        Path(a.body).write_text(hf.x_issue_body(s), encoding="utf-8")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("--games", default=str(GAMES), help="棋譜をためるファイル")
@@ -205,12 +212,10 @@ def main() -> int:
         "--result", required=True, help="結果（added・duplicate・invalid の数）を書く JSON"
     )
     p.set_defaults(func=cmd_ingest_form)
-    p = sub.add_parser("remove")
-    p.add_argument("game", type=int, help="消す対局の番号（1始まり。みんなの対局ページの #番号）")
-    p.set_defaults(func=cmd_remove)
-    p = sub.add_parser("deletion-body")
-    p.add_argument("--game", type=int, required=True)
-    p.set_defaults(func=cmd_deletion_body)
+    p = sub.add_parser("x-draft")
+    p.add_argument("--title", required=True, help="Issue の題を書くファイル（区切り前なら空）")
+    p.add_argument("--body", required=True, help="Issue の本文を書くファイル")
+    p.set_defaults(func=cmd_x_draft)
     p = sub.add_parser("report")
     p.add_argument("--out", default=str(REPORT))
     p.add_argument("--max-score", type=int, default=MAX_SCORE, help="1回で新しく採点する局数の上限")

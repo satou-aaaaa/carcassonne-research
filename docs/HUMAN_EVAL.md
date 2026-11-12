@@ -23,11 +23,11 @@
 
 公開の対戦ページ（docs/play.html）は、終局すると結果の欄に「棋譜を研究に使わせてください」を出す。
 
-- **棋譜を送る（アカウント不要）**: 棋譜を入力済みの Google フォームを開く（Google の「事前入力した URL」）。
+- **規約に同意して送る（アカウント不要）**: 棋譜を入力済みの Google フォームを開く（Google の「事前入力した URL」）。
   本人が送信ボタンを押したときだけ届く。フォームはメールアドレスを集めない設定。フォームと回答の表は satou の Google アカウントにあり、
   回答の表は「ウェブに公開」（CSV）している。設定は `data/human_games_form.json`（空にするとボタンが消え、取り込みも止まる）。
   `human-games.yml` の form ジョブが毎朝 CSV を読み、同じ検査をして足す。
-- **GitHubで送る**: 棋譜（山札・指し手・得点・AIの強さ。名前は入れない）を本文に入れた Issue の画面を開く
+- **規約に同意してGitHubで送る**: 棋譜（山札・指し手・得点・AIの強さ。名前は入れない）を本文に入れた Issue の画面を開く
   （GitHub の「URL のクエリで Issue を作る」機能）。本人が内容を見て送信ボタンを押したときだけ届く。
   GitHub のアカウントが要り、Issue は公開される（画面に明記している）。
 - **ファイルに保存**: 同じ棋譜を JSON で手元に保存する。受け取ったら `py scripts/human_games.py add 棋譜.json` で足す。
@@ -46,8 +46,9 @@
 
 - **自分の対局**: 終局すると「この対局を再生」が出る。終わった対局はこのブラウザに最近の20局まで残る（localStorage、名前は入れない）。保存した棋譜ファイルも開ける。
 - **再生リンク**: `play.html#rec=…`（棋譜の JSON を base64url）。サーバーには何も送らず、リンクを開いた人のブラウザで再生する。
-- **みんなの対局**（`docs/games.html`、`scripts/build_games_page.py`。開いたときに一覧を読むので棋譜が増えても作り直し不要）: 送ってもらった棋譜の一覧 `docs/human_games.json`（`scripts/human_games.py report` が名前などを落とした検査済みの形で書く）。`play.html#replay=3&ply=20` で3局目の20手目から。`human_games.md` の各局・「大きく下がった手」からもこのリンクで開ける。
+- **みんなの対局**（`docs/games.html`、`scripts/build_games_page.py`。開いたときに一覧を読むので棋譜が増えても作り直し不要）: 送ってもらった棋譜（`scripts/human_games.py report` が名前などを落とした検査済みの形で書く）。ページは軽い一覧 `docs/human_games/index.json` だけを読んで30局ずつ並べ、再生は100局ずつに分けた `docs/human_games/<番号>.json` のうちその局の1ファイルだけを読む（何千局になっても重くならない。5000局での点検は `scripts/ui_check.mjs`）。全局のダウンロード用に `docs/human_games.json`（1局1行）。最強AIでの採点は1回40局までで、残りは次の回にまわす。`play.html#replay=3&ply=20` で3局目の20手目から。`human_games.md` の各局・「大きく下がった手」からもこのリンクで開ける。
 - **研究ノート**（みんなの対局ページの「人との対局から分かったこと」、`src/carcassonne/human_findings.py`）: `report` が人の手を1手ずつ最強AIで採点し（対戦ページのヒントと同じ `webplay.make_coach`）、悪手（3点以上の損）の種類・時期、大きく損した手、AIの見積もりが外れた手を `docs/human_findings.json` に書く。採点は1局約30秒なので、局ごとの結果を `docs/results/human_findings_cache.json` に覚えて新しい局だけ採点する。10局未満のあいだは、ページは「傾向ではなく例」と書く。
+- **X への発信**（小江戸カルカソンヌ部）: human-games.yml の form ジョブが毎朝、届いた対局が10局・20局…の区切りに届いたら、集計から作った投稿文の下書き（研究ノートの更新と次の一手クイズ、画像の案つき）を Issue「X投稿の下書き: 人との対局 N局」で届ける（`scripts/human_games.py x-draft`、文は `human_findings.x_posts`、280字に収まるかをテストで確かめる）。投稿は人がする。
 
 ## 測定の手順（推奨）
 
@@ -74,7 +75,10 @@
 ### 送ってくれる人への配慮（2026-11-12 satou の方針）
 
 棋譜は善意で送ってもらうもの。送る前に「みんなの対局ページで誰でも見られる（名前は出ない）」と、送らなくても困らないことを結果の欄に出す。
-みんなの対局ページにお礼と使い道（学習にまぜた局面の数など）を出す。消してほしいときは、そのページから同じ Google フォームに「削除 #番号」を送ってもらう。
-human-games.yml の form ジョブが依頼ごとに Issue「棋譜の削除依頼: #番号（受付時刻）」を1件作るので、確かめてから
-`py scripts/human_games.py remove 番号` で消す（key を data/human_games_removed.txt に覚え、フォームの表に残っていても取り込まない）。
-フォームの回答の表は CSV で公開しているので、その行も表から消す。
+みんなの対局ページにお礼と使い道（学習にまぜた局面の数など）を出す。棋譜を消す仕組みは作らない（2026-11-12 satou）。
+
+### 公開・ライセンス・紛失への備え（2026-11-12）
+
+- 規約: docs/terms.html（`scripts/build_terms_page.py`、本文は web/terms_template.html）。送る画面のボタンは「規約に同意して送る」。
+- データは CC BY 4.0 で公開し、みんなの対局ページからダウンロードできる。形の説明もそのページにある。
+- 棋譜は足すだけにしている。減る変更は test.yml の data ジョブが止め、控えは週1回 Release「data-backup」に取る（data-backup.yml）。

@@ -58,20 +58,23 @@ def test_page_uses_same_chunk_size():
     m = re.search(r"const PUBLIC_CHUNK = (\d+);", js)
     assert m and int(m.group(1)) == hg.CHUNK
     tpl = (ROOT / "web" / "games_template.html").read_text(encoding="utf-8")
-    assert '"human_games/index.json"' in tpl and "human_games.json" not in tpl
+    assert '"human_games/index.json"' in tpl
+    assert "fetch(SRC" in tpl and '../human_games.json"' not in tpl.split("<script>")[1]
 
 
 def test_write_public_rewrites_only_changed_files(tmp_path, games):
     mod = load_script()
-    out = tmp_path / "pub"
-    mod.write_public(games[:3], out)
+    out, dl = tmp_path / "pub", tmp_path / "all.json"
+    mod.write_public(games[:3], out, dl)
+    assert json.loads(dl.read_text()) == games[:3]  # 全局のダウンロード用（1局1行）
+    assert len(dl.read_text().splitlines()) == 3
     assert sorted(f.name for f in out.iterdir()) == ["0.json", "index.json"]
     chunk = out / "0.json"
     before = chunk.stat().st_mtime_ns
-    mod.write_public(games[:3], out)  # 同じ中身なら書き換えない（git の差分が増えない）
+    mod.write_public(games[:3], out, dl)  # 同じ中身なら書き換えない（git の差分が増えない）
     assert chunk.stat().st_mtime_ns == before
-    (out / "7.json").write_text("[]")  # 局が減ったときの、もう要らないファイルは消す
-    mod.write_public(games[:3], out)
+    (out / "7.json").write_text("[]")  # もう要らないファイル（にせもの）は消す
+    mod.write_public(games[:3], out, dl)
     assert not (out / "7.json").exists()
     assert json.loads((out / "index.json").read_text()) == hg.public_index(games[:3])
 
@@ -124,6 +127,7 @@ def test_report_scores_at_most_max_per_run(tmp_path, games, monkeypatch):
     import carcassonne.webplay as wp
 
     mod = load_script()
+    real = mod.FINDINGS_CACHE.read_bytes() if mod.FINDINGS_CACHE.exists() else None
     monkeypatch.setattr(mod, "FINDINGS_CACHE", tmp_path / "cache.json")
     monkeypatch.setattr(mod, "FINDINGS", tmp_path / "findings.json")
     monkeypatch.setattr(wp, "make_agent", lambda level: None)
@@ -136,3 +140,6 @@ def test_report_scores_at_most_max_per_run(tmp_path, games, monkeypatch):
     mod.write_findings(games, [], max_score=3)
     s = json.loads((tmp_path / "findings.json").read_text())
     assert s["games"] == 7 and s["pending"] == 0
+    # 本物の採点（リポジトリの docs/results/）には触らない（既定の引数で置き場所を固定すると書き換えてしまう）
+    real_path = ROOT / "docs" / "results" / "human_findings_cache.json"
+    assert (real_path.read_bytes() if real_path.exists() else None) == real

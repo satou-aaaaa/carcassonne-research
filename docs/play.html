@@ -1036,13 +1036,13 @@ function resultHtml() {
 }
 // 終局後の「棋譜を送る」欄。Google フォーム（アカウント不要）は設定があるときだけ出す（data/human_games_form.json）
 function shareHtml() {
-  const form = REC_FORM ? `<button type="button" class="primary" id="btnFormRec">棋譜を送る（アカウント不要）</button>` : "";
+  const form = REC_FORM ? `<button type="button" class="primary" id="btnFormRec">規約に同意して送る（アカウント不要）</button>` : "";
   const again = `<div class="row"><button type="button" id="btnReplayThis">この対局を再生</button><button type="button" id="btnLinkThis">再生リンクをコピー</button></div>`;
   return again + `<div class="share"><b>よければ、棋譜を研究に使わせてください（任意）</b><br>人との対局から、AIの弱点を探して学習に使います。送らなくても、対戦や再生はこれまでどおり使えます。` +
-    `<p class="pubnote">送った棋譜は <a href="games.html" target="_blank" rel="noopener">みんなの対局</a> のページで公開され、誰でも見られます（名前は出ません）。あとから消してほしいときは、そのページから頼めます。</p>` +
-    `<div class="row">${form}<button type="button" id="btnSendRec">GitHubで送る</button><button type="button" id="btnSaveRec">ファイルに保存</button></div>` +
+    `<p class="pubnote">送った棋譜は <a href="games.html" target="_blank" rel="noopener">みんなの対局</a> のページで公開され、誰でも見て使えるデータ（CC BY 4.0）になります。名前は出ませんが、あとから消すことはできません。送る前に <a href="terms.html" target="_blank" rel="noopener">利用規約・データの扱い</a> を読んでください。</p>` +
+    `<div class="row">${form}<button type="button" id="btnSendRec">規約に同意してGitHubで送る</button><button type="button" id="btnSaveRec">ファイルに保存</button></div>` +
     `送るのは山札・指し手・得点・AIの強さだけで、名前は入りません。開いた画面で内容を確かめ、送信ボタンを押すと届きます。` +
-    (REC_FORM ? `「棋譜を送る」は Google フォームで、アカウントもメールアドレスも要りません。` : "") +
+    (REC_FORM ? `「規約に同意して送る」は Google フォームで、アカウントもメールアドレスも要りません。` : "") +
     `GitHub で送ると、棋譜とアカウント名が公開されます。ファイルは送らずに手元に残せます。</div>`;
 }
 const REC_FORM = window.PLAY_DATA ? window.PLAY_DATA.form : null;
@@ -1053,7 +1053,7 @@ function recordJson() { return JSON.stringify(G.record); }
 function recordIssueUrl() {
   const r = G.record, h = r.human_seat, a = 1 - h;
   const title = `[棋譜] ${r.scores[h]} − ${r.scores[a]}（AI: ${r.level}）`;
-  const body = "<!-- carcassonne-game-record -->\n対戦ページで指した対局の棋譜です。AIの学習と弱点探しに使ってください。\n送った棋譜は「みんなの対局」ページ（https://satou-aaaaa.github.io/carcassonne-research/games.html）で誰でも見られます。\n\n```json\n" + recordJson() + "\n```\n";
+  const body = "<!-- carcassonne-game-record -->\n対戦ページで指した対局の棋譜です。AIの学習と弱点探しに使ってください。\n送った棋譜は「みんなの対局」ページ（https://satou-aaaaa.github.io/carcassonne-research/games.html）で公開され、CC BY 4.0 で誰でも使えるデータになります。利用規約（https://satou-aaaaa.github.io/carcassonne-research/terms.html）に同意して送ります。\n\n```json\n" + recordJson() + "\n```\n";
   return `${REC_REPO}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
 }
 $("result").addEventListener("click", e => {

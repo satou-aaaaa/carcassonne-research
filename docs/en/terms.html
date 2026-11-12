@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terms of Use and Data</title>
+<meta name="description" content="Terms of use for the Carcassonne AI research site: publication and use of the game records you send, the data license (CC BY 4.0), personal information, disclaimer and trademarks.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+:root {
+  --bg: #f1f3ee; --paper: #ffffff; --ink: #1d2620; --muted: #5c6a60; --line: #d5dccf;
+  --field: #2f6b3a; --city: #9a6436; --red: #d64541; --blue: #2f6fd6; --board-bg: #e6e2d6;
+  --bar: #2f6b3a; --bar2: #a8c9ae; --draw: #b9c0b5;
+  --font-display: "Dela Gothic One", "Zen Kaku Gothic New", "Hiragino Sans", sans-serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+  --font-num: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141a16; --paper: #1c241f; --ink: #e6ece6; --muted: #9aa89d; --line: #2e3a32;
+    --field: #7cc48a; --city: #d9a571; --red: #f06a62; --blue: #6c9cf0; --board-bg: #2a312c;
+    --bar: #6fbf7e; --bar2: #35583d; --draw: #56635a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141a16; --paper: #1c241f; --ink: #e6ece6; --muted: #9aa89d; --line: #2e3a32;
+  --field: #7cc48a; --city: #d9a571; --red: #f06a62; --blue: #6c9cf0; --board-bg: #2a312c;
+  --bar: #6fbf7e; --bar2: #35583d; --draw: #56635a; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.85; padding-inline: 16px; padding-block: 0 64px; }
+.wrap { max-width: 760px; margin: 0 auto; }
+header.hero { padding-block: 40px 20px; display: grid; gap: 12px; }
+.eyebrow { font-size: 13px; letter-spacing: .12em; color: var(--muted); font-weight: 700; }
+h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 6vw, 44px); line-height: 1.25; margin: 0; }
+h1 .accent { color: var(--field); }
+.lede { margin: 0; max-width: 38em; }
+section { padding-block: 28px 4px; border-top: 1px solid var(--line); margin-top: 20px; display: grid; gap: 14px; }
+h2 { font-family: var(--font-display); font-weight: 400; font-size: 21px; margin: 0; }
+p, li { max-width: 40em; }
+p { margin: 0; }
+ol, ul { margin: 0; padding-left: 1.4em; display: grid; gap: 6px; }
+.note { font-size: 14px; color: var(--muted); }
+.sum { background: var(--paper); border: 1px solid var(--line); border-left: 4px solid var(--field); border-radius: 6px; padding: 14px 16px; display: grid; gap: 6px; }
+.sum b { color: var(--field); }
+a { color: var(--field); }
+code { font-family: var(--font-num); font-size: 14px; }
+
+nav.site { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+nav.site .home { font-weight: 700; margin-right: 8px; color: var(--ink); text-decoration: none; }
+nav.site a.p { color: var(--muted); text-decoration: none; padding: 3px 10px; border-radius: 999px; }
+nav.site a.p:hover, nav.site a.p:focus-visible { color: var(--ink); background: var(--paper); outline: none; }
+nav.site a.p[aria-current="page"] { color: var(--paper); background: var(--field); }
+nav.site a.lang { margin-left: auto; border: 1px solid var(--line); }
+@media (pointer: coarse) { nav.site a { min-height: 44px; display: inline-flex; align-items: center; } }
+/* 共通: 見出しを語の切れ目で折り返す・開閉の見出しを押しやすく */
+h1, h2, h3 { word-break: auto-phrase; }
+summary { padding-block: 6px; }
+/* 共通: ページ下の支援リンク（Ko-fi）。目立ちすぎないよう枠線だけのボタンにする */
+.support { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.support a.kofi { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); text-decoration: none; font-weight: 600; }
+.support a.kofi:hover, .support a.kofi:focus-visible { border-color: var(--field); }
+
+</style>
+<link rel="alternate" hreflang="ja" href="https://satou-aaaaa.github.io/carcassonne-research/terms.html"><link rel="alternate" hreflang="en" href="https://satou-aaaaa.github.io/carcassonne-research/en/terms.html"><link rel="alternate" hreflang="x-default" href="https://satou-aaaaa.github.io/carcassonne-research/en/terms.html">
+<script>(function(){var K="site-lang",cur="en",alt="../terms.html",s=null;try{s=localStorage.getItem(K)}catch(e){}if(!/bot|crawl|spider|slurp|lighthouse/i.test(navigator.userAgent)){var l=(navigator.languages&&navigator.languages[0])||navigator.language||'';var want=s||(/^ja\b/i.test(l)?'ja':'en');if(want!==cur){location.replace(alt+location.search+location.hash);return}}document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[data-lang]');if(a)try{localStorage.setItem(K,a.getAttribute('data-lang'))}catch(e){}})})();</script>
+</head>
+<body>
+<div class="wrap">
+<nav class="site" aria-label="Site pages"><a class="home" href="index.html">Carcassonne Primer</a><a class="p" href="rules.html">Rules</a><a class="p" href="strategy.html">Strategy</a><a class="p" href="ai_tips.html">Lessons from the AI</a><a class="p" href="quiz.html">Next-Move Quiz</a><a class="p" href="stats.html">By the Numbers</a><a class="p" href="games.html">Community Games</a><a class="p" href="play.html">Play the AI</a><a class="p lang" href="../terms.html" hreflang="ja" lang="ja" data-lang="ja" title="日本語に切り替え">日本語</a></nav>
+<header class="hero">
+  <div class="eyebrow">TERMS</div>
+  <h1>Terms of Use <span class="accent">and Data</span></h1>
+  <p class="lede">These terms cover this site (Carcassonne AI research) and the game records sent from the play page. Please read them before sending a game.</p>
+  <p class="note">Established and effective: November 12, 2026</p>
+</header>
+
+<section id="summary">
+  <h2>Key points</h2>
+  <div class="sum">
+    <p><b>Sending is optional.</b> Without sending anything, you can still use the play page, replays and all learning pages.</p>
+    <p><b>Games you send are published.</b> They appear on the Community Games page, anyone can see them, and they become data anyone can use under CC BY 4.0.</p>
+    <p><b>Games cannot be removed after sending.</b> They contain no names, so we cannot tell whose game is whose.</p>
+    <p><b>We do not collect names or contact details.</b> Please do not write them into what you send.</p>
+  </div>
+</section>
+
+<section id="scope">
+  <h2>1. About these terms</h2>
+  <p>These terms apply to this site, published by the personal research project <a href="https://github.com/satou-aaaaa/carcassonne-research">carcassonne-research</a> (the "operator"), and to game records sent from the play page. By using the site or sending a game record, you agree to these terms.</p>
+</section>
+
+<section id="send">
+  <h2>2. Sending a game record</h2>
+  <ol>
+    <li>Sending a game record is up to you. You are not disadvantaged in any way if you don't.</li>
+    <li>A record contains only the deck order, the moves, the scores, the AI level and version, whether beginner mode was on, and the number of hints and undos. It contains no names or email addresses.</li>
+    <li>There are two ways to send, and both use outside services. Their own terms and privacy policies also apply.
+      <ul>
+        <li>"Agree to the terms and send (no account needed)" uses a Google Form. The operator receives only the time of sending and the record, and does not collect email addresses. The response sheet is published on the web so the records can be imported.</li>
+        <li>"Agree to the terms and send via GitHub" uses a GitHub Issue. Your GitHub account name is published together with the record.</li>
+      </ul>
+    </li>
+    <li>Do not write anything on the sending screen that could identify you or anyone else, such as names or contact details. Anything that is not a game record is not imported.</li>
+    <li>Records are checked against the rules before they are imported. Records that cannot be checked are not imported.</li>
+  </ol>
+</section>
+
+<section id="consent">
+  <h2>3. Consent to publication and use</h2>
+  <p>By sending a game record, you agree that:</p>
+  <ol>
+    <li>the record is published, for example on the Community Games page, and anyone can see it;</li>
+    <li>the record is used for training the AI, analyzing its weak spots, research, and publishing the results;</li>
+    <li>the record is distributed as data anyone can use, under the terms in "5. Data license" below;</li>
+    <li>to the extent any rights exist in the record, you grant the operator a free, perpetual and irrevocable permission to use it (including publishing, modifying, redistributing and offering it under CC BY 4.0), and you will not exercise moral rights against the operator or users of the data.</li>
+  </ol>
+</section>
+
+<section id="nodelete">
+  <h2>4. Removal or correction after sending</h2>
+  <p>We do not accept requests to remove or correct records after they are sent. Records contain no names, so we cannot tell who sent which game. We also keep the collected data, without deleting it, as a research record. Please make sure you are happy for a game to be published before sending it.</p>
+</section>
+
+<section id="license">
+  <h2>5. Data license</h2>
+  <p>The collected human-vs-AI game records (<a href="../human_games.json">human_games.json</a>, <a href="https://github.com/satou-aaaaa/carcassonne-research/blob/main/data/human_games.jsonl">data/human_games.jsonl</a>) are published under the <a href="https://creativecommons.org/licenses/by/4.0/deed.en">Creative Commons Attribution 4.0 International license (CC BY 4.0)</a>. Anyone may copy, redistribute and adapt them, commercially or not, as long as they give attribution.</p>
+  <p>Example attribution: "carcassonne-research human-vs-AI game data (CC BY 4.0)" with a link to this site. If you modified the data, say so too.</p>
+  <p class="note">These terms set no license for the text, programs or images other than this data.</p>
+</section>
+
+<section id="privacy">
+  <h2>6. Personal information</h2>
+  <ol>
+    <li>The site is built so that the operator does not collect information that identifies a specific individual, such as names or email addresses ("personal information" under Japan's Act on the Protection of Personal Information).</li>
+    <li>The play page stores your recent games (up to 20), language and settings inside your browser (localStorage). This is not sent to the operator and disappears when you clear your browser data.</li>
+    <li>Pages may load Google Fonts (typefaces). When they do, your browser connects to Google.</li>
+  </ol>
+</section>
+
+<section id="disclaimer">
+  <h2>7. Disclaimer</h2>
+  <ol>
+    <li>The site, the AI and the data are provided as is, for research. We do not guarantee the accuracy of the content, the correctness of the AI's judgments, or that the site and data will remain available.</li>
+    <li>To the extent permitted by law, the operator is not liable for any damage arising from the use of the site or the data.</li>
+    <li>The operator makes an effort to keep the collected data safe, for example by keeping backups.</li>
+  </ol>
+</section>
+
+<section id="trademark">
+  <h2>8. Trademarks and unofficial status</h2>
+  <p>"Carcassonne" is a trademark of Hans im Glück Verlags-GmbH. This site is an unofficial fan site made by an individual for research on and learning of the board game, and is not affiliated with the rights holder or publishers. The board and tile pictures were drawn for this site.</p>
+</section>
+
+<section id="change">
+  <h2>9. Changes to these terms</h2>
+  <ol>
+    <li>The operator may change these terms. Changes will be announced on this page with the date of the change.</li>
+    <li>Records sent after a change are covered by the changed terms.</li>
+    <li>Conditions for data already published under CC BY 4.0 will not be narrowed later (CC licenses cannot be revoked).</li>
+  </ol>
+</section>
+
+<section id="contact">
+  <h2>10. Contact</h2>
+  <p>Please send questions about these terms or the site as a <a href="https://github.com/satou-aaaaa/carcassonne-research/issues">GitHub Issue</a> (a GitHub account is needed, and the content is public).</p>
+</section>
+
+<section id="sources">
+  <h2>Sources consulted</h2>
+  <ul class="note">
+    <li><a href="https://creativecommons.org/licenses/by/4.0/deed.en">CC BY 4.0 summary</a> and <a href="https://creativecommons.org/licenses/by/4.0/legalcode.en">legal code</a> (Creative Commons)</li>
+    <li><a href="https://www.ppc.go.jp/personalinfo/legal/guidelines_tsusoku/">Guidelines on the Act on the Protection of Personal Information (General Rules)</a> (Personal Information Protection Commission, Japan; in Japanese)</li>
+    <li><a href="https://www.hans-im-glueck.de/en/about-us/">About Hans im Glück</a> (publisher)</li>
+  </ul>
+</section>
+<div class="support">If this site helped you, you can support the author.<a class="kofi" href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>Support on Ko-fi</a></div>
+</div>
+</body>
+</html>

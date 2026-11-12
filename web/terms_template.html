@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>利用規約・データの扱い</title>
+<meta name="description" content="カルカソンヌAI研究サイトの利用規約。送ってもらう棋譜の公開と利用、データのライセンス（CC BY 4.0）、個人情報、免責、商標について。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+:root {
+  --bg: #f1f3ee; --paper: #ffffff; --ink: #1d2620; --muted: #5c6a60; --line: #d5dccf;
+  --field: #2f6b3a; --city: #9a6436; --red: #d64541; --blue: #2f6fd6; --board-bg: #e6e2d6;
+  --bar: #2f6b3a; --bar2: #a8c9ae; --draw: #b9c0b5;
+  --font-display: "Dela Gothic One", "Zen Kaku Gothic New", "Hiragino Sans", sans-serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+  --font-num: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141a16; --paper: #1c241f; --ink: #e6ece6; --muted: #9aa89d; --line: #2e3a32;
+    --field: #7cc48a; --city: #d9a571; --red: #f06a62; --blue: #6c9cf0; --board-bg: #2a312c;
+    --bar: #6fbf7e; --bar2: #35583d; --draw: #56635a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141a16; --paper: #1c241f; --ink: #e6ece6; --muted: #9aa89d; --line: #2e3a32;
+  --field: #7cc48a; --city: #d9a571; --red: #f06a62; --blue: #6c9cf0; --board-bg: #2a312c;
+  --bar: #6fbf7e; --bar2: #35583d; --draw: #56635a; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.85; padding-inline: 16px; padding-block: 0 64px; }
+.wrap { max-width: 760px; margin: 0 auto; }
+header.hero { padding-block: 40px 20px; display: grid; gap: 12px; }
+.eyebrow { font-size: 13px; letter-spacing: .12em; color: var(--muted); font-weight: 700; }
+h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 6vw, 44px); line-height: 1.25; margin: 0; }
+h1 .accent { color: var(--field); }
+.lede { margin: 0; max-width: 38em; }
+section { padding-block: 28px 4px; border-top: 1px solid var(--line); margin-top: 20px; display: grid; gap: 14px; }
+h2 { font-family: var(--font-display); font-weight: 400; font-size: 21px; margin: 0; }
+p, li { max-width: 40em; }
+p { margin: 0; }
+ol, ul { margin: 0; padding-left: 1.4em; display: grid; gap: 6px; }
+.note { font-size: 14px; color: var(--muted); }
+.sum { background: var(--paper); border: 1px solid var(--line); border-left: 4px solid var(--field); border-radius: 6px; padding: 14px 16px; display: grid; gap: 6px; }
+.sum b { color: var(--field); }
+a { color: var(--field); }
+code { font-family: var(--font-num); font-size: 14px; }
+__NAV_CSS__
+</style>
+</head>
+<body>
+<div class="wrap">
+__NAV__
+<header class="hero">
+  <div class="eyebrow">TERMS</div>
+  <h1>利用規約・<span class="accent">データの扱い</span></h1>
+  <p class="lede">このサイト（カルカソンヌAI研究）と、対戦ページから送ってもらう棋譜の扱いを決めたものです。棋譜を送る前に読んでください。</p>
+  <p class="note">制定・施行: 2026年11月12日</p>
+</header>
+
+<section id="summary">
+  <h2>要点</h2>
+  <div class="sum">
+    <p><b>送るのは自由です。</b>送らなくても、対戦・再生・学習ページはすべて使えます。</p>
+    <p><b>送った棋譜は公開されます。</b>「みんなの対局」ページに載り、誰でも見られ、CC BY 4.0 で誰でも使えるデータになります。</p>
+    <p><b>送ったあとで消すことはできません。</b>名前などが入っておらず、誰の対局か見分けられないためです。</p>
+    <p><b>名前や連絡先は集めません。</b>送る中身にも書き込まないでください。</p>
+  </div>
+</section>
+
+<section id="scope">
+  <h2>1. この規約について</h2>
+  <p>この規約は、個人の研究プロジェクト <a href="https://github.com/satou-aaaaa/carcassonne-research">carcassonne-research</a>（以下「運営者」）が公開するこのサイトと、対戦ページから送ってもらう棋譜に適用します。サイトを使ったとき、または棋譜を送ったときに、この規約に同意したものとします。</p>
+</section>
+
+<section id="send">
+  <h2>2. 棋譜を送るとき</h2>
+  <ol>
+    <li>棋譜を送るかどうかは自由です。送らないことで不利になることはありません。</li>
+    <li>送る中身は、山札の並び・指し手・得点・AIの強さと版・初心者モードの有無・ヒントと「待った」の回数だけです。名前・メールアドレスなどは入りません。</li>
+    <li>送り方は2つあり、どちらも外部のサービスを使います。それぞれのサービスの規約とプライバシーポリシーも適用されます。
+      <ul>
+        <li>「規約に同意して送る（アカウント不要）」は Google フォームです。運営者が受け取るのは送信の時刻と棋譜だけで、メールアドレスは集めません。回答の表は、取り込みのためにウェブで公開しています。</li>
+        <li>「規約に同意してGitHubで送る」は GitHub の Issue です。棋譜と一緒に、あなたの GitHub のアカウント名が公開されます。</li>
+      </ul>
+    </li>
+    <li>送るときの画面に、名前・連絡先など、あなたや他の人が分かることを書き込まないでください。棋譜の形でないものは取り込みません。</li>
+    <li>送られた棋譜は、ルールどおりか確かめてから取り込みます。確かめられなかったものは取り込みません。</li>
+  </ol>
+</section>
+
+<section id="consent">
+  <h2>3. 公開と利用への同意</h2>
+  <p>棋譜を送ることで、あなたは次のことに同意します。</p>
+  <ol>
+    <li>棋譜が「みんなの対局」ページなどで公開され、誰でも見られること。</li>
+    <li>棋譜が、AIの学習・弱点の分析・研究と、その結果の公開に使われること。</li>
+    <li>棋譜が、下の「5. データのライセンス」の条件で、誰でも使えるデータとして配られること。</li>
+    <li>棋譜に権利が生じる場合、あなたは運営者に、その棋譜を無償で、期間を定めず、取り消せない形で使うこと（公開・加工・再配布と、CC BY 4.0 での提供を含む）を許し、運営者とデータの利用者に対して著作者人格権を行使しないこと。</li>
+  </ol>
+</section>
+
+<section id="nodelete">
+  <h2>4. 送ったあとの削除・訂正</h2>
+  <p>送った棋譜の削除・訂正の依頼は受け付けません。棋譜には名前などが入っておらず、誰が送った対局かを見分けられないためです。また、集めたデータを研究の記録として失わないよう、消さずに保管します。送る前に、公開されてよいかを確かめてください。</p>
+</section>
+
+<section id="license">
+  <h2>5. データのライセンス</h2>
+  <p>集めた人との対局の棋譜（<a href="human_games.json">human_games.json</a>、<a href="https://github.com/satou-aaaaa/carcassonne-research/blob/main/data/human_games.jsonl">data/human_games.jsonl</a>）は、<a href="https://creativecommons.org/licenses/by/4.0/deed.ja">クリエイティブ・コモンズ 表示 4.0 国際（CC BY 4.0）</a>で公開します。出典を表示すれば、営利・非営利を問わず、誰でも複製・再配布・加工して使えます。</p>
+  <p>表示の例: 「carcassonne-research 人との対局データ（CC BY 4.0）」と、このサイトへのリンク。加工した場合は、加工したことも書いてください。</p>
+  <p class="note">このデータ以外の文章・プログラム・画像については、このページではライセンスを定めていません。</p>
+</section>
+
+<section id="privacy">
+  <h2>6. 個人情報</h2>
+  <ol>
+    <li>運営者は、名前・メールアドレスなど、特定の個人を識別できる情報（個人情報保護法の「個人情報」）を集めない作りにしています。</li>
+    <li>対戦ページは、最近の対局（20局まで）・言語・設定を、あなたのブラウザの中（localStorage）に保存します。これは運営者には送られず、ブラウザのデータを消すと消えます。</li>
+    <li>ページの表示に、Google Fonts（文字の形）を読み込むことがあります。そのとき、あなたのブラウザが Google に接続します。</li>
+  </ol>
+</section>
+
+<section id="disclaimer">
+  <h2>7. 免責</h2>
+  <ol>
+    <li>このサイト・AI・データは、研究のために現状のまま提供します。内容の正確さ、AIの判断の正しさ、サイトやデータの提供が続くことは保証しません。</li>
+    <li>このサイトやデータを使ったことで生じた損害について、運営者は、法令で許される範囲で責任を負いません。</li>
+    <li>運営者は、集めたデータを失わないよう、控えを取るなどして保管に努めます。</li>
+  </ol>
+</section>
+
+<section id="trademark">
+  <h2>8. 商標と非公式であること</h2>
+  <p>「カルカソンヌ（Carcassonne）」は Hans im Glück Verlags-GmbH の商標です。このサイトは、ボードゲームの研究と学習のために個人が作った非公式のファンサイトで、権利者・販売元とは関係がありません。盤面やタイルの絵は、このサイトで描いたものです。</p>
+</section>
+
+<section id="change">
+  <h2>9. 規約の変更</h2>
+  <ol>
+    <li>運営者は、この規約を変えることがあります。変えるときはこのページで知らせ、変更日を書きます。</li>
+    <li>変更後に送られた棋譜には、変更後の規約を適用します。</li>
+    <li>すでに CC BY 4.0 で公開したデータの利用条件は、あとから狭めません（CC のライセンスは取り消せないため）。</li>
+  </ol>
+</section>
+
+<section id="contact">
+  <h2>10. 問い合わせ</h2>
+  <p>この規約やサイトについての問い合わせは、<a href="https://github.com/satou-aaaaa/carcassonne-research/issues">GitHub の Issue</a> でお願いします（GitHub のアカウントが要り、内容は公開されます）。</p>
+</section>
+
+<section id="sources">
+  <h2>参考にした説明</h2>
+  <ul class="note">
+    <li><a href="https://creativecommons.org/licenses/by/4.0/deed.ja">CC BY 4.0 の概要</a>・<a href="https://creativecommons.org/licenses/by/4.0/legalcode.ja">利用許諾の本文</a>（Creative Commons）</li>
+    <li><a href="https://www.ppc.go.jp/personalinfo/legal/guidelines_tsusoku/">個人情報の保護に関する法律についてのガイドライン（通則編）</a>（個人情報保護委員会）</li>
+    <li><a href="https://www.hans-im-glueck.de/en/about-us/">Hans im Glück について</a>（販売元）</li>
+  </ul>
+</section>
+__SUPPORT__
+</div>
+</body>
+</html>
