@@ -2,8 +2,9 @@
 
     py scripts/build_games_page.py
 
-対局の一覧は、ページを開いたときにブラウザが docs/human_games.json（scripts/human_games.py report が書く。
-名前などを落とした検査済みの棋譜）を読んで並べるので、棋譜が増えてもこのページを作り直す必要はない。
+対局の一覧は、ページを開いたときにブラウザが docs/human_games/index.json（scripts/human_games.py report が書く
+軽い一覧。名前などを落とした検査済みの棋譜から作る）を読み、30局ずつに分けて並べるので、棋譜が増えても
+このページを作り直す必要はなく、何千局になっても重くならない。
 押すと対戦ページ（play.html#replay=番号）で一手ずつ再生する。英語版は対訳表 web/i18n/en/games.json。
 """
 

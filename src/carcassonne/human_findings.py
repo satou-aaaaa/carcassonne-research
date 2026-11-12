@@ -4,7 +4,7 @@
 損した手（悪手）がどんな種類・どの時期に多いかを数える。AIの側は、人が勝った局と、
 人の手でAIの見積もりが大きく外れた局面（`human_games.swings`）を数える。
 
-採点は1局で数十秒かかるので、局ごとの結果を docs/results/human_findings.json に覚えておき、
+採点は1局で数十秒かかるので、局ごとの結果を docs/results/human_findings_cache.json に覚えておき（1局1行）、
 新しく届いた局だけ採点する（採点したAIの名前も残す）。ページの言い切りは `claims` の条件で決め、
 局数が少ないうちは「傾向」と言わない（ONE_GAME_NOTE 未満は例として見せるだけ）。
 """
@@ -77,9 +77,19 @@ def analyze_game(rec: dict, coach, ts: TileSet | None = None) -> list[dict]:
     return out
 
 
-def summarize(games: list[dict], moves: list[list[dict]], swings: list[dict]) -> dict:
-    """games と、局ごとの採点（同じ並び）から、ページに出す集計を作る。"""
+def summarize(
+    games: list[dict],
+    moves: list[list[dict]],
+    swings: list[dict],
+    numbers: list[int] | None = None,
+) -> dict:
+    """games と、局ごとの採点（同じ並び）から、ページに出す集計を作る。
+
+    numbers は各局の番号（1始まり。採点済みの局だけを渡すとき用）。省くと 1, 2, 3, …。
+    swings（`human_games.swings`）の game は全局の中の位置（0始まり）。
+    """
     n_games = len(games)
+    numbers = numbers or list(range(1, n_games + 1))
     all_moves = [dict(m, game=gi) for gi, ms in enumerate(moves) for m in ms]
     scored = [m for m in all_moves if m["loss"] is not None]
     bad = [m for m in all_moves if m["loss"] is None or m["loss"] >= BAD]
@@ -111,7 +121,7 @@ def summarize(games: list[dict], moves: list[list[dict]], swings: list[dict]) ->
         },
         "worst": [
             {
-                "game": m["game"] + 1,
+                "game": numbers[m["game"]],
                 "ply": m["ply"] + 1,
                 "loss": m["loss"],
                 "cat": m["cat"],

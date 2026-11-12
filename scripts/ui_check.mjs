@@ -15,6 +15,7 @@
 //   - ボタン・入力欄・画像に名前（文字・aria-label・alt・label）がある
 //   - 本文の文字が 12px 未満でない、viewport の指定がある
 //   - 対戦ページは「新しい対局」から1手置くところまで動かす
+//   - みんなの対局は、棋譜が5000局あっても一覧を分けて並べ、番号で開いた局を再生できる（スマホでも ◀ ▶ が1画面に見える）
 //   - 英語ページ（docs/en/）も点検する。日本語ページは ja-JP、英語ページは en-US のブラウザで開く
 //   - 言語の自動切り替え: en-US のブラウザでトップを開くと英語版へ、ja-JP で英語版を開くと日本語版へ移る
 
@@ -214,6 +215,48 @@ async function exercisePlay(page, shotDir, vpName) {
   return true;
 }
 
+// 棋譜が何千局になっても「みんなの対局」が崩れない・重くならないか。一覧（human_games/index.json）を
+// MANY 局分のにせものに差し替えて開き、一覧が分けて並ぶこと、番号で開いた局が再生でき、
+// スマホでも ◀ ▶ が盤と同じ1画面に見えることを確かめる（棋譜の本体は届いている1局目を使い回す）
+const MANY = 5000;
+async function exerciseManyGames(ctx, base, file, isMobile) {
+  const problems = [];
+  const first = path.join(DOCS, "human_games", "0.json");
+  if (!fs.existsSync(first)) return problems; // まだ届いた棋譜がない
+  const sample = JSON.parse(fs.readFileSync(path.join(DOCS, "human_games", "0.json"), "utf8"))[0];
+  const h = sample.human_seat;
+  const row = [sample.level, h, sample.scores[h], sample.scores[1 - h], sample.moves.length, 0];
+  const page = await ctx.newPage();
+  page.on("pageerror", (e) => problems.push(`スクリプトエラー: ${String(e).slice(0, 160)}`));
+  await page.route("**/human_games/index.json", (r) =>
+    r.fulfill({ contentType: "application/json", body: JSON.stringify(Array.from({ length: MANY }, () => row)) }));
+  await page.route(/human_games\/\d+\.json$/, (r) =>
+    r.fulfill({ contentType: "application/json", body: JSON.stringify(Array.from({ length: 100 }, () => sample)) }));
+  await page.goto(base + file, { waitUntil: "load" });
+  await page.waitForSelector("#games li", { timeout: 15000 });
+  const g = await page.evaluate(() => ({
+    li: document.querySelectorAll("#games li").length,
+    height: document.documentElement.scrollHeight,
+    over: document.documentElement.scrollWidth > window.innerWidth + 1,
+  }));
+  if (g.li > 50) problems.push(`棋譜${MANY}局で一覧に ${g.li} 局を一度に並べている（分けて並べる）`);
+  if (g.height > 20000) problems.push(`棋譜${MANY}局でページの高さが ${g.height}px`);
+  if (g.over) problems.push(`棋譜${MANY}局でページが横にはみ出す`);
+  await page.click("#pgNext");
+  await page.fill("#jumpNo", String(MANY - 1));
+  await Promise.all([page.waitForURL(/play\.html#replay=/), page.click("#jump button")]);
+  try {
+    await page.waitForSelector("#replayBar:not([hidden])", { timeout: 20000 });
+    await page.waitForTimeout(500);
+    const bar = await page.evaluate(() => document.getElementById("replayBar").getBoundingClientRect().bottom <= window.innerHeight);
+    if (isMobile && !bar) problems.push("再生の ◀ ▶ が最初の画面に見えない（スクロールしないと押せない）");
+  } catch (e) {
+    problems.push(`番号で開いた局が再生できない: ${String(e).slice(0, 120)}`);
+  }
+  await page.close();
+  return problems;
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const shotDir = args.includes("--shots") ? args[args.indexOf("--shots") + 1] : null;
@@ -314,6 +357,12 @@ async function main() {
       for (const w of warns) console.log(`    △ ${w}`);
       failed += errs.length ? 1 : 0;
       await page.close();
+    }
+    for (const file of pages.filter((f) => f.endsWith("games.html"))) {
+      const errs = await exerciseManyGames(await ctxFor(file.startsWith("en/") ? "en-US" : "ja-JP"), base, file, vp.isMobile);
+      console.log(`${errs.length ? "✗" : "✓"} ${file} 棋譜${MANY}局 [${vp.name} ${vp.width}px]`);
+      for (const e of errs) console.log(`    ✗ ${e}`);
+      failed += errs.length ? 1 : 0;
     }
     for (const c of Object.values(ctxs)) await c.close();
   }

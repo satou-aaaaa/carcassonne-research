@@ -52,19 +52,23 @@ p { margin: 0; max-width: 38em; }
 ol.games { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 ol.games a { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 14px; align-items: center; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; color: var(--ink); text-decoration: none; min-height: 44px; }
 ol.games a:hover, ol.games a:focus-visible { border-color: var(--field); outline: none; }
-ol.games .no { font-family: var(--font-num); color: var(--muted); font-size: 14px; }
+ol.games .no { font-family: var(--font-num); color: var(--muted); font-size: 14px; min-width: 5ch; }
 ol.games .sc { font-family: var(--font-num); font-weight: 500; font-size: 18px; }
 ol.games .sc .h { color: var(--red); }
 ol.games .sc .a { color: var(--blue); }
 ol.games .meta { font-size: 13.5px; color: var(--muted); grid-column: 2; }
 ol.games .res { font-size: 14px; font-weight: 700; grid-row: 1 / span 2; grid-column: 3; }
 ol.games .res.win { color: var(--field); }
-ol.games .go { color: var(--field); }
+ol.games .go { color: var(--field); white-space: nowrap; }
 p a { color: var(--field); }
 .thanks { font-weight: 700; color: var(--field); }
 h3 { font-size: 17px; margin: 8px 0 0; }
 .tools input { font: inherit; font-size: 15px; width: 6em; min-height: 44px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--ink); }
 .tools button { font: inherit; font-size: 15px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); cursor: pointer; }
+.pager { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.pager button { font: inherit; font-size: 15px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); cursor: pointer; }
+.pager button:disabled { opacity: .4; cursor: default; }
+.pager .num { font-size: 14px; color: var(--muted); white-space: nowrap; }
 .empty { background: var(--paper); border: 1px dashed var(--line); border-radius: 6px; padding: 16px; }
 .next { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
 .next a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 999px; background: var(--field); color: var(--paper); text-decoration: none; font-weight: 700; }
@@ -135,9 +139,17 @@ summary { padding-block: 6px; }
   <h2>All games</h2>
   <div class="tools">
     <label>AI level <select id="fLevel"><option value="">All</option></select></label>
-    <label>Sort <select id="fSort"><option value="new">Newest first</option><option value="diff">Best for the human first</option></select></label>
+    <label>Result <select id="fRes"><option value="">All</option><option value="win">Human wins</option><option value="loss">AI wins</option><option value="draw">Draw</option></select></label>
+    <label>Sort <select id="fSort"><option value="new">Newest first</option><option value="old">Oldest first</option><option value="diff">Best for the human first</option></select></label>
   </div>
+  <form class="tools" id="jump"><label>Open game # <input id="jumpNo" type="number" min="1" inputmode="numeric"></label><button type="submit">Replay</button></form>
+  <p class="note" id="count" aria-live="polite"></p>
   <ol class="games" id="games"></ol>
+  <nav class="pager" id="pager" aria-label="Pages of the game list" hidden>
+    <button type="button" id="pgPrev">← Previous 30</button>
+    <span class="num" id="pgNow"></span>
+    <button type="button" id="pgNext">Next 30 →</button>
+  </nav>
   <p class="empty" id="empty" hidden>No games have arrived yet. Play a game on the play page and send it with "Send game record" when it ends.</p>
   <p class="note" id="loadErr" hidden>Could not load the game list. Please try again later.</p>
 </section>
@@ -164,43 +176,74 @@ summary { padding-block: 6px; }
 <div class="support">If this site helped you, you can support the author.<a class="kofi" href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>Support on Ko-fi</a></div>
 </div>
 <script>
-// 送ってもらった棋譜（scripts/human_games.py report が docs/human_games.json に書く）を並べる。
-// 英語版（docs/en/）からは一つ上を読む。再生は対戦ページ（play.html#replay=番号、1始まり）
+// 送ってもらった棋譜の一覧（scripts/human_games.py report が docs/human_games/index.json に書く軽い表。1局1行で
+// [強さ, 人の席, 人の得点, AIの得点, 手数, ヒント等あり]）。何千局になっても重くならないよう、30局ずつ並べる。
+// 英語版（docs/en/）からは一つ上を読む。Replayは対戦ページ（play.html#replay=番号、1始まり）が、その局の入ったファイルだけ読む
 (() => {
   const EN = document.documentElement.lang === "en";
-  const SRC = EN ? "../human_games.json" : "human_games.json";
+  const SRC = EN ? "../human_games/index.json" : "human_games/index.json";
   const LEVELS = {strong: "Strongest", standard: "Standard", greedy: "Easy"};
+  const PAGE = 30;
   const $ = id => document.getElementById(id);
   const stat = (big, label) => `<div class="stat"><b>${big}</b><span>${label}</span></div>`;
-  let games = [];
-  function draw() {
-    const lv = $("fLevel").value, sort = $("fSort").value;
-    let list = games.map((r, i) => ({r, i})).filter(g => !lv || g.r.level === lv);
-    const diff = g => g.r.scores[g.r.human_seat] - g.r.scores[1 - g.r.human_seat];
-    list = sort === "diff" ? list.sort((a, b) => diff(b) - diff(a)) : list.reverse();
-    const ol = $("games"); ol.innerHTML = "";
-    for (const g of list) {
-      const r = g.r, h = r.human_seat, d = diff(g);
-      const res = d > 0 ? "Human wins" : d < 0 ? "AI wins" : "Draw";
-      const seat = h === 0 ? "human first" : "human second";
-      const li = document.createElement("li");
-      li.innerHTML = `<a href="play.html#replay=${g.i + 1}"><span class="no">#${g.i + 1}</span>` +
-        `<span class="sc"><span class="h">Human ${r.scores[h]}</span> − <span class="a">AI ${r.scores[1 - h]}</span></span>` +
-        `<span class="res${d > 0 ? " win" : ""}">${res}</span>` +
-        `<span class="meta">AI: ${LEVELS[r.level] || r.level} · ${seat} · ${r.moves.length} moves <span class="go">▶ Replay</span></span></a>`;
-      ol.appendChild(li);
+  const fmt = n => n.toLocaleString(EN ? "en-US" : "ja-JP");
+  let games = [], page = 0;
+  const diff = r => r[2] - r[3];
+  const resOf = r => diff(r) > 0 ? "win" : diff(r) < 0 ? "loss" : "draw";
+  function draw(keepPage) {
+    const lv = $("fLevel").value, rs = $("fRes").value, sort = $("fSort").value;
+    let list = [];
+    for (let i = 0; i < games.length; i++) {
+      const r = games[i];
+      if ((!lv || r[0] === lv) && (!rs || resOf(r) === rs)) list.push(i);
     }
+    if (sort === "new") list.reverse();
+    else if (sort === "diff") list.sort((a, b) => diff(games[b]) - diff(games[a]) || b - a);
+    const pages = Math.max(1, Math.ceil(list.length / PAGE));
+    if (!keepPage) page = 0;
+    page = Math.min(Math.max(page, 0), pages - 1);
+    const from = page * PAGE, shown = list.slice(from, from + PAGE);
+    const html = [];
+    for (const i of shown) {
+      const r = games[i], d = diff(r);
+      const res = d > 0 ? "Human wins" : d < 0 ? "AI wins" : "Draw";
+      const seat = r[1] === 0 ? "human first" : "human second";
+      html.push(`<li><a href="play.html#replay=${i + 1}"><span class="no">#${i + 1}</span>` +
+        `<span class="sc"><span class="h">Human ${r[2]}</span> − <span class="a">AI ${r[3]}</span></span>` +
+        `<span class="res${d > 0 ? " win" : ""}">${res}</span>` +
+        `<span class="meta">AI: ${LEVELS[r[0]] || r[0]} · ${seat} · ${r[4]} moves <span class="go">▶ Replay</span></span></a></li>`);
+    }
+    $("games").innerHTML = html.join("");
+    $("count").textContent = !games.length ? "" : !list.length ? "No games match these filters." :
+      `Showing ${fmt(from + 1)}–${fmt(from + shown.length)} of ${fmt(list.length)} games`;
+    $("pager").hidden = pages <= 1;
+    $("pgNow").textContent = `${page + 1} / ${pages}`;
+    $("pgPrev").disabled = page === 0; $("pgNext").disabled = page >= pages - 1;
     $("empty").hidden = games.length > 0;
+    $("jump").hidden = games.length === 0;
   }
+  function go(step) {
+    page += step; draw(true);
+    $("list").scrollIntoView({block: "start"});
+  }
+  $("pgPrev").onclick = () => go(-1); $("pgNext").onclick = () => go(1);
+  $("jump").onsubmit = e => {
+    e.preventDefault();
+    const n = parseInt($("jumpNo").value, 10);
+    if (!(n >= 1 && n <= games.length)) { $("jumpNo").setCustomValidity(`Enter a number from 1 to ${games.length}`); $("jumpNo").reportValidity(); return; }
+    location.href = `play.html#replay=${n}`;
+  };
+  $("jumpNo").oninput = e => e.target.setCustomValidity("");
   function summary() {
     const n = games.length;
-    const win = games.filter(r => r.scores[r.human_seat] > r.scores[1 - r.human_seat]).length;
-    const avg = n ? games.reduce((s, r) => s + r.scores[r.human_seat] - r.scores[1 - r.human_seat], 0) / n : 0;
-    $("stats").innerHTML = stat(n, "Games received") + stat(n ? Math.round(100 * win / n) + "%" : "−", "Human win rate") +
+    const win = games.filter(r => diff(r) > 0).length;
+    const avg = n ? games.reduce((s, r) => s + diff(r), 0) / n : 0;
+    $("stats").innerHTML = stat(fmt(n), "Games received") + stat(n ? Math.round(100 * win / n) + "%" : "−", "Human win rate") +
       stat(n ? (avg > 0 ? "+" : "") + avg.toFixed(1) : "−", "Average margin for the human");
-    const pos = games.reduce((s, r) => s + r.moves.length, 0);
-    $("useStats").innerHTML = stat(pos, "Positions used in training") + stat(n, "Games used to find weak spots");
-    for (const k of Object.keys(LEVELS)) if (games.some(r => r.level === k)) {
+    const pos = games.reduce((s, r) => s + r[4], 0);
+    $("useStats").innerHTML = stat(fmt(pos), "Positions used in training") + stat(fmt(n), "Games used to find weak spots");
+    $("jumpNo").max = n;
+    for (const k of Object.keys(LEVELS)) if (games.some(r => r[0] === k)) {
       const o = document.createElement("option"); o.value = k; o.textContent = LEVELS[k]; $("fLevel").appendChild(o);
     }
   }
@@ -212,7 +255,7 @@ summary { padding-block: 6px; }
     if (!(n >= 1)) { $("delNo").focus(); return; }
     window.open(`${FORM.url}?usp=pp_url&${FORM.entry}=${encodeURIComponent("delete #" + n)}`, "_blank", "noopener");
   };
-  $("fLevel").onchange = draw; $("fSort").onchange = draw;
+  $("fLevel").onchange = $("fRes").onchange = $("fSort").onchange = () => draw();
   // 研究ノート: scripts/human_games.py report が docs/human_findings.json に書く集計（src/carcassonne/human_findings.py）
   const KIND = {C: "city", R: "road", F: "field", M: "monastery"};
   const CAT = {
@@ -228,7 +271,7 @@ summary { padding-block: 6px; }
   const item = (href, no, main, meta) => `<li><a href="${href}"><span class="no">${no}</span><span class="sc">${main}</span><span class="meta">${meta} <span class="go">▶ Replay</span></span></a></li>`;
   function findings(s) {
     const n = s.games;
-    if (!n) { $("fNote").textContent = "No games have arrived yet, so there are no findings so far."; $("fBody").hidden = true; return; }
+    if (!n) { $("fNote").textContent = s.pending ? "The AI is still scoring the games that arrived. The findings will appear here once scoring is done." : "No games have arrived yet, so there are no findings so far."; $("fBody").hidden = true; return; }
     $("fNote").textContent = s.trend ? `Based on ${n} games.` :
       `Only ${n} game(s) so far, so read this as an example of what happened in these games, not as a trend. Trends will be summarized once 10 games have arrived.`;
     $("fLead").textContent = s.loss_small_per_game > s.loss_bad_per_game ?
@@ -247,11 +290,12 @@ summary { padding-block: 6px; }
     $("fAi").textContent = `Human wins: ${s.human_wins} of ${n} games. Positions where the AI's estimate dropped sharply after a human move are candidates where the AI undervalued that move. This is where we look for the AI's weak spots.`;
     $("fMis").innerHTML = s.ai_misreads.map(m => item(`play.html#replay=${m.game}&ply=${m.ply - 1}`, `#${m.game}`,
       `estimate dropped ${m.drop} points`, `after the human's move ${m.ply}`)).join("");
-    $("fMeta").textContent = `Scored by AI: ${s.ai.join(", ")} · updated ${s.updated}`;
+    $("fMeta").textContent = `Scored by AI: ${s.ai.join(", ")} · updated ${s.updated}` +
+      (s.pending ? ` · waiting to be scored: ${fmt(s.pending)} games (scored a few at a time, oldest first)` : "");
   }
   fetch(EN ? "../human_findings.json" : "human_findings.json").then(r => r.json()).then(findings)
     .catch(() => { $("fNote").textContent = "Could not load the research notes. Please try again later."; $("fBody").hidden = true; });
-  fetch(SRC).then(r => r.json()).then(g => { games = Array.isArray(g) ? g : []; summary(); draw(); })
+  fetch(SRC).then(r => r.ok ? r.json() : Promise.reject(r.status)).then(g => { games = Array.isArray(g) ? g : []; summary(); draw(); })
     .catch(() => { $("loadErr").hidden = false; summary(); });
 })();
 </script>
