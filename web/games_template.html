@@ -69,6 +69,13 @@ h3 { font-size: 17px; margin: 8px 0 0; }
 .next { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
 .next a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 999px; background: var(--field); color: var(--paper); text-decoration: none; font-weight: 700; }
 .next a.sub { background: var(--paper); color: var(--ink); border: 1px solid var(--line); }
+.bars { display: grid; gap: 6px; }
+.bar { display: grid; grid-template-columns: minmax(0, 15em) 1fr auto; gap: 10px; align-items: center; font-size: 14.5px; }
+.bar .track { display: block; height: 12px; background: var(--line); border-radius: 999px; overflow: hidden; }
+.bar .fill { display: block; height: 100%; background: var(--bar); border-radius: 999px; }
+.bar .v { font-family: var(--font-num); font-size: 14px; min-width: 4.5em; text-align: right; }
+.lead { font-weight: 700; }
+@media (max-width: 520px) { .bar { grid-template-columns: 1fr auto; } .bar .track { grid-column: 1 / -1; grid-row: 2; } }
 __NAV_CSS__
 </style>
 </head>
@@ -85,6 +92,26 @@ __NAV__
 <section id="summary">
   <h2>まとめ</h2>
   <div class="tiles-row" id="stats"></div>
+</section>
+
+<section id="findings">
+  <h2>研究ノート：人との対局から分かったこと</h2>
+  <p>届いた対局の人の手を、1手ずつ最強AIで採点しています（対戦ページの「ヒント」と同じ採点）。AIの見積もりで<span class="num">3</span>点以上損した手を「悪手」と数え、どんな場面で損しやすいかをまとめます。新しい対局が届くたびに自動で数え直します。AIの見積もりにも誤差があるので、1手ごとの点数は目安です。</p>
+  <p class="note" id="fNote"></p>
+  <p class="lead" id="fLead"></p>
+  <div class="tiles-row" id="fStats"></div>
+  <div id="fBody">
+  <h3>悪手の種類（AIの最善手との違い）</h3>
+  <div class="bars" id="fCats"></div>
+  <h3>時期ごとの悪手の割合</h3>
+  <div class="bars" id="fPhases"></div>
+  <h3>大きく損した手（押すとその手の直前から再生）</h3>
+  <ol class="games" id="fWorst"></ol>
+  <h3>AIの弱点を探す</h3>
+  <p id="fAi"></p>
+  <ol class="games" id="fMis"></ol>
+  </div>
+  <p class="note" id="fMeta"></p>
 </section>
 
 <section id="list">
@@ -169,6 +196,44 @@ __SUPPORT__
     window.open(`${FORM.url}?usp=pp_url&${FORM.entry}=${encodeURIComponent("削除 #" + n)}`, "_blank", "noopener");
   };
   $("fLevel").onchange = draw; $("fSort").onchange = draw;
+  // 研究ノート: scripts/human_games.py report が docs/human_findings.json に書く集計（src/carcassonne/human_findings.py）
+  const KIND = {C: "都市", R: "道", F: "草原", M: "修道院"};
+  const CAT = {
+    no_meeple: "ミープルを置かなかった（AIは置く）",
+    extra_meeple: "ミープルを置いた（AIは置かずに温存）",
+    other_feature: "ミープルの置き先の種類が違う",
+    placement: "タイルの置き場所・向きが違う",
+    unexplored: "AIがほとんど考えなかった手",
+  };
+  const PHASE = {early: "序盤（1〜24手目）", middle: "中盤（25〜48手目）", late: "終盤（49手目〜）"};
+  const meeple = k => k ? KIND[k] + "にミープル" : "ミープルなし";
+  const bar = (label, v, max, text) => `<div class="bar"><span>${label}</span><span class="track"><span class="fill" style="width:${max ? Math.round(100 * v / max) : 0}%"></span></span><span class="v">${text}</span></div>`;
+  const item = (href, no, main, meta) => `<li><a href="${href}"><span class="no">${no}</span><span class="sc">${main}</span><span class="meta">${meta} <span class="go">▶ 再生</span></span></a></li>`;
+  function findings(s) {
+    const n = s.games;
+    if (!n) { $("fNote").textContent = "まだ届いた対局がないので、分かったことはまだありません。"; $("fBody").hidden = true; return; }
+    $("fNote").textContent = s.trend ? `${n}局の集計です。` :
+      `まだ${n}局なので、傾向ではなく「届いた対局ではこうだった」という例として見てください。10局たまったら傾向としてまとめます。`;
+    $("fLead").textContent = s.loss_small_per_game > s.loss_bad_per_game ?
+      "失った点の多くは、目立つ悪手よりも、1手ごとの小さな損の積み重ねでした。" :
+      "失った点の多くは、少数の大きな悪手によるものでした。";
+    $("fStats").innerHTML = stat(s.bad_per_game, "1局あたりの悪手") + stat(s.mean_loss, "1手あたりの平均の損（点）") +
+      stat(s.loss_bad_per_game, "悪手で失った点（1局あたり）") + stat(s.loss_small_per_game, "小さな損の合計（1局あたり）");
+    const cmax = Math.max(...Object.values(s.by_cat));
+    $("fCats").innerHTML = Object.entries(s.by_cat).map(([k, v]) => bar(CAT[k], v, cmax, `${v}手`)).join("");
+    const rate = p => p.moves ? p.bad / p.moves : 0;
+    const pmax = Math.max(...Object.values(s.by_phase).map(rate));
+    $("fPhases").innerHTML = Object.entries(s.by_phase).map(([k, p]) =>
+      bar(PHASE[k], rate(p), pmax, `${p.bad}/${p.moves}手`)).join("");
+    $("fWorst").innerHTML = s.worst.map(w => item(`play.html#replay=${w.game}&ply=${w.ply - 1}`, `#${w.game}`,
+      `約${w.loss}点の損`, `${w.ply}手目・${CAT[w.cat]}（人: ${meeple(w.mine)} / AI: ${meeple(w.best)}）`)).join("");
+    $("fAi").textContent = `人の勝ち: ${s.human_wins}局（${n}局中）。人の手のあとにAIの見積もりが大きく下がった場面は、AIが人の手の価値を低く見ていた候補です。ここからAIの弱点を探します。`;
+    $("fMis").innerHTML = s.ai_misreads.map(m => item(`play.html#replay=${m.game}&ply=${m.ply - 1}`, `#${m.game}`,
+      `見積もりが${m.drop}点下がった`, `${m.ply}手目の人の手のあと`)).join("");
+    $("fMeta").textContent = `採点したAI: ${s.ai.join(", ")}・更新: ${s.updated}`;
+  }
+  fetch(EN ? "../human_findings.json" : "human_findings.json").then(r => r.json()).then(findings)
+    .catch(() => { $("fNote").textContent = "研究ノートを読み込めませんでした。時間をおいて開き直してください。"; $("fBody").hidden = true; });
   fetch(SRC).then(r => r.json()).then(g => { games = Array.isArray(g) ? g : []; summary(); draw(); })
     .catch(() => { $("loadErr").hidden = false; summary(); });
 })();
