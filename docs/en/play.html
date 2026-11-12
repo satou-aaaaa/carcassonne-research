@@ -78,6 +78,13 @@
   #replayBar[hidden] { display:none; }
   #replayBar .row { align-items:center; justify-content:space-between; flex-wrap:nowrap; }
   #replayBar button { min-width:44px; min-height:40px; }
+  #rpGraphBox .cap { font-size:12px; color:var(--muted); }
+  #rpGraph { width:100%; height:64px; display:block; cursor:pointer; background:var(--bg); border-radius:4px; }
+  #rpGraph .zero { stroke:var(--line); stroke-width:1; }
+  #rpGraph .line { fill:none; stroke:var(--accent); stroke-width:2; vector-effect:non-scaling-stroke; }
+  #rpGraph .cur { stroke:var(--coach); stroke-width:2; vector-effect:non-scaling-stroke; }
+  #rpEvalLbl { font-size:13px; }
+  #rpNote { font-size:13px; line-height:1.5; color:var(--coach); min-height:1.5em; }
   #recList { display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow:auto; }
   #recList button { text-align:left; }
   #recDlg .note { font-size:13px; color:var(--muted); margin:0 0 8px; }
@@ -154,6 +161,9 @@
       <button type="button" id="rpLast" aria-label="To the end" title="To the end">▶|</button>
     </div>
     <input id="rpRange" type="range" min="0" value="0" aria-label="Which move to show">
+    <div id="rpGraphBox"><div class="cap">Balance: projected margin for the human (if the game ended now). Tap to jump to that move</div><svg id="rpGraph" viewBox="0 0 300 60" preserveAspectRatio="none" role="img" aria-label="Balance chart"></svg></div>
+    <label class="chk" id="rpEvalLbl"><input type="checkbox" id="rpEval" checked> Show the AI's evaluation of each move (where the AI would play and how many points were lost)</label>
+    <div id="rpNote" aria-live="polite"></div>
     <div class="row"><button type="button" id="rpLink" title="Copy a link anyone can use to replay this game">Copy replay link</button><button type="button" id="rpClose">Stop replay</button></div>
   </div>
   <div id="result" hidden></div>
@@ -482,7 +492,7 @@ function draw() {
     const c = G.hint;
     ctx.strokeStyle = COACH; ctx.lineWidth = 4; ctx.setLineDash([7, 5]); ctx.strokeRect(cellLeft(c.x)+2, cellTop(c.y)+2, s-4, s-4); ctx.setLineDash([]);
     if (s >= 40) tag(c.x, c.y, "Hint", COACH);
-  } else if (G.last_coach && (G.last_coach.loss === null || G.last_coach.loss >= 1) && !G.over && !pending) {
+  } else if (G.last_coach && (G.last_coach.loss === null || G.last_coach.loss >= 1) && (!G.over || G.replay) && !pending) {
     const c = G.last_coach.best;
     ctx.strokeStyle = COACH; ctx.lineWidth = 4; ctx.setLineDash([7, 5]); ctx.strokeRect(cellLeft(c.x)+2, cellTop(c.y)+2, s-4, s-4); ctx.setLineDash([]);
     if (s >= 40) tag(c.x, c.y, "recommended", COACH);
@@ -990,6 +1000,8 @@ function refresh() {
     $("rpRange").max = r.total; $("rpRange").value = r.ply;
     $("rpFirst").disabled = $("rpPrev").disabled = r.ply === 0;
     $("rpNext").disabled = $("rpLast").disabled = r.ply === r.total;
+    drawCurve(r);
+    $("rpNote").textContent = replayNote(r);
   }
   if (G.over) {
     res.hidden = false; res.innerHTML = resultHtml();
@@ -1003,7 +1015,7 @@ function refresh() {
     else setHint("Tap a green square to place the tile (you can rotate it afterwards)");
   }
   const cb = $("coachBox");
-  cb.hidden = !G.last_coach;
+  cb.hidden = !G.last_coach || !!G.replay;
   if (G.last_coach) cb.textContent = lastCoachText();
   $("btnRematch").hidden = !G.over || !!G.replay;
   refreshInfo();
@@ -1133,7 +1145,7 @@ let replayRec = null;  // 再生中の棋譜（再生リンク用）。play_loca
 async function replayOpen(record, ply) {
   const keep = G;
   busy = true; G = null; anims = []; pending = null; draw();
-  try { setState(await api("/api/replay", {record, ply})); replayRec = record; fitAll(false); }
+  try { setState(await api("/api/replay", {record, ply})); replayRec = record; fitAll(false); setTimeout(replayAnalyze, 0); }
   catch (err) { alert("Could not open the game record: " + err.message); if (keep) setState(keep); }
   busy = false; refresh();
 }
@@ -1152,12 +1164,55 @@ function showRecent() {
   }
   $("recDlg").showModal();
 }
+// 形勢の線（ReplayGame.curve）と今の手数の印
+function drawCurve(r) {
+  const c = r.curve || [], n = Math.max(1, c.length - 1), m = Math.max(10, ...c.map(Math.abs));
+  const X = i => (i / n) * 300, Y = d => 30 - (d / m) * 27;
+  $("rpGraph").innerHTML = `<line class="zero" x1="0" y1="30" x2="300" y2="30"/>` +
+    `<polyline class="line" points="${c.map((d, i) => `${X(i).toFixed(1)},${Y(d).toFixed(1)}`).join(" ")}"/>` +
+    `<line class="cur" x1="${X(r.ply).toFixed(1)}" y1="0" x2="${X(r.ply).toFixed(1)}" y2="60"/>`;
+}
+$("rpGraph").addEventListener("click", e => {
+  if (!G || !G.replay) return;
+  const b = e.currentTarget.getBoundingClientRect();
+  replayGoto(Math.round((e.clientX - b.left) / b.width * G.replay.total));
+});
+// 今の手の採点の説明
+let rpThinking = false;
+function replayNote(r) {
+  const d = r.curve ? r.curve[r.ply] : 0;
+  const ds = (d > 0 ? "+" : "") + d;
+  const now = r.curve ? `Projected margin ${ds} (for the human). ` : "";
+  if (!r.ply || !$("rpEval").checked) return now;
+  const a = r.analysis;
+  if (!a) return now + (rpThinking ? "The AI is examining this move…" : "");
+  const who = a.human ? "Human" : "AI", b = a.best;
+  const put = b.kind ? `meeple on the ${b.kind}` : "no meeple";
+  const ai = `the AI would play the purple dotted square, ${put}`;
+  if (a.loss === null) return now + `This move (${who}): one the AI barely considered; ${ai}.`;
+  if (a.loss < 1) return now + `This move (${who}): about as good as the AI's best. Nice.`;
+  return now + `This move (${who}): about ${a.loss.toFixed(0)} points worse than the AI's best by its estimate; ${ai}.`;
+}
+// 今の手の採点を頼む（最強設定で1〜数秒。手数を動かしたら古い結果は捨てる）
+async function replayAnalyze() {
+  if (!G || !G.replay || !G.replay.ply || G.replay.analysis || !$("rpEval").checked) return;
+  const ply = G.replay.ply;
+  rpThinking = true; refresh();
+  try {
+    const v = await api("/api/replay_analyze", {ply});
+    if (v && G && G.replay && G.replay.ply === ply) setState(v);
+  } catch (err) { /* 調べられなくても再生は続ける */ }
+  rpThinking = false;
+  if (G && G.replay) { refresh(); if (G.replay.ply !== ply) replayAnalyze(); }
+}
+$("rpEval").onchange = () => { store.set("cc_rp_eval", $("rpEval").checked ? "1" : "0"); refresh(); replayAnalyze(); };
 async function replayGoto(ply) {
   if (!G || !G.replay || busy) return;
   ply = Math.max(0, Math.min(G.replay.total, ply));
   if (ply === G.replay.ply) return;
   setState(await api("/api/replay_goto", {ply}));
   if (G.replay.last) addAnim({type: "ping", x: G.replay.last.x, y: G.replay.last.y, dur: 1200});
+  if (!rpThinking) replayAnalyze();
 }
 $("rpFirst").onclick = () => replayGoto(0);
 $("rpPrev").onclick = () => replayGoto(G.replay.ply - 1);
@@ -1214,6 +1269,7 @@ async function init() {
   if (store.get("cc_coach") !== null) $("fCoach").checked = store.get("cc_coach") === "1";
   $("fName").value = store.get("cc_name") || "";
   $("btnOpenRec").hidden = !window.LOCAL_API;
+  if (store.get("cc_rp_eval") === "0") $("rpEval").checked = false;
   if (await openFromHash()) return;
   const st = await api("/api/state");
   if (st) { lastForm = {name: st.name, seed: st.seed, human_seat: st.human_seat, level: st.level, coach: st.coach}; setState(st); fitAll(false); }

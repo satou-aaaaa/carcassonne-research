@@ -280,8 +280,30 @@
         eng.applyMove(S, cell, g, piece);
         return [cell, g, piece];
       });
+      // 形勢の線: 各手数で「今終わったら」の見込みの点差（人 − AI）
+      const S2 = eng.newGame(this.deck), h = this.human_seat, curve = [];
+      const diff = () => { const p = eng.projected(S2); return p[h] - p[1 - h]; };
+      curve.push(diff());
+      for (const [cell, g, piece] of this.plays) { eng.applyMove(S2, cell, g, piece); curve.push(diff()); }
+      this.curve = curve;
+      this.analysis = {};  // 手数 → その手の採点（AIの最善手と何点損したか）
       this.ply = 0;
       this.goto(0);
+    }
+    // ply 手目（1始まり）を、その手の直前の局面で最強設定で解析して採点する（初心者モードと同じ）
+    async analyze(ply) {
+      ply = ply | 0;
+      if (ply < 1 || ply > this.plays.length || this.analysis[ply]) return;
+      const [cell, g, piece] = this.plays[ply - 1];
+      const opts = await compute({ kind: "analyze", deck: this.deck, history: this.plays.slice(0, ply - 1), seed: 7000 + ply });
+      const best = opts[0], mine = opts.find(o => o.cell === cell && o.g === g && o.piece === piece);
+      const S = eng.newGame(this.deck);
+      for (const m of this.plays.slice(0, ply - 1)) eng.applyMove(S, m[0], m[1], m[2]);
+      this.analysis[ply] = {
+        human: S.sc[C.SC_PL] === this.human_seat,
+        best: bestDict((gg, p) => this.pieceKind(gg, p), best),
+        loss: mine ? Math.round(Math.max(0, best.diff - mine.diff) * 10) / 10 : null,
+      };
     }
     goto(ply) {
       ply = Math.max(0, Math.min(this.plays.length, ply | 0));
@@ -301,7 +323,9 @@
       v.record = null;
       v.can_undo = false;
       const last = this.ply ? C.xyOf(this.plays[this.ply - 1][0]) : null;
-      v.replay = { ply: this.ply, total: this.plays.length, last: last && { x: last[0], y: last[1] } };
+      const a = this.analysis[this.ply] || null;
+      v.replay = { ply: this.ply, total: this.plays.length, last: last && { x: last[0], y: last[1] }, curve: this.curve, analysis: a };
+      v.last_coach = a && (a.loss === null || a.loss >= 1) ? { best: a.best, loss: a.loss } : null;
       return v;
     }
   }
@@ -337,6 +361,12 @@
       if (!(game instanceof ReplayGame)) throw new Error("棋譜を開いていません");
       game.goto(Number(body.ply));
       return game.view();
+    }
+    if (path === "/api/replay_analyze") {
+      if (!(game instanceof ReplayGame)) throw new Error("棋譜を開いていません");
+      const g = game;
+      await g.analyze(Number(body.ply));
+      return g === game ? g.view() : null;
     }
     if (path === "/api/replay_close") {
       if (game instanceof ReplayGame) game = live;
