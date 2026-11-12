@@ -429,9 +429,11 @@ def endgame_table(eg: dict, lang: str) -> str:
     rows = []
     for bag in sorted(eg["by_bag"], key=int, reverse=True):
         b = eg["by_bag"][bag]
-        left = (f"{bag}枚" if lang == "ja" else f"{bag}") + (
-            "（最後の1枚）" if lang == "ja" and bag == "0" else " (last tile)" if bag == "0" else ""
-        )
+        # スマホでは表の見出しが消えるので、行の名前だけで分かるように「残り」を付ける
+        if bag == "0":
+            left = "残り0枚（最後の1枚）" if lang == "ja" else "0 left (last tile)"
+        else:
+            left = f"残り{bag}枚" if lang == "ja" else f"{bag} left"
         cells = [
             f"{b['positions']:,}",
             f"{b['decisive']}（{pct(b['decisive'] / b['positions'], 0)}）"
