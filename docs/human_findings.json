@@ -1,0 +1,79 @@
+{
+ "games": 1,
+ "human_moves": 35,
+ "human_wins": 0,
+ "mean_loss": 0.9,
+ "loss_bad_per_game": 12.0,
+ "loss_small_per_game": 21.2,
+ "bad_moves": 3,
+ "bad_per_game": 3.0,
+ "by_cat": {
+  "no_meeple": 1,
+  "extra_meeple": 1,
+  "other_feature": 0,
+  "placement": 1,
+  "unexplored": 0
+ },
+ "by_phase": {
+  "early": {
+   "bad": 0,
+   "moves": 12
+  },
+  "middle": {
+   "bad": 2,
+   "moves": 12
+  },
+  "late": {
+   "bad": 1,
+   "moves": 11
+  }
+ },
+ "worst": [
+  {
+   "game": 1,
+   "ply": 35,
+   "loss": 4.3,
+   "cat": "extra_meeple",
+   "mine": "C",
+   "best": null
+  },
+  {
+   "game": 1,
+   "ply": 67,
+   "loss": 4.2,
+   "cat": "no_meeple",
+   "mine": null,
+   "best": "M"
+  },
+  {
+   "game": 1,
+   "ply": 29,
+   "loss": 3.5,
+   "cat": "placement",
+   "mine": "C",
+   "best": "C"
+  }
+ ],
+ "ai_misreads": [
+  {
+   "game": 1,
+   "ply": 45,
+   "drop": 9.8
+  },
+  {
+   "game": 1,
+   "ply": 23,
+   "drop": 6.3
+  },
+  {
+   "game": 1,
+   "ply": 31,
+   "drop": 6.3
+  }
+ ],
+ "trend": false,
+ "ai": [
+  "gen1144"
+ ],
+ "updated": "2026-11-12"
+}

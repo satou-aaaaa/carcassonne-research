@@ -69,6 +69,13 @@ h3 { font-size: 17px; margin: 8px 0 0; }
 .next { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
 .next a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 999px; background: var(--field); color: var(--paper); text-decoration: none; font-weight: 700; }
 .next a.sub { background: var(--paper); color: var(--ink); border: 1px solid var(--line); }
+.bars { display: grid; gap: 6px; }
+.bar { display: grid; grid-template-columns: minmax(0, 15em) 1fr auto; gap: 10px; align-items: center; font-size: 14.5px; }
+.bar .track { display: block; height: 12px; background: var(--line); border-radius: 999px; overflow: hidden; }
+.bar .fill { display: block; height: 100%; background: var(--bar); border-radius: 999px; }
+.bar .v { font-family: var(--font-num); font-size: 14px; min-width: 4.5em; text-align: right; }
+.lead { font-weight: 700; }
+@media (max-width: 520px) { .bar { grid-template-columns: 1fr auto; } .bar .track { grid-column: 1 / -1; grid-row: 2; } }
 
 nav.site { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
 nav.site .home { font-weight: 700; margin-right: 8px; color: var(--ink); text-decoration: none; }
@@ -102,6 +109,26 @@ summary { padding-block: 6px; }
 <section id="summary">
   <h2>Summary</h2>
   <div class="tiles-row" id="stats"></div>
+</section>
+
+<section id="findings">
+  <h2>Research notes: what the games have shown so far</h2>
+  <p>Every human move in the games received is scored by the strongest AI, the same way as the hints on the play page. A move that loses <span class="num">3</span> or more points by the AI's estimate counts as a mistake, and the notes below show where points tend to slip away. They are recounted automatically whenever a new game arrives. The AI's estimates are not exact either, so treat the points for a single move as a rough guide.</p>
+  <p class="note" id="fNote"></p>
+  <p class="lead" id="fLead"></p>
+  <div class="tiles-row" id="fStats"></div>
+  <div id="fBody">
+  <h3>Kinds of mistakes (how the move differed from the AI's best move)</h3>
+  <div class="bars" id="fCats"></div>
+  <h3>Share of mistakes by stage of the game</h3>
+  <div class="bars" id="fPhases"></div>
+  <h3>Most costly moves (tap to replay from just before the move)</h3>
+  <ol class="games" id="fWorst"></ol>
+  <h3>Looking for the AI's weak spots</h3>
+  <p id="fAi"></p>
+  <ol class="games" id="fMis"></ol>
+  </div>
+  <p class="note" id="fMeta"></p>
 </section>
 
 <section id="list">
@@ -186,6 +213,44 @@ summary { padding-block: 6px; }
     window.open(`${FORM.url}?usp=pp_url&${FORM.entry}=${encodeURIComponent("delete #" + n)}`, "_blank", "noopener");
   };
   $("fLevel").onchange = draw; $("fSort").onchange = draw;
+  // 研究ノート: scripts/human_games.py report が docs/human_findings.json に書く集計（src/carcassonne/human_findings.py）
+  const KIND = {C: "city", R: "road", F: "field", M: "monastery"};
+  const CAT = {
+    no_meeple: "No meeple placed (the AI would place one)",
+    extra_meeple: "Meeple placed (the AI would keep it)",
+    other_feature: "Meeple on a different kind of feature",
+    placement: "Tile placed elsewhere or turned differently",
+    unexplored: "A move the AI barely considered",
+  };
+  const PHASE = {early: "Opening (moves 1–24)", middle: "Middle game (moves 25–48)", late: "Endgame (move 49 on)"};
+  const meeple = k => k ? KIND[k] + " meeple" : "no meeple";
+  const bar = (label, v, max, text) => `<div class="bar"><span>${label}</span><span class="track"><span class="fill" style="width:${max ? Math.round(100 * v / max) : 0}%"></span></span><span class="v">${text}</span></div>`;
+  const item = (href, no, main, meta) => `<li><a href="${href}"><span class="no">${no}</span><span class="sc">${main}</span><span class="meta">${meta} <span class="go">▶ Replay</span></span></a></li>`;
+  function findings(s) {
+    const n = s.games;
+    if (!n) { $("fNote").textContent = "No games have arrived yet, so there are no findings so far."; $("fBody").hidden = true; return; }
+    $("fNote").textContent = s.trend ? `Based on ${n} games.` :
+      `Only ${n} game(s) so far, so read this as an example of what happened in these games, not as a trend. Trends will be summarized once 10 games have arrived.`;
+    $("fLead").textContent = s.loss_small_per_game > s.loss_bad_per_game ?
+      "Most of the lost points came not from obvious mistakes but from small losses adding up move after move." :
+      "Most of the lost points came from a few big mistakes.";
+    $("fStats").innerHTML = stat(s.bad_per_game, "Mistakes per game") + stat(s.mean_loss, "Average loss per move (points)") +
+      stat(s.loss_bad_per_game, "Points lost to mistakes (per game)") + stat(s.loss_small_per_game, "Small losses added up (per game)");
+    const cmax = Math.max(...Object.values(s.by_cat));
+    $("fCats").innerHTML = Object.entries(s.by_cat).map(([k, v]) => bar(CAT[k], v, cmax, `${v}`)).join("");
+    const rate = p => p.moves ? p.bad / p.moves : 0;
+    const pmax = Math.max(...Object.values(s.by_phase).map(rate));
+    $("fPhases").innerHTML = Object.entries(s.by_phase).map(([k, p]) =>
+      bar(PHASE[k], rate(p), pmax, `${p.bad}/${p.moves} moves`)).join("");
+    $("fWorst").innerHTML = s.worst.map(w => item(`play.html#replay=${w.game}&ply=${w.ply - 1}`, `#${w.game}`,
+      `about ${w.loss} points lost`, `move ${w.ply} · ${CAT[w.cat]} (human: ${meeple(w.mine)} / AI: ${meeple(w.best)})`)).join("");
+    $("fAi").textContent = `Human wins: ${s.human_wins} of ${n} games. Positions where the AI's estimate dropped sharply after a human move are candidates where the AI undervalued that move. This is where we look for the AI's weak spots.`;
+    $("fMis").innerHTML = s.ai_misreads.map(m => item(`play.html#replay=${m.game}&ply=${m.ply - 1}`, `#${m.game}`,
+      `estimate dropped ${m.drop} points`, `after the human's move ${m.ply}`)).join("");
+    $("fMeta").textContent = `Scored by AI: ${s.ai.join(", ")} · updated ${s.updated}`;
+  }
+  fetch(EN ? "../human_findings.json" : "human_findings.json").then(r => r.json()).then(findings)
+    .catch(() => { $("fNote").textContent = "Could not load the research notes. Please try again later."; $("fBody").hidden = true; });
   fetch(SRC).then(r => r.json()).then(g => { games = Array.isArray(g) ? g : []; summary(); draw(); })
     .catch(() => { $("loadErr").hidden = false; summary(); });
 })();

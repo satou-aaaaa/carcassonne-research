@@ -5,7 +5,7 @@
                                                         # GitHub の Issue で届いた棋譜（human-games.yml から呼ぶ）
     py scripts/human_games.py ingest-form --result 結果.json
                                                         # Google フォームの回答（公開 CSV）を取り込む（human-games.yml から毎日）
-    py scripts/human_games.py report                    # docs/results/human_games.md と docs/human_games.json を作り直す
+    py scripts/human_games.py report                    # human_games.md・human_games.json・研究ノートの集計 human_findings.json を作り直す
     py scripts/human_games.py remove 3                  # 送った人の依頼で3局目を消す（もう取り込まない）
 
 棋譜は data/human_games.jsonl に1局1行でためる（形と検査は src/carcassonne/human_games.py）。
@@ -27,6 +27,10 @@ from carcassonne import human_games as hg
 GAMES = ROOT / "data" / "human_games.jsonl"
 REPORT = ROOT / "docs" / "results" / "human_games.md"
 REPLAY = ROOT / "docs" / "human_games.json"  # 対戦ページの再生（play.html#replay=番号）が読む
+FINDINGS = ROOT / "docs" / "human_findings.json"  # 「みんなの対局」ページの研究ノートが読む集計
+FINDINGS_CACHE = (
+    ROOT / "docs" / "results" / "human_findings_cache.json"
+)  # 局ごとの採点（新しい局だけ採点する）
 FORM = ROOT / "data" / "human_games_form.json"
 
 
@@ -101,7 +105,42 @@ def cmd_report(a) -> int:
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     Path(a.out).write_text(text, encoding="utf-8")
     print(f"{a.out} を書きました")
+    write_findings(games, w)
     return 0
+
+
+def write_findings(games: list[dict], w) -> None:
+    """人の手を最強AIで採点し（新しい局だけ）、研究ノートの集計 docs/human_findings.json を書く。"""
+    import datetime
+
+    from carcassonne import human_findings as hf
+    from carcassonne.fast import Fast
+    from carcassonne.webplay import champion_info, make_agent, make_coach
+
+    cache = (
+        json.loads(FINDINGS_CACHE.read_text(encoding="utf-8")) if FINDINGS_CACHE.exists() else {}
+    )
+    ai = champion_info().get("name", "")
+    coach = None
+    moves = []
+    for rec in games:
+        k = hg.key(rec)
+        if k not in cache:
+            coach = coach or make_coach(make_agent("strong"))
+            cache[k] = {"ai": ai, "moves": hf.analyze_game(rec, coach)}
+            print(f"採点しました: {k}")
+        moves.append(cache[k]["moves"])
+    keys = {hg.key(r) for r in games}
+    cache = {k: v for k, v in cache.items() if k in keys}  # 消した局の採点は残さない
+    FINDINGS_CACHE.parent.mkdir(parents=True, exist_ok=True)
+    FINDINGS_CACHE.write_text(
+        json.dumps(cache, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8"
+    )
+    s = hf.summarize(games, moves, hg.swings(Fast(), games, w, top=20))
+    s["ai"] = sorted({v["ai"] for v in cache.values()}) or [ai]
+    s["updated"] = datetime.date.today().isoformat()
+    FINDINGS.write_text(json.dumps(s, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    print(f"{FINDINGS} を書きました")
 
 
 def main() -> int:
