@@ -154,5 +154,16 @@
  "みんなの対局": "Community Games",
  "のページで公開され、誰でも見て使えるデータ（CC BY 4.0）になります。名前は出ませんが、あとから消すことはできません。送る前に": "page and become data anyone can see and use (CC BY 4.0). No names are shown, but games cannot be removed later. Before sending, please read the",
  "利用規約・データの扱い": "Terms of Use and Data",
- "を読んでください。": "."
+ "を読んでください。": ".",
+ "形勢: 人から見た見込みの点差（今終わったら）。押すとその手へ": "Balance: projected margin for the human (if the game ended now). Tap to jump to that move",
+ "形勢のグラフ": "Balance chart",
+ "一手ごとにAIの評価を出す（AIならどこに置いたか・何点損したか）": "Show the AI's evaluation of each move (where the AI would play and how many points were lost)",
+ "見込みの点差 ${ds}（人から見て）。": "Projected margin ${ds} (for the human). ",
+ "AIがこの手を調べています…": "The AI is examining this move…",
+ "${b.kind}にミープル": "meeple on the ${b.kind}",
+ "ミープルは置かない": "no meeple",
+ "AIなら紫の点線のマスに置き、${put}": "the AI would play the purple dotted square, ${put}",
+ "この手（${who}）: AIがほとんど考えなかった手です。${ai}。": "This move (${who}): one the AI barely considered; ${ai}.",
+ "この手（${who}）: AIの最善手とほぼ同じ、いい手です。": "This move (${who}): about as good as the AI's best. Nice.",
+ "この手（${who}）: AIの見積もりでは最善より約${a.loss.toFixed(0)}点の損。${ai}。": "This move (${who}): about ${a.loss.toFixed(0)} points worse than the AI's best by its estimate; ${ai}."
 }

@@ -69,7 +69,7 @@ if (args.cmd === "games") {
 } else if (args.cmd === "replay") {
   // 画面用の部分（LOCAL_API）は、ブラウザに似せた入れ物の中で読み込む
   const vm = require("vm"), fs = require("fs");
-  const box = { Carcassonne: C, PLAY_DATA: DATA, document: {}, console };
+  const box = { Carcassonne: C, PLAY_DATA: DATA, document: {}, console, setTimeout };
   box.self = box;
   vm.runInNewContext(fs.readFileSync(path.join(DOCS, "play_local.js"), "utf8"), box);
   const LOCAL_API = box.LOCAL_API;
@@ -78,9 +78,11 @@ if (args.cmd === "games") {
     for (const rec of args.records) {
       try {
         const v0 = await LOCAL_API("/api/replay", { record: rec, ply: args.ply });
+        const va = args.analyze ? await LOCAL_API("/api/replay_analyze", { ply: args.ply }) : null;
         const v1 = await LOCAL_API("/api/replay_goto", { ply: 9999 });
         out.push({ mid: { board: v0.board.length, replay: v0.replay, over: v0.over, placements: v0.placements.length },
-          end: { scores: v1.scores, over: v1.over, replay: v1.replay } });
+          end: { scores: v1.scores, over: v1.over, total: v1.replay.total, curve: v1.replay.curve },
+          analysis: va && { a: va.replay.analysis, coach: va.last_coach } });
       } catch (e) { out.push({ error: e.message }); }
     }
     const closed = await LOCAL_API("/api/replay_close", {});

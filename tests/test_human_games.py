@@ -147,13 +147,25 @@ def test_browser_replay_steps_through_record():
     bad["moves"][3] = [40, 40, 0, -1]
     short_deck = make_record(11)
     short_deck["deck"] = short_deck["deck"][:-1]
-    got = run_js({"cmd": "replay", "records": [*good, bad, short_deck], "ply": 10})
+    got = run_js({"cmd": "replay", "records": [*good, bad, short_deck], "ply": 10, "analyze": True})
     for rec, r in zip(good, got["out"], strict=False):
         assert r["mid"] == {
             "board": 11, "replay": r["mid"]["replay"], "over": False, "placements": 0
         }  # fmt: skip
         assert r["mid"]["replay"]["ply"] == 10 and r["mid"]["replay"]["total"] == len(rec["moves"])
         assert r["end"]["over"] and r["end"]["scores"] == rec["scores"]
+        # 形勢の線は 0 手目から終局まで。終局では見込みの点差 = 本当の点差（人 − AI）
+        h = rec["human_seat"]
+        curve = r["end"]["curve"]
+        assert (
+            len(curve) == len(rec["moves"]) + 1
+            and curve[-1] == rec["scores"][h] - rec["scores"][1 - h]
+        )
+        # 10手目の採点: AIの最善手と損した点（損が1点以上なら紫の点線のおすすめも出す）
+        a = r["analysis"]["a"]
+        assert a["human"] == ((9 % 2) == h) and set(a["best"]) >= {"x", "y", "v"}
+        assert a["loss"] is None or a["loss"] >= 0
+        assert (r["analysis"]["coach"] is not None) == (a["loss"] is None or a["loss"] >= 1)
     assert "4手目" in got["out"][2]["error"]
     assert "71枚" in got["out"][3]["error"]
     assert got["closed"] is None  # 再生の前に対局がなければ、閉じると何もない
