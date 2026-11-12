@@ -224,6 +224,14 @@ def summary(games: list[dict]) -> dict:
     return rows
 
 
+PLAY_URL = "https://satou-aaaaa.github.io/carcassonne-research/play.html"
+
+
+def replay_url(game: int, ply: int | None = None) -> str:
+    """対戦ページでその対局（1始まり）を再生する URL。ply を渡すとその手数から。"""
+    return f"{PLAY_URL}#replay={game}" + (f"&ply={ply}" if ply is not None else "")
+
+
 def report_md(fast: Fast, games: list[dict], w: np.ndarray) -> str:
     """弱点分析のレポート（Markdown）。"""
     lines = [
@@ -247,6 +255,15 @@ def report_md(fast: Fast, games: list[dict], w: np.ndarray) -> str:
         lines.append(
             f"| {lv} | {r['games']} | {r['human_wins']} | {r['draws']} | {r['mean_diff']:+.1f} | {r['assisted']} |"
         )
+    lines += ["", "## 対局の一覧（押すと一手ずつ再生）", ""]
+    for gi, rec in enumerate(games):
+        h = rec["human_seat"]
+        sc = rec["scores"]
+        seat = "先手" if h == 0 else "後手"
+        lines.append(
+            f"- [{gi + 1}局目]({replay_url(gi + 1)}): 人（{seat}）{sc[h]} − AI {sc[1 - h]}"
+            f"（{rec['level']}、{len(rec['moves'])}手）"
+        )
     lines += [
         "",
         "## AIの読みが外れた人の手（AIの見積もりが大きく下がった順）",
@@ -256,11 +273,16 @@ def report_md(fast: Fast, games: list[dict], w: np.ndarray) -> str:
             "大きいものは、AIがその手の価値を低く見ていた候補（弱点探しの出発点）。"
         ),
         "",
+        "対局の番号を押すと、対戦ページでその手の直前から一手ずつ再生できる。",
+        "",
         "| 対局 | 手数 | 置いた場所 (x, y) | 下がり幅 |",
         "|---:|---:|---|---:|",
     ]
     for s in swings(fast, games, w):
-        lines.append(f"| {s['game'] + 1} | {s['ply']} | ({s['x']}, {s['y']}) | {s['drop']:+.1f} |")
+        url = replay_url(s["game"] + 1, s["ply"] - 1)
+        lines.append(
+            f"| [{s['game'] + 1}]({url}) | {s['ply']} | ({s['x']}, {s['y']}) | {s['drop']:+.1f} |"
+        )
     return "\n".join(lines) + "\n"
 
 

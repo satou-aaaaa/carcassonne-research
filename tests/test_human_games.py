@@ -90,6 +90,9 @@ def test_to_data_and_report(tmp_path):
     w = np.load("models/eval_champion.npy")
     text = hg.report_md(Fast(), games, np.concatenate([w, np.zeros(NF - len(w))]))
     assert "受け取った対局: 2局" in text and "| strong | 2 |" in text
+    # 各局・各「大きく下がった手」から対戦ページの再生へ飛べる（番号は1始まり、手はその直前から）
+    assert f"[1局目]({hg.replay_url(1)})" in text and f"[2局目]({hg.replay_url(2)})" in text
+    assert hg.replay_url(2, 5).endswith("play.html#replay=2&ply=5")
 
 
 def test_selfplay_loop_mixes_human_games(tmp_path):
@@ -132,3 +135,25 @@ def test_form_rows_are_checked_and_added(tmp_path):
     assert len(texts) == 3
     got = hg.ingest_rows(texts, tmp_path / "g.jsonl", TS)
     assert got == {"added": 1, "duplicate": 1, "invalid": 1}
+
+
+@pytest.mark.skipif(__import__("shutil").which("node") is None, reason="node が必要")
+def test_browser_replay_steps_through_record():
+    """対戦ページの再生（play_local.js の ReplayGame）が、受け取った棋譜を一手ずつ正しくたどる。"""
+    from tests.test_play_js import run_js
+
+    good = [hg.normalize(make_record(s, s % 2), TS) for s in (8, 9)]
+    bad = make_record(10)
+    bad["moves"][3] = [40, 40, 0, -1]
+    short_deck = make_record(11)
+    short_deck["deck"] = short_deck["deck"][:-1]
+    got = run_js({"cmd": "replay", "records": [*good, bad, short_deck], "ply": 10})
+    for rec, r in zip(good, got["out"], strict=False):
+        assert r["mid"] == {
+            "board": 11, "replay": r["mid"]["replay"], "over": False, "placements": 0
+        }  # fmt: skip
+        assert r["mid"]["replay"]["ply"] == 10 and r["mid"]["replay"]["total"] == len(rec["moves"])
+        assert r["end"]["over"] and r["end"]["scores"] == rec["scores"]
+    assert "4手目" in got["out"][2]["error"]
+    assert "71枚" in got["out"][3]["error"]
+    assert got["closed"] is None  # 再生の前に対局がなければ、閉じると何もない

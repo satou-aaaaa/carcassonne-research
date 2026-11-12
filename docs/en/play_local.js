@@ -20,7 +20,7 @@
   function searchOpts(data, lv) {
     return { sims: lv.sims, depth: lv.depth, c: 0.5, scale: 30, meepleProb: 0.3, w: Float64Array.from(data.eval.w), rsel: lv.rsel || 0, rk: lv.rk || 6, rr: !!lv.rr };
   }
-  // 人間の手の採点用に、最強設定で候補手を解析する（webplay.make_coach）
+  // Human間の手の採点用に、最強設定で候補手を解析する（webplay.make_coach）
   function analyzeMoves(eng, data, S, seed) {
     eng.rng.seed(seed);
     return eng.analyze(S, searchOpts(data, data.levels.strong));
@@ -128,7 +128,7 @@
       this.hint = null;  // 置く前のヒント
       this.hints = 0;
       this.undos = 0;
-      this.snaps = [];  // 人間の各手の直前の状態（待った用）
+      this.snaps = [];  // Human間の各手の直前の状態（待った用）
       this.mid = 0;
     }
 
@@ -200,7 +200,7 @@
       // 回収されたミープル（特徴が完成/終局処理された）を除く
       this.meeples = this.meeples.filter(m => eng.meepleAt(S, m.x, m.y, m.piece, m.player));
       const gain = S.sc[C.SC_S0 + player] - before[player], opp = S.sc[C.SC_S0 + 1 - player] - before[1 - player];
-      const who = player === this.human_seat ? "You" : "AI";
+      const who = player !== this.human_seat ? "AI" : this.plays ? "Human" : "You";  // plays があれば棋譜の再生
       const put = piece >= 0 ? `meeple on the ${KIND_JA[this.pieceKind(g, piece)]}` : "no meeple";
       let text = `${who}: placed a tile, ${put}`;
       if (gain || opp) text += ` / points ${who} +${gain}` + (opp ? ` opponent +${opp}` : "");
@@ -261,8 +261,53 @@
     }
   }
 
+  // ---- 棋譜の再生（送ってもらった棋譜を一手ずつ見る。手は指せない） ----------------
+  class ReplayGame extends LocalGame {
+    constructor(rec) {
+      super(0, rec.human_seat === 1 ? 1 : 0, rec.level || "strong", "", false);
+      if (!rec || !Array.isArray(rec.deck) || !Array.isArray(rec.moves)) throw new Error("The game record is not in the right format");
+      // 山札は基本セットの71枚そのもの（並びだけ違う）でなければならない
+      const want = eng.shuffledDeck(0).slice().sort((a, b) => a - b).join();
+      if (rec.deck.slice().sort((a, b) => a - b).join() !== want) throw new Error("The deck is not the 71 tiles of the base game");
+      this.rec = rec;
+      this.deck = rec.deck.map(Number);
+      // 山札と指し手を内部の手（マス・向きID・断片）にし、ルールどおりか確かめる
+      const S = eng.newGame(this.deck);
+      this.plays = rec.moves.map(([x, y, v, p], k) => {
+        if (S.sc[C.SC_OVER]) throw new Error(`Move ${k + 1}: the game is already over`);
+        const cell = C.cellOf(x, y), g = eng.vbase[S.sc[C.SC_CUR]] + v, piece = p === null || p < 0 ? -1 : p;
+        if (!eng.legalMoves(S).some(m => m[0] === cell && m[1] === g && m[2] === piece)) throw new Error(`Move ${k + 1} is not a legal move`);
+        eng.applyMove(S, cell, g, piece);
+        return [cell, g, piece];
+      });
+      this.ply = 0;
+      this.goto(0);
+    }
+    goto(ply) {
+      ply = Math.max(0, Math.min(this.plays.length, ply | 0));
+      this.S = eng.newGame(this.deck);
+      this.history = []; this.meeples = []; this.events = []; this.end_meeples = []; this.mid = 0; this.last_ai = null;
+      for (let k = 0; k < ply; k++) {
+        const [cell, g, piece] = this.plays[k], who = this.S.sc[C.SC_PL];
+        this.play(cell, g, piece);
+        const [x, y] = C.xyOf(cell);
+        this.last_ai = who !== this.human_seat ? { x, y } : null;
+      }
+      this.ply = ply;
+    }
+    view() {
+      const v = super.view();
+      v.placements = [];
+      v.record = null;
+      v.can_undo = false;
+      const last = this.ply ? C.xyOf(this.plays[this.ply - 1][0]) : null;
+      v.replay = { ply: this.ply, total: this.plays.length, last: last && { x: last[0], y: last[1] } };
+      return v;
+    }
+  }
+
   // ---- web/play.html からの問い合わせ（scripts/play_human.py の API と同じ形） ----
-  let game = null;
+  let game = null, live = null;  // live: 再生を開く前の対局（再生を終えたら戻す）
   root.LOCAL_API = async function (path, body) {
     if (path === "/api/tiles") {
       const levels = {};
@@ -280,6 +325,22 @@
       if (!game) throw new Error("No game in progress");
       await game.humanMove(Number(body.x), Number(body.y), Number(body.variant), body.piece === null || body.piece === undefined ? null : Number(body.piece));
       return game.view();
+    }
+    if (path === "/api/replay") {
+      const rg = new ReplayGame(body.record);
+      if (!(game instanceof ReplayGame)) live = game;
+      game = rg;
+      if (body.ply !== undefined) game.goto(Number(body.ply));
+      return game.view();
+    }
+    if (path === "/api/replay_goto") {
+      if (!(game instanceof ReplayGame)) throw new Error("No game record is open");
+      game.goto(Number(body.ply));
+      return game.view();
+    }
+    if (path === "/api/replay_close") {
+      if (game instanceof ReplayGame) game = live;
+      return game ? game.view() : null;
     }
     if (path === "/api/undo" || path === "/api/hint") {
       if (!game) throw new Error("No game in progress");

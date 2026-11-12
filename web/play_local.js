@@ -200,7 +200,7 @@
       // 回収されたミープル（特徴が完成/終局処理された）を除く
       this.meeples = this.meeples.filter(m => eng.meepleAt(S, m.x, m.y, m.piece, m.player));
       const gain = S.sc[C.SC_S0 + player] - before[player], opp = S.sc[C.SC_S0 + 1 - player] - before[1 - player];
-      const who = player === this.human_seat ? "あなた" : "AI";
+      const who = player !== this.human_seat ? "AI" : this.plays ? "人" : "あなた";  // plays があれば棋譜の再生
       const put = piece >= 0 ? `${KIND_JA[this.pieceKind(g, piece)]}にミープル` : "ミープルなし";
       let text = `${who}: タイルを置き、${put}`;
       if (gain || opp) text += ` ／ 得点 ${who}+${gain}` + (opp ? ` 相手+${opp}` : "");
@@ -261,8 +261,53 @@
     }
   }
 
+  // ---- 棋譜の再生（送ってもらった棋譜を一手ずつ見る。手は指せない） ----------------
+  class ReplayGame extends LocalGame {
+    constructor(rec) {
+      super(0, rec.human_seat === 1 ? 1 : 0, rec.level || "strong", "", false);
+      if (!rec || !Array.isArray(rec.deck) || !Array.isArray(rec.moves)) throw new Error("棋譜の形が違います");
+      // 山札は基本セットの71枚そのもの（並びだけ違う）でなければならない
+      const want = eng.shuffledDeck(0).slice().sort((a, b) => a - b).join();
+      if (rec.deck.slice().sort((a, b) => a - b).join() !== want) throw new Error("山札が基本セットの71枚になっていません");
+      this.rec = rec;
+      this.deck = rec.deck.map(Number);
+      // 山札と指し手を内部の手（マス・向きID・断片）にし、ルールどおりか確かめる
+      const S = eng.newGame(this.deck);
+      this.plays = rec.moves.map(([x, y, v, p], k) => {
+        if (S.sc[C.SC_OVER]) throw new Error(`${k + 1}手目: もう終局しています`);
+        const cell = C.cellOf(x, y), g = eng.vbase[S.sc[C.SC_CUR]] + v, piece = p === null || p < 0 ? -1 : p;
+        if (!eng.legalMoves(S).some(m => m[0] === cell && m[1] === g && m[2] === piece)) throw new Error(`${k + 1}手目がルール上置けない手です`);
+        eng.applyMove(S, cell, g, piece);
+        return [cell, g, piece];
+      });
+      this.ply = 0;
+      this.goto(0);
+    }
+    goto(ply) {
+      ply = Math.max(0, Math.min(this.plays.length, ply | 0));
+      this.S = eng.newGame(this.deck);
+      this.history = []; this.meeples = []; this.events = []; this.end_meeples = []; this.mid = 0; this.last_ai = null;
+      for (let k = 0; k < ply; k++) {
+        const [cell, g, piece] = this.plays[k], who = this.S.sc[C.SC_PL];
+        this.play(cell, g, piece);
+        const [x, y] = C.xyOf(cell);
+        this.last_ai = who !== this.human_seat ? { x, y } : null;
+      }
+      this.ply = ply;
+    }
+    view() {
+      const v = super.view();
+      v.placements = [];
+      v.record = null;
+      v.can_undo = false;
+      const last = this.ply ? C.xyOf(this.plays[this.ply - 1][0]) : null;
+      v.replay = { ply: this.ply, total: this.plays.length, last: last && { x: last[0], y: last[1] } };
+      return v;
+    }
+  }
+
   // ---- web/play.html からの問い合わせ（scripts/play_human.py の API と同じ形） ----
-  let game = null;
+  let game = null, live = null;  // live: 再生を開く前の対局（再生を終えたら戻す）
   root.LOCAL_API = async function (path, body) {
     if (path === "/api/tiles") {
       const levels = {};
@@ -280,6 +325,22 @@
       if (!game) throw new Error("対局が始まっていません");
       await game.humanMove(Number(body.x), Number(body.y), Number(body.variant), body.piece === null || body.piece === undefined ? null : Number(body.piece));
       return game.view();
+    }
+    if (path === "/api/replay") {
+      const rg = new ReplayGame(body.record);
+      if (!(game instanceof ReplayGame)) live = game;
+      game = rg;
+      if (body.ply !== undefined) game.goto(Number(body.ply));
+      return game.view();
+    }
+    if (path === "/api/replay_goto") {
+      if (!(game instanceof ReplayGame)) throw new Error("棋譜を開いていません");
+      game.goto(Number(body.ply));
+      return game.view();
+    }
+    if (path === "/api/replay_close") {
+      if (game instanceof ReplayGame) game = live;
+      return game ? game.view() : null;
     }
     if (path === "/api/undo" || path === "/api/hint") {
       if (!game) throw new Error("対局が始まっていません");
