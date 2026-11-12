@@ -78,13 +78,14 @@
   #replayBar[hidden] { display:none; }
   #replayBar .row { align-items:center; justify-content:space-between; flex-wrap:nowrap; }
   #replayBar button { min-width:44px; min-height:40px; }
-  #recList, #pubList { display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow:auto; }
-  #recList button, #pubList button { text-align:left; }
+  #recList { display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow:auto; }
+  #recList button { text-align:left; }
   #recDlg .note { font-size:13px; color:var(--muted); margin:0 0 8px; }
   #rpPos { font-size:14px; font-weight:600; text-align:center; flex:1; }
   #rpRange { width:100%; }
   #result .share { margin-top:8px; padding-top:8px; border-top:1px solid var(--line); font-size:12.5px; color:var(--muted); line-height:1.5; }
   #result .share b { color:var(--ink); }
+  #result .share .pubnote { margin:6px 0 0; padding:6px 8px; border-left:4px solid var(--accent); background:var(--bg); color:var(--ink); font-size:13.5px; }
   #result .share .row { margin:6px 0 4px; flex-wrap:wrap; }
   #result .share button { min-height:36px; }
   #home { font-size:12.5px; color:var(--muted); }
@@ -135,7 +136,7 @@
   </div>
 </div>
 <aside>
-  <div id="home" class="local-only"><nav aria-label="サイト内のページ"><a href="index.html">← カルカソンヌ入門</a><a href="rules.html">ルール入門</a><a href="strategy.html">戦略ガイド</a><a href="ai_tips.html">強いAIのコツ</a><a href="quiz.html">次の一手クイズ</a><a href="stats.html">データで見る</a></nav>AIはこのブラウザの中で考えます。<br><a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>&nbsp;Ko-fiでこのサイトを応援する</a></div>
+  <div id="home" class="local-only"><nav aria-label="サイト内のページ"><a href="index.html">← カルカソンヌ入門</a><a href="rules.html">ルール入門</a><a href="strategy.html">戦略ガイド</a><a href="ai_tips.html">強いAIのコツ</a><a href="quiz.html">次の一手クイズ</a><a href="stats.html">データで見る</a><a href="games.html">みんなの対局</a></nav>AIはこのブラウザの中で考えます。<br><a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>&nbsp;Ko-fiでこのサイトを応援する</a></div>
   <div class="row">
     <button class="primary" id="btnNew">新しい対局</button>
     <button id="btnRematch" hidden>同じ山札で席替え再戦</button>
@@ -212,9 +213,7 @@
     <p class="note">このブラウザで最近終わった対局（新しい順）。押すと一手ずつ再生できます。</p>
     <div id="recList"></div>
     <div class="row" style="margin-top:10px"><button type="button" id="btnRecFile">ファイルから開く</button></div>
-    <h4>みんなの対局</h4>
-    <p class="note">研究用に送ってもらった棋譜（名前は入っていません）。</p>
-    <div id="pubList"></div>
+    <p class="note" style="margin-top:12px">ほかの人の対局は <a href="games.html">みんなの対局</a> のページから再生できます。</p>
     <div class="row" style="margin-top:14px;justify-content:flex-end"><button value="close">閉じる</button></div>
   </form>
 </dialog>
@@ -1028,7 +1027,8 @@ function resultHtml() {
 function shareHtml() {
   const form = REC_FORM ? `<button type="button" class="primary" id="btnFormRec">棋譜を送る（アカウント不要）</button>` : "";
   const again = `<div class="row"><button type="button" id="btnReplayThis">この対局を再生</button><button type="button" id="btnLinkThis">再生リンクをコピー</button></div>`;
-  return again + `<div class="share"><b>棋譜を研究に使わせてください</b><br>人との対局から、AIの弱点を探して学習に使います。` +
+  return again + `<div class="share"><b>よければ、棋譜を研究に使わせてください（任意）</b><br>人との対局から、AIの弱点を探して学習に使います。送らなくても、対戦や再生はこれまでどおり使えます。` +
+    `<p class="pubnote">送った棋譜は <a href="games.html" target="_blank" rel="noopener">みんなの対局</a> のページで公開され、誰でも見られます（名前は出ません）。あとから消してほしいときは、そのページから頼めます。</p>` +
     `<div class="row">${form}<button type="button" id="btnSendRec">GitHubで送る</button><button type="button" id="btnSaveRec">ファイルに保存</button></div>` +
     `送るのは山札・指し手・得点・AIの強さだけで、名前は入りません。開いた画面で内容を確かめ、送信ボタンを押すと届きます。` +
     (REC_FORM ? `「棋譜を送る」は Google フォームで、アカウントもメールアドレスも要りません。` : "") +
@@ -1042,7 +1042,7 @@ function recordJson() { return JSON.stringify(G.record); }
 function recordIssueUrl() {
   const r = G.record, h = r.human_seat, a = 1 - h;
   const title = `[棋譜] ${r.scores[h]} − ${r.scores[a]}（AI: ${r.level}）`;
-  const body = "<!-- carcassonne-game-record -->\n対戦ページで指した対局の棋譜です。AIの学習と弱点探しに使ってください。\n\n```json\n" + recordJson() + "\n```\n";
+  const body = "<!-- carcassonne-game-record -->\n対戦ページで指した対局の棋譜です。AIの学習と弱点探しに使ってください。\n送った棋譜は「みんなの対局」ページ（https://satou-aaaaa.github.io/carcassonne-research/games.html）で誰でも見られます。\n\n```json\n" + recordJson() + "\n```\n";
   return `${REC_REPO}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
 }
 $("result").addEventListener("click", e => {
@@ -1145,19 +1145,6 @@ function showRecent() {
     box.appendChild(b);
   }
   $("recDlg").showModal();
-  const pub = $("pubList");
-  pub.textContent = "読み込み中…";
-  fetch(PUBLIC_GAMES).then(x => x.json()).then(games => {
-    pub.innerHTML = "";
-    if (!games.length) pub.textContent = "まだありません";
-    games.forEach((r, i) => {
-      const h = r.human_seat, b = document.createElement("button");
-      b.type = "button";
-      b.textContent = `${i + 1}局目  人 ${r.scores[h]} − AI ${r.scores[1 - h]}（${levelShort(r.level)}）`;
-      b.onclick = () => { $("recDlg").close(); const h = `#replay=${i + 1}`; if (location.hash === h) openFromHash(); else location.hash = h; };
-      pub.appendChild(b);
-    });
-  }).catch(() => { pub.textContent = "読み込めませんでした"; });
 }
 async function replayGoto(ply) {
   if (!G || !G.replay || busy) return;

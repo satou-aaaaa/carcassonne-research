@@ -78,13 +78,14 @@
   #replayBar[hidden] { display:none; }
   #replayBar .row { align-items:center; justify-content:space-between; flex-wrap:nowrap; }
   #replayBar button { min-width:44px; min-height:40px; }
-  #recList, #pubList { display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow:auto; }
-  #recList button, #pubList button { text-align:left; }
+  #recList { display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow:auto; }
+  #recList button { text-align:left; }
   #recDlg .note { font-size:13px; color:var(--muted); margin:0 0 8px; }
   #rpPos { font-size:14px; font-weight:600; text-align:center; flex:1; }
   #rpRange { width:100%; }
   #result .share { margin-top:8px; padding-top:8px; border-top:1px solid var(--line); font-size:12.5px; color:var(--muted); line-height:1.5; }
   #result .share b { color:var(--ink); }
+  #result .share .pubnote { margin:6px 0 0; padding:6px 8px; border-left:4px solid var(--accent); background:var(--bg); color:var(--ink); font-size:13.5px; }
   #result .share .row { margin:6px 0 4px; flex-wrap:wrap; }
   #result .share button { min-height:36px; }
   #home { font-size:12.5px; color:var(--muted); }
@@ -137,7 +138,7 @@
   </div>
 </div>
 <aside>
-  <div id="home" class="local-only"><nav aria-label="Site pages"><a href="index.html">← Carcassonne Primer</a><a href="rules.html">Rules</a><a href="strategy.html">Strategy</a><a href="ai_tips.html">Lessons from the AI</a><a href="quiz.html">Next-Move Quiz</a><a href="stats.html">By the Numbers</a><a class="lang" href="../play.html" hreflang="ja" lang="ja" data-lang="ja" title="日本語に切り替え">日本語</a></nav>The AI thinks inside your browser.<br><a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>&nbsp;Support this site on Ko-fi</a></div>
+  <div id="home" class="local-only"><nav aria-label="Site pages"><a href="index.html">← Carcassonne Primer</a><a href="rules.html">Rules</a><a href="strategy.html">Strategy</a><a href="ai_tips.html">Lessons from the AI</a><a href="quiz.html">Next-Move Quiz</a><a href="stats.html">By the Numbers</a><a href="games.html">Community Games</a><a class="lang" href="../play.html" hreflang="ja" lang="ja" data-lang="ja" title="日本語に切り替え">日本語</a></nav>The AI thinks inside your browser.<br><a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>&nbsp;Support this site on Ko-fi</a></div>
   <div class="row">
     <button class="primary" id="btnNew">New game</button>
     <button id="btnRematch" hidden>Rematch, same tiles, seats swapped</button>
@@ -214,9 +215,7 @@
     <p class="note">Games recently finished in this browser (newest first). Tap one to replay it move by move.</p>
     <div id="recList"></div>
     <div class="row" style="margin-top:10px"><button type="button" id="btnRecFile">Open a file</button></div>
-    <h4>Everyone's games</h4>
-    <p class="note">Game records people sent in for research (no names included).</p>
-    <div id="pubList"></div>
+    <p class="note" style="margin-top:12px">Other players' games can be replayed on the <a href="games.html">Community Games</a> page.</p>
     <div class="row" style="margin-top:14px;justify-content:flex-end"><button value="close">Close</button></div>
   </form>
 </dialog>
@@ -1034,7 +1033,8 @@ function resultHtml() {
 function shareHtml() {
   const form = REC_FORM ? `<button type="button" class="primary" id="btnFormRec">Send game (no account needed)</button>` : "";
   const again = `<div class="row"><button type="button" id="btnReplayThis">Replay this game</button><button type="button" id="btnLinkThis">Copy replay link</button></div>`;
-  return again + `<div class="share"><b>Share this game for research</b><br>Games against people help us find the AI's weak spots and train it.` +
+  return again + `<div class="share"><b>If you like, let us use your game for research (optional)</b><br>Games against people help us find the AI's weak spots and train it. Without sending, you can still play and replay as before.` +
+    `<p class="pubnote">Games you send are published on the <a href="games.html" target="_blank" rel="noopener">Community Games</a> page, where anyone can see them (no names are shown). If you later want it removed, you can ask on that page.</p>` +
     `<div class="row">${form}<button type="button" id="btnSendRec">Send via GitHub</button><button type="button" id="btnSaveRec">Save as file</button></div>` +
     `Only the tile order, moves, scores and AI level are sent; your name is not included. Check the content on the page that opens, then press its submit button.` +
     (REC_FORM ? `“Send game” uses a Google Form: no account or email address needed.` : "") +
@@ -1048,7 +1048,7 @@ function recordJson() { return JSON.stringify(G.record); }
 function recordIssueUrl() {
   const r = G.record, h = r.human_seat, a = 1 - h;
   const title = `[Game record] ${r.scores[h]} − ${r.scores[a]} (AI: ${r.level})`;
-  const body = "<!-- carcassonne-game-record -->\nA game record from the play page, for training the AI and finding its weak spots.\n\n```json\n" + recordJson() + "\n```\n";
+  const body = "<!-- carcassonne-game-record -->\nA game record from the play page, for training the AI and finding its weak spots.\nRecords you send can be seen by anyone on the Community Games page (https://satou-aaaaa.github.io/carcassonne-research/en/games.html).\n\n```json\n" + recordJson() + "\n```\n";
   return `${REC_REPO}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
 }
 $("result").addEventListener("click", e => {
@@ -1151,19 +1151,6 @@ function showRecent() {
     box.appendChild(b);
   }
   $("recDlg").showModal();
-  const pub = $("pubList");
-  pub.textContent = "Loading…";
-  fetch(PUBLIC_GAMES).then(x => x.json()).then(games => {
-    pub.innerHTML = "";
-    if (!games.length) pub.textContent = "None yet";
-    games.forEach((r, i) => {
-      const h = r.human_seat, b = document.createElement("button");
-      b.type = "button";
-      b.textContent = `Game ${i + 1}  Human ${r.scores[h]} − AI ${r.scores[1 - h]} (${levelShort(r.level)})`;
-      b.onclick = () => { $("recDlg").close(); const h = `#replay=${i + 1}`; if (location.hash === h) openFromHash(); else location.hash = h; };
-      pub.appendChild(b);
-    });
-  }).catch(() => { pub.textContent = "Could not load"; });
 }
 async function replayGoto(ply) {
   if (!G || !G.replay || busy) return;

@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>みんなの対局</title>
+<meta name="description" content="対戦ページから研究用に送ってもらった、人とAIの対局の棋譜。押すと盤面を一手ずつ再生できます。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+:root {
+  --bg: #f1f3ee; --paper: #ffffff; --ink: #1d2620; --muted: #5c6a60; --line: #d5dccf;
+  --field: #2f6b3a; --city: #9a6436; --red: #d64541; --blue: #2f6fd6; --board-bg: #e6e2d6;
+  --bar: #2f6b3a; --bar2: #a8c9ae; --draw: #b9c0b5;
+  --font-display: "Dela Gothic One", "Zen Kaku Gothic New", "Hiragino Sans", sans-serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+  --font-num: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141a16; --paper: #1c241f; --ink: #e6ece6; --muted: #9aa89d; --line: #2e3a32;
+    --field: #7cc48a; --city: #d9a571; --red: #f06a62; --blue: #6c9cf0; --board-bg: #2a312c;
+    --bar: #6fbf7e; --bar2: #35583d; --draw: #56635a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141a16; --paper: #1c241f; --ink: #e6ece6; --muted: #9aa89d; --line: #2e3a32;
+  --field: #7cc48a; --city: #d9a571; --red: #f06a62; --blue: #6c9cf0; --board-bg: #2a312c;
+  --bar: #6fbf7e; --bar2: #35583d; --draw: #56635a; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.85; padding-inline: 16px; padding-block: 0 64px; }
+.wrap { max-width: 760px; margin: 0 auto; }
+header.hero { padding-block: 40px 20px; display: grid; gap: 12px; }
+.eyebrow { font-size: 13px; letter-spacing: .12em; color: var(--muted); font-weight: 700; }
+h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 6vw, 44px); line-height: 1.25; margin: 0; }
+h1 .accent { color: var(--field); }
+.lede { margin: 0; max-width: 38em; }
+section { padding-block: 28px 4px; border-top: 1px solid var(--line); margin-top: 20px; display: grid; gap: 14px; }
+h2 { font-family: var(--font-display); font-weight: 400; font-size: 22px; margin: 0; }
+p { margin: 0; max-width: 38em; }
+.num { font-family: var(--font-num); font-weight: 500; }
+.tiles-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.stat { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; display: grid; gap: 2px; }
+.stat b { font-family: var(--font-num); font-weight: 500; font-size: 26px; line-height: 1.2; }
+.stat span { font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+.note { font-size: 14px; color: var(--muted); }
+.tools { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.tools label { font-size: 14px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+.tools select { font: inherit; font-size: 15px; min-height: 44px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--ink); }
+ol.games { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+ol.games a { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 14px; align-items: center; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; color: var(--ink); text-decoration: none; min-height: 44px; }
+ol.games a:hover, ol.games a:focus-visible { border-color: var(--field); outline: none; }
+ol.games .no { font-family: var(--font-num); color: var(--muted); font-size: 14px; }
+ol.games .sc { font-family: var(--font-num); font-weight: 500; font-size: 18px; }
+ol.games .sc .h { color: var(--red); }
+ol.games .sc .a { color: var(--blue); }
+ol.games .meta { font-size: 13.5px; color: var(--muted); grid-column: 2; }
+ol.games .res { font-size: 14px; font-weight: 700; grid-row: 1 / span 2; grid-column: 3; }
+ol.games .res.win { color: var(--field); }
+ol.games .go { color: var(--field); }
+p a { color: var(--field); }
+.thanks { font-weight: 700; color: var(--field); }
+h3 { font-size: 17px; margin: 8px 0 0; }
+.tools input { font: inherit; font-size: 15px; width: 6em; min-height: 44px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--ink); }
+.tools button { font: inherit; font-size: 15px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); cursor: pointer; }
+.empty { background: var(--paper); border: 1px dashed var(--line); border-radius: 6px; padding: 16px; }
+.next { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.next a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 999px; background: var(--field); color: var(--paper); text-decoration: none; font-weight: 700; }
+.next a.sub { background: var(--paper); color: var(--ink); border: 1px solid var(--line); }
+__NAV_CSS__
+</style>
+</head>
+<body>
+<div class="wrap">
+__NAV__
+<header class="hero">
+  <div class="eyebrow">COMMUNITY GAMES</div>
+  <h1>みんなの<span class="accent">対局</span></h1>
+  <p class="lede">対戦ページで指した人が、研究用に送ってくれたAIとの対局です。押すと対戦ページが開き、盤面を ◀ ▶ で一手ずつ再生できます。名前などの個人の情報は入っていません。</p>
+  <p class="thanks">棋譜を送ってくださった皆さん、研究への協力をありがとうございます。</p>
+</header>
+
+<section id="summary">
+  <h2>まとめ</h2>
+  <div class="tiles-row" id="stats"></div>
+</section>
+
+<section id="list">
+  <h2>対局の一覧</h2>
+  <div class="tools">
+    <label>AIの強さ <select id="fLevel"><option value="">すべて</option></select></label>
+    <label>並び <select id="fSort"><option value="new">新しい順</option><option value="diff">人の点差が大きい順</option></select></label>
+  </div>
+  <ol class="games" id="games"></ol>
+  <p class="empty" id="empty" hidden>まだ届いた対局はありません。対戦ページで1局指して、終局後の「棋譜を送る」から送ってください。</p>
+  <p class="note" id="loadErr" hidden>対局の一覧を読み込めませんでした。時間をおいて開き直してください。</p>
+</section>
+
+<section id="use">
+  <h2>送ってもらった棋譜の使い道</h2>
+  <div class="tiles-row" id="useStats"></div>
+  <p>人の手はAIの手と打ち方が違うので、AIがまだ知らない局面を教えてくれます。届いた棋譜の局面は、自己対戦の学習に毎回まぜています。人の手のあとにAIの見積もりが大きく下がった場面（AIが読めていなかった手）は、<a href="https://github.com/satou-aaaaa/carcassonne-research/blob/main/docs/results/human_games.md">弱点レポート</a>（GitHub）にまとめ、AIを直す手がかりにしています。</p>
+</section>
+
+<section id="how">
+  <h2>対局を送るには・自分の対局を見るには</h2>
+  <p>対戦ページで1局指し終えると、結果の欄に「棋譜を送る（アカウント不要）」が出ます。届いた棋譜はルールどおりか確かめてから、毎朝この一覧に足しています。送るのは山札・指し手・得点・AIの強さだけで、名前は入りません。</p>
+  <p>送るかどうかは自由です。送らなくても、対戦も自分の対局の再生も、これまでどおり使えます。</p>
+  <p>自分の対局は、送らなくても対戦ページの「棋譜を再生」から見られます（このブラウザに最近の20局が残ります）。「再生リンクをコピー」で、友だちに見せることもできます。</p>
+  <h3>送った対局を消してほしいとき</h3>
+  <p>一覧の番号（#3 など）を入れて「消してほしいと伝える」を押すと、フォームが開きます。送信すると作者に届き、確かめてから消します（アカウントは要りません）。理由を書く必要はありません。</p>
+  <div class="tools" id="delBox"><label>対局の番号 # <input id="delNo" type="number" min="1" inputmode="numeric"></label><button type="button" id="delBtn">消してほしいと伝える</button></div>
+  <div class="next">
+    <a href="play.html">AIと対戦する</a>
+    <a class="sub" href="ai_tips.html">強いAIに学ぶコツ</a>
+  </div>
+</section>
+__SUPPORT__
+</div>
+<script>
+// 送ってもらった棋譜（scripts/human_games.py report が docs/human_games.json に書く）を並べる。
+// 英語版（docs/en/）からは一つ上を読む。再生は対戦ページ（play.html#replay=番号、1始まり）
+(() => {
+  const EN = document.documentElement.lang === "en";
+  const SRC = EN ? "../human_games.json" : "human_games.json";
+  const LEVELS = {strong: "最強", standard: "標準", greedy: "やさしい"};
+  const $ = id => document.getElementById(id);
+  const stat = (big, label) => `<div class="stat"><b>${big}</b><span>${label}</span></div>`;
+  let games = [];
+  function draw() {
+    const lv = $("fLevel").value, sort = $("fSort").value;
+    let list = games.map((r, i) => ({r, i})).filter(g => !lv || g.r.level === lv);
+    const diff = g => g.r.scores[g.r.human_seat] - g.r.scores[1 - g.r.human_seat];
+    list = sort === "diff" ? list.sort((a, b) => diff(b) - diff(a)) : list.reverse();
+    const ol = $("games"); ol.innerHTML = "";
+    for (const g of list) {
+      const r = g.r, h = r.human_seat, d = diff(g);
+      const res = d > 0 ? "人の勝ち" : d < 0 ? "AIの勝ち" : "引き分け";
+      const seat = h === 0 ? "人が先手" : "人が後手";
+      const li = document.createElement("li");
+      li.innerHTML = `<a href="play.html#replay=${g.i + 1}"><span class="no">#${g.i + 1}</span>` +
+        `<span class="sc"><span class="h">人 ${r.scores[h]}</span> − <span class="a">AI ${r.scores[1 - h]}</span></span>` +
+        `<span class="res${d > 0 ? " win" : ""}">${res}</span>` +
+        `<span class="meta">AI: ${LEVELS[r.level] || r.level}・${seat}・${r.moves.length}手 <span class="go">▶ 再生</span></span></a>`;
+      ol.appendChild(li);
+    }
+    $("empty").hidden = games.length > 0;
+  }
+  function summary() {
+    const n = games.length;
+    const win = games.filter(r => r.scores[r.human_seat] > r.scores[1 - r.human_seat]).length;
+    const avg = n ? games.reduce((s, r) => s + r.scores[r.human_seat] - r.scores[1 - r.human_seat], 0) / n : 0;
+    $("stats").innerHTML = stat(n, "届いた対局") + stat(n ? Math.round(100 * win / n) + "%" : "−", "人の勝率") +
+      stat(n ? (avg > 0 ? "+" : "") + avg.toFixed(1) : "−", "人から見た平均点差");
+    const pos = games.reduce((s, r) => s + r.moves.length, 0);
+    $("useStats").innerHTML = stat(pos, "学習にまぜている局面") + stat(n, "弱点探しに使った対局");
+    for (const k of Object.keys(LEVELS)) if (games.some(r => r.level === k)) {
+      const o = document.createElement("option"); o.value = k; o.textContent = LEVELS[k]; $("fLevel").appendChild(o);
+    }
+  }
+  // 消してほしいという依頼: 棋譜を送るのと同じ Google フォームに「削除 #番号」を入れて開く（human-games.yml が Issue で知らせる）
+  const FORM = __FORM__;
+  if (!FORM) $("delBox").hidden = true;
+  $("delBtn").onclick = () => {
+    const n = parseInt($("delNo").value, 10);
+    if (!(n >= 1)) { $("delNo").focus(); return; }
+    window.open(`${FORM.url}?usp=pp_url&${FORM.entry}=${encodeURIComponent("削除 #" + n)}`, "_blank", "noopener");
+  };
+  $("fLevel").onchange = draw; $("fSort").onchange = draw;
+  fetch(SRC).then(r => r.json()).then(g => { games = Array.isArray(g) ? g : []; summary(); draw(); })
+    .catch(() => { $("loadErr").hidden = false; summary(); });
+})();
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-"""公開ページ（docs/ の rules・strategy・ai_tips・quiz・play）をまとめて作り直す。
+"""公開ページ（docs/ の rules・strategy・ai_tips・quiz・play・stats・games）をまとめて作り直す。
 
     py scripts/build_pages.py           # 作り直す
     py scripts/build_pages.py --check   # 作り直した結果がコミット済みの docs/ と同じか確かめる（CI用）
@@ -21,6 +21,7 @@ BUILDERS = [
     "build_tips_page.py",
     "build_play_page.py",
     "build_stats_page.py",
+    "build_games_page.py",
     "build_index_en.py",  # 手書きの docs/index.html から英語版を作る
 ]
 
