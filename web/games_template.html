@@ -128,9 +128,20 @@ __NAV__
   <p>人の手はAIの手と打ち方が違うので、AIがまだ知らない局面を教えてくれます。届いた棋譜の局面は、自己対戦の学習に毎回まぜています。人の手のあとにAIの見積もりが大きく下がった場面（AIが読めていなかった手）は、<a href="https://github.com/satou-aaaaa/carcassonne-research/blob/main/docs/results/human_games.md">弱点レポート</a>（GitHub）にまとめ、AIを直す手がかりにしています。</p>
 </section>
 
+<section id="data">
+  <h2>データをダウンロードして使う</h2>
+  <p>集めた棋譜は、誰でもダウンロードして研究や学習に使えます。ライセンスは <a href="https://creativecommons.org/licenses/by/4.0/deed.ja">CC BY 4.0</a> です（出典を書けば、営利でも加工しても使えます。表示の例: 「carcassonne-research 人との対局データ（CC BY 4.0）」とこのサイトへのリンク）。</p>
+  <div class="next">
+    <a href="human_games.json" download>全局をダウンロード（JSON）</a>
+    <a class="sub" href="https://github.com/satou-aaaaa/carcassonne-research/blob/main/data/human_games.jsonl">元のファイル（GitHub、1局1行）</a>
+  </div>
+  <p class="note">1局の形: <code>v</code> 版（1）、<code>deck</code> 山札の並び（基本セットの最初のタイルを除く71枚、タイルの種類の番号）、<code>moves</code> 指し手 [x, y, 向き, ミープルを置いた場所（−1 は置かない）]、<code>human_seat</code> 人の席（0 先手・1 後手）、<code>level</code> AIの強さ、<code>ai</code> AIの版、<code>coach</code> 初心者モード、<code>hints</code> ヒントの回数、<code>undos</code> 待ったの回数、<code>scores</code> 終局の得点 [先手, 後手]。タイルの種類の番号は <a href="https://github.com/satou-aaaaa/carcassonne-research/blob/main/data/tiles.json">data/tiles.json</a> の並び順（0 から）です。棋譜は消さずに残し、週に一度、控えを別の場所（GitHub の Release）にも取っています。</p>
+  <p class="note">送る前に <a href="terms.html">利用規約・データの扱い</a> を読んでください。送った棋譜は公開され、あとから消すことはできません。</p>
+</section>
+
 <section id="how">
   <h2>対局を送るには・自分の対局を見るには</h2>
-  <p>対戦ページで1局指し終えると、結果の欄に「棋譜を送る（アカウント不要）」が出ます。届いた棋譜はルールどおりか確かめてから、毎朝この一覧に足しています。送るのは山札・指し手・得点・AIの強さだけで、名前は入りません。</p>
+  <p>対戦ページで1局指し終えると、結果の欄に「規約に同意して送る（アカウント不要）」が出ます。届いた棋譜はルールどおりか確かめてから、毎朝この一覧に足しています。送るのは山札・指し手・得点・AIの強さだけで、名前は入りません。</p>
   <p>送るかどうかは自由です。送らなくても、対戦も自分の対局の再生も、これまでどおり使えます。</p>
   <p>自分の対局は、送らなくても対戦ページの「棋譜を再生」から見られます（このブラウザに最近の20局が残ります）。「再生リンクをコピー」で、友だちに見せることもできます。</p>
   <div class="next">

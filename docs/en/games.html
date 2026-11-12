@@ -145,6 +145,17 @@ summary { padding-block: 6px; }
   <p>People play differently from the AI, so their games show it positions it has not learned yet. The positions from every game received are mixed into each round of self-play training. Moves after which the AI's own estimate dropped sharply (moves it had not seen coming) are collected in the <a href="https://github.com/satou-aaaaa/carcassonne-research/blob/main/docs/results/human_games.md">weakness report</a> (GitHub, Japanese) and used as clues to improve it.</p>
 </section>
 
+<section id="data">
+  <h2>Download and use the data</h2>
+  <p>Anyone can download the collected game records and use them for research or learning. The license is <a href="https://creativecommons.org/licenses/by/4.0/deed.en">CC BY 4.0</a> (you may use them commercially and adapt them as long as you give attribution; for example "carcassonne-research human-vs-AI game data (CC BY 4.0)" with a link to this site).</p>
+  <div class="next">
+    <a href="../human_games.json" download>Download all games (JSON)</a>
+    <a class="sub" href="https://github.com/satou-aaaaa/carcassonne-research/blob/main/data/human_games.jsonl">Source file (GitHub, one game per line)</a>
+  </div>
+  <p class="note">Format of one game: <code>v</code> version (1), <code>deck</code> deck order (the 71 tiles of the base game other than the start tile, as tile type numbers), <code>moves</code> moves [x, y, rotation, meeple spot (−1 for none)], <code>human_seat</code> the human's seat (0 first, 1 second), <code>level</code> AI level, <code>ai</code> AI version, <code>coach</code> beginner mode, <code>hints</code> number of hints, <code>undos</code> number of undos, <code>scores</code> final scores [first, second]. Tile type numbers follow the order in <a href="https://github.com/satou-aaaaa/carcassonne-research/blob/main/data/tiles.json">data/tiles.json</a> (from 0). Records are never deleted, and a weekly backup is also kept elsewhere (a GitHub Release).</p>
+  <p class="note">Please read the <a href="terms.html">Terms of Use and Data</a> before sending. Games you send are published and cannot be removed later.</p>
+</section>
+
 <section id="how">
   <h2>Sending a game, and replaying your own</h2>
   <p>When you finish a game on the play page, the result panel shows a button to send the game record (no account needed). Records are checked against the rules and added to this list every morning. Only the deck, the moves, the scores and the AI level are sent; no names.</p>

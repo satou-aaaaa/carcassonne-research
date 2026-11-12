@@ -12,5 +12,6 @@
  "AIとの対戦はインストール不要で、AIはお使いのブラウザの中で考えます（最強設定は1手に数秒かかることがあります）。ルールは基本セット（72枚）の現行ルールです。": "Playing the AI needs no installation; the AI thinks inside your browser (the strongest setting can take a few seconds per move). The rules are the current rules of the base game (72 tiles).",
  "<b>数字で見るカルカソンヌ</b><small>先手はどれくらい有利？ 点はどこから来る？ 強いAI同士の対局から測ったデータと、チェス・囲碁など他のゲームとの比較。</small>": "<b>Carcassonne by the Numbers</b><small>How big is the first-player advantage? Where do the points come from? Data from games between strong AIs, compared with chess, Go and other games.</small>",
  "ほかの人がAIと指した対局を、盤面で一手ずつ再生して見られます。": "Replay games other players played against the AI, move by move on the board.",
- "みんなの対局": "Community Games"
+ "みんなの対局": "Community Games",
+ "対戦ページから送ってもらう棋譜の公開・利用とデータのライセンスは <a href=\"terms.html\">利用規約・データの扱い</a> にまとめています。「カルカソンヌ」は Hans im Glück の商標で、このサイトは非公式のファンサイトです。": "How game records sent from the play page are published and used, and the data license, are set out in the <a href=\"terms.html\">Terms of Use and Data</a>. \"Carcassonne\" is a trademark of Hans im Glück; this is an unofficial fan site."
 }

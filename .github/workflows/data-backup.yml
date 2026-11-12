@@ -1,0 +1,51 @@
+name: Data backup
+
+# 集めた対局データ（人が送ってくれた棋譜 data/human_games.jsonl）の控えを、週に一度 GitHub の Release
+# 「data-backup」に足す。main のファイルが誤って消えても、ここから戻せる（2026-11-12 satou「データが紛失したら困る」）。
+# 中身が前の控えと同じなら足さない。古い控えは消さない（ファイル名は human_games-<中身の sha256 の先頭8桁>-<日付>.jsonl）。
+# main で棋譜が減る変更は test.yml の data ジョブ（scripts/check_data_append_only.py）が止める。
+
+on:
+  schedule:
+    - cron: "41 20 * * 0" # 毎週月曜 5:41 JST
+  workflow_dispatch:
+
+concurrency:
+  group: data-backup
+  cancel-in-progress: false
+
+permissions:
+  contents: write # Release を作り、控えを足す
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - name: 控えを Release に足す
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          source scripts/gh_retry.sh
+          f=data/human_games.jsonl
+          if [ ! -s "$f" ]; then
+            echo "まだ棋譜がありません"
+            exit 0
+          fi
+          sum=$(sha256sum "$f" | cut -c1-8)
+          if ! gh release view data-backup > /dev/null 2>&1; then
+            ghr gh release create data-backup --latest=false --title "対局データの控え（自動）" \
+              --notes "data/human_games.jsonl の週ごとの控え（.github/workflows/data-backup.yml）。消さないでください。ライセンスは CC BY 4.0。"
+          fi
+          if ghr gh release view data-backup --json assets --jq '.assets[].name' | grep -q -- "-$sum-"; then
+            echo "中身が同じ控えがもうあります（$sum）"
+            exit 0
+          fi
+          name="human_games-$sum-$(date -u +%Y-%m-%d).jsonl"
+          cp "$f" "$name"
+          ghr gh release upload data-backup "$name" --clobber
+          echo "控えを足しました: $name（$(wc -l < "$f") 局）"

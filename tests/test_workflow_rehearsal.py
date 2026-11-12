@@ -38,6 +38,7 @@ REHEARSED = {
         "棋譜を検査して足す",
         "Issue に結果を書いて閉じる",
     ],
+    "data-backup.yml": ["控えを Release に足す"],
 }
 
 GH_BODY_MAX = 65536  # GitHub の Issue・PR・コメントの本文の上限
@@ -73,6 +74,12 @@ case "$1 $2" in
   "issue edit") write_once edit ;;
   "issue comment") write_once comment ;;
   "workflow run") write_once dispatch ;;
+  # 対局データの控え（data-backup.yml）。FAKE_RELEASE があれば Release はもうある、FAKE_ASSETS はその中のファイル名
+  "release view")
+    if [[ " $* " == *" --json "* ]]; then printf '%s\n' ${FAKE_ASSETS:-}
+    elif [ -z "${FAKE_RELEASE:-}" ] && [ ! -e "$GH_LOG.release" ]; then echo "release not found" >&2; exit 1; fi ;;
+  "release create") touch "$GH_LOG.release" ;;
+  "release upload") write_once upload ;;
   "api repos/o/r/issues?state=open&per_page=100")
     # 開いている Issue を探す：前からある知らせは FAKE_OPEN の番号で答える
     jq=""; for ((i = 0; i < ${#args[@]}; i++)); do [ "${args[i]}" = --jq ] && jq=${args[i+1]}; done
@@ -298,3 +305,37 @@ def test_human_games_answers_and_closes_issue(tmp_path: Path, status: str, reaso
     assert r.returncode == 0, r.stdout + r.stderr
     assert log.count("gh issue comment 12") == 2, log  # 504 を1回やり直す
     assert f"gh issue close 12 --reason {reason}" in log, log
+
+
+@pytest.mark.parametrize("has_release", [False, True])
+def test_data_backup_uploads_once(tmp_path: Path, has_release: bool) -> None:
+    """棋譜の控えを Release に足す。Release が無ければ作る。504 でもやり直して足す。"""
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data" / "human_games.jsonl").write_text('{"v":1}\n')
+    env = {"FAKE_RELEASE": "1"} if has_release else {}
+    r, log = rehearse(tmp_path, "data-backup.yml", "控えを Release に足す", **env)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert ("gh release create data-backup" in log) is (not has_release), log
+    assert log.count("gh release upload data-backup human_games-") == 2, log  # 504 を1回やり直す
+    assert "控えを足しました" in r.stdout
+
+
+def test_data_backup_skips_same_content_and_empty(tmp_path: Path) -> None:
+    """中身が同じ控えがもうあれば足さない。棋譜がまだ無ければ何もしない。"""
+    import hashlib
+
+    (tmp_path / "data").mkdir()
+    r, log = rehearse(tmp_path, "data-backup.yml", "控えを Release に足す")
+    assert r.returncode == 0 and "まだ棋譜がありません" in r.stdout and log == "", log
+    body = '{"v":1}\n'
+    (tmp_path / "data" / "human_games.jsonl").write_text(body)
+    sum8 = hashlib.sha256(body.encode()).hexdigest()[:8]
+    r, log = rehearse(
+        tmp_path,
+        "data-backup.yml",
+        "控えを Release に足す",
+        FAKE_RELEASE="1",
+        FAKE_ASSETS=f"human_games-{sum8}-2026-11-09.jsonl",
+    )
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "release upload" not in log and "中身が同じ控え" in r.stdout, log
