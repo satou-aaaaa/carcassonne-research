@@ -15,7 +15,10 @@
     if (moves.length === 1) return moves[0];
     const lv = data.levels[level];
     if (!lv.sims) return eng.greedy(S);
-    return eng.search(S, searchOpts(data, lv));
+    const move = eng.search(S, searchOpts(data, lv));
+    // 山札の残りが少なければ、終局まで読み切った勝率最大の手で指す（FastMCTSAgent の endgame）
+    if (lv.eg && eng.bagLeft(S) <= lv.eg) return eng.endgameBest(S, move)[0];
+    return move;
   }
   function searchOpts(data, lv) {
     return { sims: lv.sims, depth: lv.depth, c: 0.5, scale: 30, meepleProb: 0.3, w: Float64Array.from(data.eval.w), rsel: lv.rsel || 0, rk: lv.rk || 6, rr: !!lv.rr };

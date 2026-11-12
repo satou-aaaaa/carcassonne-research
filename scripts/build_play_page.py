@@ -32,7 +32,7 @@ from i18n import lang_link, leftover, translate, write_pair
 from carcassonne.fast import build_tables
 from carcassonne.fast_eval import NF, load_eval
 from carcassonne.tiles import load_tileset
-from carcassonne.webplay import RESELECT, tile_library
+from carcassonne.webplay import ENDGAME, RESELECT, tile_library
 
 DOCS = ROOT / "docs"
 WEB = ROOT / "web"
@@ -57,12 +57,14 @@ LEVELS = {
         "sims": 12000,
         "depth": 10,
         **RESELECT,  # 相手の返し手まで読む選び直し（webplay.make_agent と同じ）
+        "eg": ENDGAME,  # 終盤は読み切った勝率最大の手（webplay.make_agent と同じ）
     },
     "standard": {
         "label": "標準（探索を減らした版。すぐ指す）",
         "sims": 2000,
         "depth": 0,
         **RESELECT,
+        "eg": ENDGAME,
     },
     "greedy": {"label": "やさしい（目先の点だけを見る練習相手）"},
 }

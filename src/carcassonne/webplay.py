@@ -25,13 +25,16 @@ from .tiles import load_tileset
 ROOT = Path(__file__).resolve().parents[2]
 KIND_JA = {"C": "都市", "R": "道", "F": "草原", "M": "修道院"}
 LEVELS = {
-    "strong": "最強（MCTS 12000回＋短いロールアウト10手＋評価関数＋相手の返し手まで読む選び直し）",
-    "standard": "標準（MCTS 2000回＋評価関数＋相手の返し手まで読む選び直し）",
+    "strong": "最強（MCTS 12000回＋短いロールアウト10手＋評価関数＋相手の返し手まで読む選び直し＋終盤3枚の読み切り）",
+    "standard": "標準（MCTS 2000回＋評価関数＋相手の返し手まで読む選び直し＋終盤3枚の読み切り）",
     "greedy": "貪欲法（練習用）",
 }
 
 # 選び直しの設定（最強・標準とも。scripts/build_play_page.py のブラウザ版もこれを使う）
 RESELECT = {"rsel": 0.5, "rk": 6, "rr": 1}
+# 山札の残りがこの枚数以下なら、終局まで読み切った勝率最大の手（GTO）で指す（最強・標準とも。
+# docs/EXPERIMENTS.md「終盤の厳密解（GTO）」。ブラウザ版も同じ設定）
+ENDGAME = 3
 
 
 def best_eval_path() -> str:
@@ -74,6 +77,7 @@ def make_agent(level: str):
     return FastMCTSAgent(
         n_sims=sims, rollout_depth=depth, eval_path=champion_eval_path(),
         reselect=RESELECT["rsel"], reselect_k=RESELECT["rk"], reselect_reply=bool(RESELECT["rr"]),
+        endgame=ENDGAME,
     )  # fmt: skip
 
 

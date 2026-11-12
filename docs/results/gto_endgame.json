@@ -1,0 +1,64 @@
+{
+ "ai": "gen1144",
+ "source": "gto_endgame.jsonl",
+ "games": 400,
+ "all": {
+  "positions": 1600,
+  "decisive": 243,
+  "champ_optimal": 208,
+  "record_optimal": 193,
+  "champ_loss": 11.25
+ },
+ "by_bag": {
+  "0": {
+   "positions": 400,
+   "decisive": 37,
+   "champ_optimal": 37,
+   "record_optimal": 35,
+   "champ_loss": 0.0
+  },
+  "1": {
+   "positions": 400,
+   "decisive": 38,
+   "champ_optimal": 38,
+   "record_optimal": 35,
+   "champ_loss": 0.0
+  },
+  "2": {
+   "positions": 400,
+   "decisive": 67,
+   "champ_optimal": 56,
+   "record_optimal": 53,
+   "champ_loss": 5.25
+  },
+  "3": {
+   "positions": 400,
+   "decisive": 101,
+   "champ_optimal": 77,
+   "record_optimal": 70,
+   "champ_loss": 6.0
+  }
+ },
+ "by_lead": {
+  "close": {
+   "positions": 1111,
+   "decisive": 220,
+   "champ_optimal": 187,
+   "record_optimal": 174,
+   "champ_loss": 10.583333
+  },
+  "far": {
+   "positions": 489,
+   "decisive": 23,
+   "champ_optimal": 21,
+   "record_optimal": 19,
+   "champ_loss": 0.666667
+  }
+ },
+ "diff_vs_win": {
+  "positions": 1200,
+  "conflict": 5,
+  "max_bag": 2
+ },
+ "champ_loss_per_game": 0.028125
+}
