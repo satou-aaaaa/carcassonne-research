@@ -15,6 +15,7 @@ PAGES = [
     ("ai_tips.html", "強いAIのコツ"),
     ("quiz.html", "次の一手クイズ"),
     ("stats.html", "データで見る"),
+    ("games.html", "みんなの対局"),
     ("play.html", "AIと対戦"),
 ]
 HOME = {"ja": "カルカソンヌ入門", "en": "Carcassonne Primer"}
@@ -25,6 +26,7 @@ PAGES_EN = [
     ("ai_tips.html", "Lessons from the AI"),
     ("quiz.html", "Next-Move Quiz"),
     ("stats.html", "By the Numbers"),
+    ("games.html", "Community Games"),
     ("play.html", "Play the AI"),
 ]
 

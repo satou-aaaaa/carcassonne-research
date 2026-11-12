@@ -46,7 +46,7 @@
 
 - **自分の対局**: 終局すると「この対局を再生」が出る。終わった対局はこのブラウザに最近の20局まで残る（localStorage、名前は入れない）。保存した棋譜ファイルも開ける。
 - **再生リンク**: `play.html#rec=…`（棋譜の JSON を base64url）。サーバーには何も送らず、リンクを開いた人のブラウザで再生する。
-- **みんなの対局**: 送ってもらった棋譜の一覧 `docs/human_games.json`（`scripts/human_games.py report` が名前などを落とした検査済みの形で書く）。`play.html#replay=3&ply=20` で3局目の20手目から。`human_games.md` の各局・「大きく下がった手」からもこのリンクで開ける。
+- **みんなの対局**（`docs/games.html`、`scripts/build_games_page.py`。開いたときに一覧を読むので棋譜が増えても作り直し不要）: 送ってもらった棋譜の一覧 `docs/human_games.json`（`scripts/human_games.py report` が名前などを落とした検査済みの形で書く）。`play.html#replay=3&ply=20` で3局目の20手目から。`human_games.md` の各局・「大きく下がった手」からもこのリンクで開ける。
 
 ## 測定の手順（推奨）
 

@@ -78,8 +78,8 @@
   #replayBar[hidden] { display:none; }
   #replayBar .row { align-items:center; justify-content:space-between; flex-wrap:nowrap; }
   #replayBar button { min-width:44px; min-height:40px; }
-  #recList, #pubList { display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow:auto; }
-  #recList button, #pubList button { text-align:left; }
+  #recList { display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow:auto; }
+  #recList button { text-align:left; }
   #recDlg .note { font-size:13px; color:var(--muted); margin:0 0 8px; }
   #rpPos { font-size:14px; font-weight:600; text-align:center; flex:1; }
   #rpRange { width:100%; }
@@ -137,7 +137,7 @@
   </div>
 </div>
 <aside>
-  <div id="home" class="local-only"><nav aria-label="Site pages"><a href="index.html">← Carcassonne Primer</a><a href="rules.html">Rules</a><a href="strategy.html">Strategy</a><a href="ai_tips.html">Lessons from the AI</a><a href="quiz.html">Next-Move Quiz</a><a href="stats.html">By the Numbers</a><a class="lang" href="../play.html" hreflang="ja" lang="ja" data-lang="ja" title="日本語に切り替え">日本語</a></nav>The AI thinks inside your browser.<br><a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>&nbsp;Support this site on Ko-fi</a></div>
+  <div id="home" class="local-only"><nav aria-label="Site pages"><a href="index.html">← Carcassonne Primer</a><a href="rules.html">Rules</a><a href="strategy.html">Strategy</a><a href="ai_tips.html">Lessons from the AI</a><a href="quiz.html">Next-Move Quiz</a><a href="stats.html">By the Numbers</a><a href="games.html">Community Games</a><a class="lang" href="../play.html" hreflang="ja" lang="ja" data-lang="ja" title="日本語に切り替え">日本語</a></nav>The AI thinks inside your browser.<br><a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>&nbsp;Support this site on Ko-fi</a></div>
   <div class="row">
     <button class="primary" id="btnNew">New game</button>
     <button id="btnRematch" hidden>Rematch, same tiles, seats swapped</button>
@@ -214,9 +214,7 @@
     <p class="note">Games recently finished in this browser (newest first). Tap one to replay it move by move.</p>
     <div id="recList"></div>
     <div class="row" style="margin-top:10px"><button type="button" id="btnRecFile">Open a file</button></div>
-    <h4>Everyone's games</h4>
-    <p class="note">Game records people sent in for research (no names included).</p>
-    <div id="pubList"></div>
+    <p class="note" style="margin-top:12px">Other players' games can be replayed on the <a href="games.html">Community Games</a> page.</p>
     <div class="row" style="margin-top:14px;justify-content:flex-end"><button value="close">Close</button></div>
   </form>
 </dialog>
@@ -1151,19 +1149,6 @@ function showRecent() {
     box.appendChild(b);
   }
   $("recDlg").showModal();
-  const pub = $("pubList");
-  pub.textContent = "Loading…";
-  fetch(PUBLIC_GAMES).then(x => x.json()).then(games => {
-    pub.innerHTML = "";
-    if (!games.length) pub.textContent = "None yet";
-    games.forEach((r, i) => {
-      const h = r.human_seat, b = document.createElement("button");
-      b.type = "button";
-      b.textContent = `Game ${i + 1}  Human ${r.scores[h]} − AI ${r.scores[1 - h]} (${levelShort(r.level)})`;
-      b.onclick = () => { $("recDlg").close(); const h = `#replay=${i + 1}`; if (location.hash === h) openFromHash(); else location.hash = h; };
-      pub.appendChild(b);
-    });
-  }).catch(() => { pub.textContent = "Could not load"; });
 }
 async function replayGoto(ply) {
   if (!G || !G.replay || busy) return;

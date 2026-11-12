@@ -7,7 +7,6 @@
  "－": "−",
  "全体を表示": "Fit board",
  "サイト内のページ": "Site pages",
- "<a href=\"index.html\">← カルカソンヌ入門</a><a href=\"rules.html\">ルール入門</a><a href=\"strategy.html\">戦略ガイド</a><a href=\"ai_tips.html\">強いAIのコツ</a><a href=\"quiz.html\">次の一手クイズ</a><a href=\"stats.html\">データで見る</a>": "<a href=\"index.html\">← Carcassonne Primer</a><a href=\"rules.html\">Rules</a><a href=\"strategy.html\">Strategy</a><a href=\"ai_tips.html\">Lessons from the AI</a><a href=\"quiz.html\">Next-Move Quiz</a><a href=\"stats.html\">By the Numbers</a>",
  "AIはこのブラウザの中で考えます。": "The AI thinks inside your browser.",
  "新しい対局": "New game",
  "同じ山札で席替え再戦": "Rematch, same tiles, seats swapped",
@@ -135,8 +134,6 @@
  "再生を終える": "Stop replay",
  "このブラウザで最近終わった対局（新しい順）。押すと一手ずつ再生できます。": "Games recently finished in this browser (newest first). Tap one to replay it move by move.",
  "ファイルから開く": "Open a file",
- "みんなの対局": "Everyone's games",
- "研究用に送ってもらった棋譜（名前は入っていません）。": "Game records people sent in for research (no names included).",
  "閉じる": "Close",
  "人": "Human",
  "${r.ply} / ${r.total} 手目": "Move ${r.ply} / ${r.total}",
@@ -148,10 +145,9 @@
  "このリンクをコピーしてください": "Copy this link",
  "棋譜を開けませんでした:": "Could not open the game record:",
  "まだありません（対局が終わるとここに残ります）": "None yet (finished games are kept here)",
- "まだありません": "None yet",
- "読み込めませんでした": "Could not load",
  "棋譜を読めませんでした:": "Could not read the game record:",
  "${m[1]}局目はありません": "There is no game ${m[1]}",
  "${new Date(g.t).toLocaleString()}  ${r.scores[h]} − ${r.scores[1 - h]}（AI: ${levelShort(r.level)}）": "${new Date(g.t).toLocaleString()}  ${r.scores[h]} − ${r.scores[1 - h]} (AI: ${levelShort(r.level)})",
- "${i + 1}局目  人 ${r.scores[h]} − AI ${r.scores[1 - h]}（${levelShort(r.level)}）": "Game ${i + 1}  Human ${r.scores[h]} − AI ${r.scores[1 - h]} (${levelShort(r.level)})"
+ "ほかの人の対局は <a href=\"games.html\">みんなの対局</a> のページから再生できます。": "Other players' games can be replayed on the <a href=\"games.html\">Community Games</a> page.",
+ "<a href=\"index.html\">← カルカソンヌ入門</a><a href=\"rules.html\">ルール入門</a><a href=\"strategy.html\">戦略ガイド</a><a href=\"ai_tips.html\">強いAIのコツ</a><a href=\"quiz.html\">次の一手クイズ</a><a href=\"stats.html\">データで見る</a><a href=\"games.html\">みんなの対局</a>": "<a href=\"index.html\">← Carcassonne Primer</a><a href=\"rules.html\">Rules</a><a href=\"strategy.html\">Strategy</a><a href=\"ai_tips.html\">Lessons from the AI</a><a href=\"quiz.html\">Next-Move Quiz</a><a href=\"stats.html\">By the Numbers</a><a href=\"games.html\">Community Games</a>"
 }

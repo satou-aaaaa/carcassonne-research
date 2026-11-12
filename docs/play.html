@@ -78,8 +78,8 @@
   #replayBar[hidden] { display:none; }
   #replayBar .row { align-items:center; justify-content:space-between; flex-wrap:nowrap; }
   #replayBar button { min-width:44px; min-height:40px; }
-  #recList, #pubList { display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow:auto; }
-  #recList button, #pubList button { text-align:left; }
+  #recList { display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow:auto; }
+  #recList button { text-align:left; }
   #recDlg .note { font-size:13px; color:var(--muted); margin:0 0 8px; }
   #rpPos { font-size:14px; font-weight:600; text-align:center; flex:1; }
   #rpRange { width:100%; }
@@ -137,7 +137,7 @@
   </div>
 </div>
 <aside>
-  <div id="home" class="local-only"><nav aria-label="サイト内のページ"><a href="index.html">← カルカソンヌ入門</a><a href="rules.html">ルール入門</a><a href="strategy.html">戦略ガイド</a><a href="ai_tips.html">強いAIのコツ</a><a href="quiz.html">次の一手クイズ</a><a href="stats.html">データで見る</a><a class="lang" href="en/play.html" hreflang="en" lang="en" data-lang="en" title="Switch to English">English</a></nav>AIはこのブラウザの中で考えます。<br><a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>&nbsp;Ko-fiでこのサイトを応援する</a></div>
+  <div id="home" class="local-only"><nav aria-label="サイト内のページ"><a href="index.html">← カルカソンヌ入門</a><a href="rules.html">ルール入門</a><a href="strategy.html">戦略ガイド</a><a href="ai_tips.html">強いAIのコツ</a><a href="quiz.html">次の一手クイズ</a><a href="stats.html">データで見る</a><a href="games.html">みんなの対局</a><a class="lang" href="en/play.html" hreflang="en" lang="en" data-lang="en" title="Switch to English">English</a></nav>AIはこのブラウザの中で考えます。<br><a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>&nbsp;Ko-fiでこのサイトを応援する</a></div>
   <div class="row">
     <button class="primary" id="btnNew">新しい対局</button>
     <button id="btnRematch" hidden>同じ山札で席替え再戦</button>
@@ -214,9 +214,7 @@
     <p class="note">このブラウザで最近終わった対局（新しい順）。押すと一手ずつ再生できます。</p>
     <div id="recList"></div>
     <div class="row" style="margin-top:10px"><button type="button" id="btnRecFile">ファイルから開く</button></div>
-    <h4>みんなの対局</h4>
-    <p class="note">研究用に送ってもらった棋譜（名前は入っていません）。</p>
-    <div id="pubList"></div>
+    <p class="note" style="margin-top:12px">ほかの人の対局は <a href="games.html">みんなの対局</a> のページから再生できます。</p>
     <div class="row" style="margin-top:14px;justify-content:flex-end"><button value="close">閉じる</button></div>
   </form>
 </dialog>
@@ -1151,19 +1149,6 @@ function showRecent() {
     box.appendChild(b);
   }
   $("recDlg").showModal();
-  const pub = $("pubList");
-  pub.textContent = "読み込み中…";
-  fetch(PUBLIC_GAMES).then(x => x.json()).then(games => {
-    pub.innerHTML = "";
-    if (!games.length) pub.textContent = "まだありません";
-    games.forEach((r, i) => {
-      const h = r.human_seat, b = document.createElement("button");
-      b.type = "button";
-      b.textContent = `${i + 1}局目  人 ${r.scores[h]} − AI ${r.scores[1 - h]}（${levelShort(r.level)}）`;
-      b.onclick = () => { $("recDlg").close(); const h = `#replay=${i + 1}`; if (location.hash === h) openFromHash(); else location.hash = h; };
-      pub.appendChild(b);
-    });
-  }).catch(() => { pub.textContent = "読み込めませんでした"; });
 }
 async function replayGoto(ply) {
   if (!G || !G.replay || busy) return;
