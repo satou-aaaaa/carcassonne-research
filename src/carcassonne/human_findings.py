@@ -142,3 +142,88 @@ def top_phase(s: dict) -> str | None:
     if not s["bad_moves"] or not rows:
         return None
     return max(rows, key=lambda kv: kv[1])[0]
+
+
+# X（小江戸カルカソンヌ部）向けの下書き。集計がたまるたびに human-games.yml が Issue で届ける（投稿は人がする）
+CAT_JA = {
+    "no_meeple": "ミープルを置かなかった（AIは置く）",
+    "extra_meeple": "ミープルを置いた（AIは温存）",
+    "other_feature": "ミープルの置き先の種類が違う",
+    "placement": "タイルの置き場所・向きが違う",
+    "unexplored": "AIがほとんど考えなかった手",
+}
+PHASE_JA = {"early": "序盤", "middle": "中盤", "late": "終盤"}
+KIND_JA = {"C": "都市", "R": "道", "F": "草原", "M": "修道院"}
+SITE = "https://satou-aaaaa.github.io/carcassonne-research/"
+STEP = 10  # この局数ごとに下書きを届ける
+
+
+def x_weight(text: str) -> int:
+    """X の文字数の数え方（URL は23、CJK などは2、ほかは1。上限280）。"""
+    import re
+
+    w = 0
+    for tok in re.split(r"(https?://\S+)", text):
+        if tok.startswith("http"):
+            w += 23
+        else:
+            w += sum(1 if ord(c) < 0x1100 else 2 for c in tok)
+    return w
+
+
+def milestone(n_games: int) -> int:
+    """下書きを届ける区切り（10局・20局…）。まだ届かなければ0。"""
+    return n_games // STEP * STEP
+
+
+def x_posts(s: dict) -> list[str]:
+    """集計から X の投稿文の下書きを作る（研究ノートの更新と、次の一手クイズ）。"""
+    n = s["games"]
+    lead = (
+        "失点の多くは小さな損の積み重ねでした。"
+        if (s["loss_small_per_game"] or 0) > (s["loss_bad_per_game"] or 0)
+        else "失点の多くは少数の大きな悪手からでした。"
+    )
+
+    def note(extra: str) -> str:
+        return (
+            f"【研究ノート更新：届いた対局{n}局】\n"
+            f"人の手を最強AIで採点。1局の悪手は平均{s['bad_per_game']}手、"
+            f"多いのは「{CAT_JA[top_cat(s)]}」、出やすいのは{PHASE_JA[top_phase(s)]}。{extra}\n"
+            "棋譜を送ってくださった皆さん、ありがとうございます！\n"
+            f"{SITE}games.html#findings\n#カルカソンヌ"
+        )
+
+    posts = [note(lead) if x_weight(note(lead)) <= 280 else note("")]
+    if s["worst"]:
+        w = s["worst"][0]
+        mine = KIND_JA[w["mine"]] + "にミープル" if w["mine"] else "ミープルなし"
+        best = KIND_JA[w["best"]] + "にミープル" if w["best"] else "ミープルは置かずに温存"
+        posts.append(
+            "【この1手、どうする？】\n"
+            f"届いた対局から、いちばん損が大きかった場面です（{w['ply']}手目）。\n"
+            f"答え: 人は「{mine}」、最強AIなら「{best}」。差は約{w['loss']:.0f}点という見積もりでした。\n"
+            f"盤面を再生👇\n{SITE}play.html#replay={w['game']}&ply={w['ply'] - 1}\n#カルカソンヌ"
+        )
+    return posts
+
+
+def x_issue_body(s: dict) -> str:
+    """Issue の本文（下書きと画像の案）。"""
+    parts = [
+        (
+            f"届いた対局が {s['games']} 局になったので、X（小江戸カルカソンヌ部）向けの投稿文の下書きを作りました。"
+            "投稿は人がしてください（このワークフローは投稿しません）。数字は docs/human_findings.json から作っています。"
+        ),
+        "",
+    ]
+    for i, p in enumerate(x_posts(s), 1):
+        parts += [f"### 下書き {i}（{x_weight(p)}/280）", "", "```", p, "```", ""]
+    parts += [
+        "画像の案:",
+        f"- 下書き1: みんなの対局ページの研究ノート欄（{SITE}games.html#findings）のスクリーンショット",
+        "- 下書き2: リンク先の盤面（引いたタイルが見える状態）のスクリーンショット。答えは画像に入れない",
+        "",
+        "投稿したら、この Issue を閉じてください。",
+    ]
+    return "\n".join(parts) + "\n"

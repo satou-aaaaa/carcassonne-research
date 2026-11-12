@@ -113,3 +113,17 @@ jobs:
           git add data/human_games.jsonl docs/results/human_games.md docs/human_games.json docs/human_findings.json docs/results/human_findings_cache.json
           git commit -q -m "人との対局の棋譜をフォームから $added 局受け取る（自動）"
           bash scripts/merge_via_pr.sh human-games "人との対局の棋譜をフォームから $added 局受け取る（自動）"
+      - name: 10局たまったら X 投稿の下書きを Issue で届ける
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # 区切り（10局・20局…）ごとに1件。投稿は人がする。閉じたもの（投稿済み）も含め同じ題があれば作らない
+          # Issue で届いた局も、次の朝のこの手順で数える
+          source scripts/gh_retry.sh
+          python scripts/human_games.py x-draft --title xtitle.txt --body xdraft.md
+          title=$(cat xtitle.txt)
+          [ -n "$title" ] || exit 0
+          seen=$(ghr gh api "repos/$GITHUB_REPOSITORY/issues?state=all&per_page=100" --paginate \
+            --jq "[.[] | select(.title == \"$title\")] | length" | awk '{s += $1} END {print s + 0}')
+          [ "$seen" -gt 0 ] && exit 0
+          gh_issue_create_once "$title" xdraft.md > /dev/null
