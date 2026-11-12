@@ -37,9 +37,9 @@ REHEARSED = {
     "human-games.yml": [
         "棋譜を検査して足す",
         "Issue に結果を書いて閉じる",
-        "削除の依頼を Issue で知らせる",
         "10局たまったら X 投稿の下書きを Issue で届ける",
     ],
+    "data-backup.yml": ["控えを Release に足す"],
 }
 
 GH_BODY_MAX = 65536  # GitHub の Issue・PR・コメントの本文の上限
@@ -75,6 +75,12 @@ case "$1 $2" in
   "issue edit") write_once edit ;;
   "issue comment") write_once comment ;;
   "workflow run") write_once dispatch ;;
+  # 対局データの控え（data-backup.yml）。FAKE_RELEASE があれば Release はもうある、FAKE_ASSETS はその中のファイル名
+  "release view")
+    if [[ " $* " == *" --json "* ]]; then printf '%s\n' ${FAKE_ASSETS:-}
+    elif [ -z "${FAKE_RELEASE:-}" ] && [ ! -e "$GH_LOG.release" ]; then echo "release not found" >&2; exit 1; fi ;;
+  "release create") touch "$GH_LOG.release" ;;
+  "release upload") write_once upload ;;
   "api repos/o/r/issues?state=open&per_page=100")
     # 開いている Issue を探す：前からある知らせは FAKE_OPEN の番号で答える
     jq=""; for ((i = 0; i < ${#args[@]}; i++)); do [ "${args[i]}" = --jq ] && jq=${args[i+1]}; done
@@ -82,7 +88,7 @@ case "$1 $2" in
       [ -e "$GH_LOG.created" ] && echo "https://github.com/o/r/issues/99"; true
     elif [ -n "${FAKE_OPEN:-}" ]; then echo "$FAKE_OPEN"; fi ;;
   "api repos/o/r/issues?state=all&per_page=100")
-    # 閉じたものも含めて同じ題の Issue の数（削除の依頼）。FAKE_SEEN の題だけあることにする
+    # 閉じたものも含めて同じ題の Issue の数（X の下書き）。FAKE_SEEN の題だけあることにする
     jq=""; for ((i = 0; i < ${#args[@]}; i++)); do [ "${args[i]}" = --jq ] && jq=${args[i+1]}; done
     if [ -n "${FAKE_SEEN:-}" ] && [[ "$jq" == *"$FAKE_SEEN"* ]]; then echo 1; else echo 0; fi ;;
   "api repos/o/r/issues/"[0-9]*) echo '{"issue": {"number": 12, "body": "棋譜"}}' ;;  # 1件の Issue（--jq 済みの形）
@@ -306,29 +312,38 @@ def test_human_games_answers_and_closes_issue(tmp_path: Path, status: str, reaso
     assert f"gh issue close 12 --reason {reason}" in log, log
 
 
-def test_human_games_deletion_request_opens_issue_once(tmp_path: Path) -> None:
-    """フォームの削除の依頼ごとに Issue を1件。もう同じ題があれば（閉じていても）作らない。504 でも2件にしない。"""
-    (tmp_path / "scripts").mkdir()
-    (tmp_path / "scripts" / "human_games.py").write_text(
-        "import sys\nprint('依頼の本文', sys.argv[-1])\n", encoding="utf-8"
-    )
-    reqs = [{"game": 3, "ts": "2026/11/12 3:00:00"}, {"game": 5, "ts": "2026/11/13 4:00:00"}]
-    (tmp_path / "result.json").write_text(json.dumps({"added": 0, "delete": reqs}))
+@pytest.mark.parametrize("has_release", [False, True])
+def test_data_backup_uploads_once(tmp_path: Path, has_release: bool) -> None:
+    """棋譜の控えを Release に足す。Release が無ければ作る。504 でもやり直して足す。"""
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data" / "human_games.jsonl").write_text('{"v":1}\n')
+    env = {"FAKE_RELEASE": "1"} if has_release else {}
+    r, log = rehearse(tmp_path, "data-backup.yml", "控えを Release に足す", **env)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert ("gh release create data-backup" in log) is (not has_release), log
+    assert log.count("gh release upload data-backup human_games-") == 2, log  # 504 を1回やり直す
+    assert "控えを足しました" in r.stdout
+
+
+def test_data_backup_skips_same_content_and_empty(tmp_path: Path) -> None:
+    """中身が同じ控えがもうあれば足さない。棋譜がまだ無ければ何もしない。"""
+    import hashlib
+
+    (tmp_path / "data").mkdir()
+    r, log = rehearse(tmp_path, "data-backup.yml", "控えを Release に足す")
+    assert r.returncode == 0 and "まだ棋譜がありません" in r.stdout and log == "", log
+    body = '{"v":1}\n'
+    (tmp_path / "data" / "human_games.jsonl").write_text(body)
+    sum8 = hashlib.sha256(body.encode()).hexdigest()[:8]
     r, log = rehearse(
         tmp_path,
-        "human-games.yml",
-        "削除の依頼を Issue で知らせる",
-        FAKE_SEEN="#5（2026/11/13 4:00:00",
+        "data-backup.yml",
+        "控えを Release に足す",
+        FAKE_RELEASE="1",
+        FAKE_ASSETS=f"human_games-{sum8}-2026-11-09.jsonl",
     )
     assert r.returncode == 0, r.stdout + r.stderr
-    # 504 のあと、できていた Issue を見つけて2件目を作らない
-    assert (
-        log.count("gh issue create --title 棋譜の削除依頼: #3（2026/11/12 3:00:00 受付）") == 1
-    ), log
-    assert "issue create --title 棋譜の削除依頼: #5" not in log, (
-        log
-    )  # 閉じた Issue があれば作らない
-    assert (tmp_path / "body.md").read_text(encoding="utf-8").startswith("依頼の本文 3"), log
+    assert "release upload" not in log and "中身が同じ控え" in r.stdout, log
 
 
 def _x_draft_stub(tmp_path: Path, title: str) -> None:

@@ -1031,13 +1031,13 @@ function resultHtml() {
 }
 // 終局後の「棋譜を送る」欄。Google フォーム（アカウント不要）は設定があるときだけ出す（data/human_games_form.json）
 function shareHtml() {
-  const form = REC_FORM ? `<button type="button" class="primary" id="btnFormRec">Send game (no account needed)</button>` : "";
+  const form = REC_FORM ? `<button type="button" class="primary" id="btnFormRec">Agree to the terms and send (no account needed)</button>` : "";
   const again = `<div class="row"><button type="button" id="btnReplayThis">Replay this game</button><button type="button" id="btnLinkThis">Copy replay link</button></div>`;
   return again + `<div class="share"><b>If you like, let us use your game for research (optional)</b><br>Games against people help us find the AI's weak spots and train it. Without sending, you can still play and replay as before.` +
-    `<p class="pubnote">Games you send are published on the <a href="games.html" target="_blank" rel="noopener">Community Games</a> page, where anyone can see them (no names are shown). If you later want it removed, you can ask on that page.</p>` +
-    `<div class="row">${form}<button type="button" id="btnSendRec">Send via GitHub</button><button type="button" id="btnSaveRec">Save as file</button></div>` +
+    `<p class="pubnote">Games you send are published on the <a href="games.html" target="_blank" rel="noopener">Community Games</a> page and become data anyone can see and use (CC BY 4.0). No names are shown, but games cannot be removed later. Before sending, please read the <a href="terms.html" target="_blank" rel="noopener">Terms of Use and Data</a> .</p>` +
+    `<div class="row">${form}<button type="button" id="btnSendRec">Agree to the terms and send via GitHub</button><button type="button" id="btnSaveRec">Save as file</button></div>` +
     `Only the tile order, moves, scores and AI level are sent; your name is not included. Check the content on the page that opens, then press its submit button.` +
-    (REC_FORM ? `“Send game” uses a Google Form: no account or email address needed.` : "") +
+    (REC_FORM ? `“Agree to the terms and send” uses a Google Form: no account or email address needed.` : "") +
     `Sending via GitHub makes the game record and your account name public. Saving as a file keeps it on your device without sending anything.</div>`;
 }
 const REC_FORM = window.PLAY_DATA ? window.PLAY_DATA.form : null;
@@ -1048,7 +1048,7 @@ function recordJson() { return JSON.stringify(G.record); }
 function recordIssueUrl() {
   const r = G.record, h = r.human_seat, a = 1 - h;
   const title = `[Game record] ${r.scores[h]} − ${r.scores[a]} (AI: ${r.level})`;
-  const body = "<!-- carcassonne-game-record -->\nA game record from the play page, for training the AI and finding its weak spots.\nRecords you send can be seen by anyone on the Community Games page (https://satou-aaaaa.github.io/carcassonne-research/en/games.html).\n\n```json\n" + recordJson() + "\n```\n";
+  const body = "<!-- carcassonne-game-record -->\nA game record from the play page, for training the AI and finding its weak spots.\nRecords you send are published on the Community Games page (https://satou-aaaaa.github.io/carcassonne-research/en/games.html) as data anyone can use under CC BY 4.0. I send this record agreeing to the terms (https://satou-aaaaa.github.io/carcassonne-research/en/terms.html).\n\n```json\n" + recordJson() + "\n```\n";
   return `${REC_REPO}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
 }
 $("result").addEventListener("click", e => {

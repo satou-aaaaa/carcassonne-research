@@ -16,3 +16,11 @@
 - 元データには都市辺上の半辺を草原に含める誤りが1タイル（`city_top_straight_road`）にあったため除外した。
 - 検証: 合計72枚・24種・盾付き10枚・修道院6枚・各タイルの半辺が草原にちょうど1回属すること
   （`tests/test_tiles.py`）。Wikipedia「Carcassonne (board game)」の枚数表とも全種で一致（合計72）。**印刷版ルールブック／現物との照合は未了。**
+
+## human_games.jsonl（人がAIと指した対局）
+
+対戦ページから送ってもらった棋譜（1局1行、形は `src/carcassonne/human_games.py`）。
+**ライセンスは CC BY 4.0**（https://creativecommons.org/licenses/by/4.0/ 、扱いは docs/terms.html）。名前などの個人情報は入っていない。
+
+- 足すだけで、消したり書き換えたりしない。棋譜が減る変更は CI（test.yml の data ジョブ、`scripts/check_data_append_only.py`）が止める。
+- 週に一度、控えを GitHub の Release「data-backup」に足す（`.github/workflows/data-backup.yml`）。

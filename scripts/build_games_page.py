@@ -9,7 +9,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from i18n import to_english_page, write_pair
@@ -17,16 +16,6 @@ from site_nav import NAV_CSS, nav_html, support_html
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = "games.html"
-FORM = (
-    ROOT / "data" / "human_games_form.json"
-)  # 棋譜を送るフォーム。消してほしいという依頼も同じフォームで受ける
-
-
-def form_js() -> str:
-    f = json.loads(FORM.read_text(encoding="utf-8"))
-    if not f.get("form") or not f.get("entry"):
-        return "null"
-    return json.dumps({"url": f["form"], "entry": f["entry"]})
 
 
 def main() -> None:
@@ -35,7 +24,6 @@ def main() -> None:
         tpl.replace("__NAV_CSS__", NAV_CSS)
         .replace("__NAV__", nav_html(PAGE))
         .replace("__SUPPORT__", support_html())
-        .replace("__FORM__", form_js())
     )
     en = to_english_page(ja, PAGE, "games", nav_html(PAGE), nav_html(PAGE, "en"))
     write_pair(PAGE, ja, en)

@@ -24,6 +24,24 @@ jobs:
       - name: "確認: scripts/check.py（ruff・整形・公開ページ・全テスト）"
         run: python scripts/check.py
 
+  # 集めた対局データ（人が送ってくれた棋譜）は足すだけ。消えた・書き換わった変更はここで止める
+  # （scripts/check_data_append_only.py。2026-11-12 satou「データが紛失したら困る」）
+  data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: "確認: 対局データが減っていない"
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before || 'origin/main' }}
+        run: |
+          # main への push で前の版が無い（新しいブランチ・強制 push の後）ときは main の1つ前と比べる
+          git cat-file -e "$BASE^{commit}" 2>/dev/null || BASE=HEAD~1
+          python3 scripts/check_data_append_only.py --base "$BASE"
+
   # ワークフローの書き間違い（式・権限・run: の中のシェル）を actionlint で見る。
   # selfplay・AI content の手順は本番でしか動かない所が多く、書き間違いが数時間後に初めて出るので、PR の時点で止める
   # （shared-workflows incidents/2026-11-03-carcassonne-auto-pr-ci-noise.md の残りの対策）。

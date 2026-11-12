@@ -22,6 +22,7 @@ BUILDERS = [
     "build_play_page.py",
     "build_stats_page.py",
     "build_games_page.py",
+    "build_terms_page.py",
     "build_index_en.py",  # 手書きの docs/index.html から英語版を作る
 ]
 
