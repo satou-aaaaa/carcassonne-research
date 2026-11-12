@@ -1034,7 +1034,7 @@ function shareHtml() {
   const form = REC_FORM ? `<button type="button" class="primary" id="btnFormRec">Send game (no account needed)</button>` : "";
   const again = `<div class="row"><button type="button" id="btnReplayThis">Replay this game</button><button type="button" id="btnLinkThis">Copy replay link</button></div>`;
   return again + `<div class="share"><b>If you like, let us use your game for research (optional)</b><br>Games against people help us find the AI's weak spots and train it. Without sending, you can still play and replay as before.` +
-    `<p class="pubnote">Games you send are published on the <a href="games.html" target="_blank" rel="noopener">Community Games</a> page, where anyone can see them (no names are shown). If you later want it removed, you can ask on that page.</p>` +
+    `<p class="pubnote">Games you send are published on the <a href="games.html" target="_blank" rel="noopener">Community Games</a> page, where anyone can see them (no names are shown).</p>` +
     `<div class="row">${form}<button type="button" id="btnSendRec">Send via GitHub</button><button type="button" id="btnSaveRec">Save as file</button></div>` +
     `Only the tile order, moves, scores and AI level are sent; your name is not included. Check the content on the page that opens, then press its submit button.` +
     (REC_FORM ? `“Send game” uses a Google Form: no account or email address needed.` : "") +

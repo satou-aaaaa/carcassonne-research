@@ -62,9 +62,6 @@ ol.games .res.win { color: var(--field); }
 ol.games .go { color: var(--field); }
 p a { color: var(--field); }
 .thanks { font-weight: 700; color: var(--field); }
-h3 { font-size: 17px; margin: 8px 0 0; }
-.tools input { font: inherit; font-size: 15px; width: 6em; min-height: 44px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--ink); }
-.tools button { font: inherit; font-size: 15px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); cursor: pointer; }
 .empty { background: var(--paper); border: 1px dashed var(--line); border-radius: 6px; padding: 16px; }
 .next { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
 .next a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 999px; background: var(--field); color: var(--paper); text-decoration: none; font-weight: 700; }
@@ -153,9 +150,6 @@ summary { padding-block: 6px; }
   <p>When you finish a game on the play page, the result panel shows a button to send the game record (no account needed). Records are checked against the rules and added to this list every morning. Only the deck, the moves, the scores and the AI level are sent; no names.</p>
   <p>Sending is entirely up to you. Without sending anything, you can still play and replay your own games as before.</p>
   <p>You can replay your own games without sending them, from "Replay a game" on the play page (this browser keeps your last 20 games). Use "Copy replay link" to show a game to a friend.</p>
-  <h3>If you want a game you sent removed</h3>
-  <p>Enter the game's number from the list (such as #3) and press "Ask to remove". A form opens; when you submit it, the request reaches the author, who checks it and removes the game (no account needed). You don't need to give a reason.</p>
-  <div class="tools" id="delBox"><label>Game number # <input id="delNo" type="number" min="1" inputmode="numeric"></label><button type="button" id="delBtn">Ask to remove</button></div>
   <div class="next">
     <a href="play.html">Play the AI</a>
     <a class="sub" href="ai_tips.html">Lessons from the AI</a>
@@ -204,14 +198,6 @@ summary { padding-block: 6px; }
       const o = document.createElement("option"); o.value = k; o.textContent = LEVELS[k]; $("fLevel").appendChild(o);
     }
   }
-  // 消してほしいという依頼: 棋譜を送るのと同じ Google フォームに「delete #番号」を入れて開く（human-games.yml が Issue で知らせる）
-  const FORM = {"url": "https://docs.google.com/forms/d/e/1FAIpQLSfZixr0hMZhERUfykLg2zzthjyV0UrvDEyDDdj4xGwbG28ydQ/viewform", "entry": "entry.1648260257"};
-  if (!FORM) $("delBox").hidden = true;
-  $("delBtn").onclick = () => {
-    const n = parseInt($("delNo").value, 10);
-    if (!(n >= 1)) { $("delNo").focus(); return; }
-    window.open(`${FORM.url}?usp=pp_url&${FORM.entry}=${encodeURIComponent("delete #" + n)}`, "_blank", "noopener");
-  };
   $("fLevel").onchange = draw; $("fSort").onchange = draw;
   // 研究ノート: scripts/human_games.py report が docs/human_findings.json に書く集計（src/carcassonne/human_findings.py）
   const KIND = {C: "city", R: "road", F: "field", M: "monastery"};

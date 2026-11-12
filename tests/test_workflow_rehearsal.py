@@ -37,7 +37,6 @@ REHEARSED = {
     "human-games.yml": [
         "棋譜を検査して足す",
         "Issue に結果を書いて閉じる",
-        "削除の依頼を Issue で知らせる",
     ],
 }
 
@@ -80,10 +79,6 @@ case "$1 $2" in
     if [[ "$jq" == *"| .html_url" ]]; then
       [ -e "$GH_LOG.created" ] && echo "https://github.com/o/r/issues/99"; true
     elif [ -n "${FAKE_OPEN:-}" ]; then echo "$FAKE_OPEN"; fi ;;
-  "api repos/o/r/issues?state=all&per_page=100")
-    # 閉じたものも含めて同じ題の Issue の数（削除の依頼）。FAKE_SEEN の題だけあることにする
-    jq=""; for ((i = 0; i < ${#args[@]}; i++)); do [ "${args[i]}" = --jq ] && jq=${args[i+1]}; done
-    if [ -n "${FAKE_SEEN:-}" ] && [[ "$jq" == *"$FAKE_SEEN"* ]]; then echo 1; else echo 0; fi ;;
   "api repos/o/r/issues/"[0-9]*) echo '{"issue": {"number": 12, "body": "棋譜"}}' ;;  # 1件の Issue（--jq 済みの形）
   *) echo "知らない gh の呼び方: $*" >&2; exit 2 ;;
 esac
@@ -303,28 +298,3 @@ def test_human_games_answers_and_closes_issue(tmp_path: Path, status: str, reaso
     assert r.returncode == 0, r.stdout + r.stderr
     assert log.count("gh issue comment 12") == 2, log  # 504 を1回やり直す
     assert f"gh issue close 12 --reason {reason}" in log, log
-
-
-def test_human_games_deletion_request_opens_issue_once(tmp_path: Path) -> None:
-    """フォームの削除の依頼ごとに Issue を1件。もう同じ題があれば（閉じていても）作らない。504 でも2件にしない。"""
-    (tmp_path / "scripts").mkdir()
-    (tmp_path / "scripts" / "human_games.py").write_text(
-        "import sys\nprint('依頼の本文', sys.argv[-1])\n", encoding="utf-8"
-    )
-    reqs = [{"game": 3, "ts": "2026/11/12 3:00:00"}, {"game": 5, "ts": "2026/11/13 4:00:00"}]
-    (tmp_path / "result.json").write_text(json.dumps({"added": 0, "delete": reqs}))
-    r, log = rehearse(
-        tmp_path,
-        "human-games.yml",
-        "削除の依頼を Issue で知らせる",
-        FAKE_SEEN="#5（2026/11/13 4:00:00",
-    )
-    assert r.returncode == 0, r.stdout + r.stderr
-    # 504 のあと、できていた Issue を見つけて2件目を作らない
-    assert (
-        log.count("gh issue create --title 棋譜の削除依頼: #3（2026/11/12 3:00:00 受付）") == 1
-    ), log
-    assert "issue create --title 棋譜の削除依頼: #5" not in log, (
-        log
-    )  # 閉じた Issue があれば作らない
-    assert (tmp_path / "body.md").read_text(encoding="utf-8").startswith("依頼の本文 3"), log

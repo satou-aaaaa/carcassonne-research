@@ -62,9 +62,6 @@ ol.games .res.win { color: var(--field); }
 ol.games .go { color: var(--field); }
 p a { color: var(--field); }
 .thanks { font-weight: 700; color: var(--field); }
-h3 { font-size: 17px; margin: 8px 0 0; }
-.tools input { font: inherit; font-size: 15px; width: 6em; min-height: 44px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--ink); }
-.tools button { font: inherit; font-size: 15px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); cursor: pointer; }
 .empty { background: var(--paper); border: 1px dashed var(--line); border-radius: 6px; padding: 16px; }
 .next { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
 .next a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 999px; background: var(--field); color: var(--paper); text-decoration: none; font-weight: 700; }
@@ -153,9 +150,6 @@ summary { padding-block: 6px; }
   <p>対戦ページで1局指し終えると、結果の欄に「棋譜を送る（アカウント不要）」が出ます。届いた棋譜はルールどおりか確かめてから、毎朝この一覧に足しています。送るのは山札・指し手・得点・AIの強さだけで、名前は入りません。</p>
   <p>送るかどうかは自由です。送らなくても、対戦も自分の対局の再生も、これまでどおり使えます。</p>
   <p>自分の対局は、送らなくても対戦ページの「棋譜を再生」から見られます（このブラウザに最近の20局が残ります）。「再生リンクをコピー」で、友だちに見せることもできます。</p>
-  <h3>送った対局を消してほしいとき</h3>
-  <p>一覧の番号（#3 など）を入れて「消してほしいと伝える」を押すと、フォームが開きます。送信すると作者に届き、確かめてから消します（アカウントは要りません）。理由を書く必要はありません。</p>
-  <div class="tools" id="delBox"><label>対局の番号 # <input id="delNo" type="number" min="1" inputmode="numeric"></label><button type="button" id="delBtn">消してほしいと伝える</button></div>
   <div class="next">
     <a href="play.html">AIと対戦する</a>
     <a class="sub" href="ai_tips.html">強いAIに学ぶコツ</a>
@@ -204,14 +198,6 @@ summary { padding-block: 6px; }
       const o = document.createElement("option"); o.value = k; o.textContent = LEVELS[k]; $("fLevel").appendChild(o);
     }
   }
-  // 消してほしいという依頼: 棋譜を送るのと同じ Google フォームに「削除 #番号」を入れて開く（human-games.yml が Issue で知らせる）
-  const FORM = {"url": "https://docs.google.com/forms/d/e/1FAIpQLSfZixr0hMZhERUfykLg2zzthjyV0UrvDEyDDdj4xGwbG28ydQ/viewform", "entry": "entry.1648260257"};
-  if (!FORM) $("delBox").hidden = true;
-  $("delBtn").onclick = () => {
-    const n = parseInt($("delNo").value, 10);
-    if (!(n >= 1)) { $("delNo").focus(); return; }
-    window.open(`${FORM.url}?usp=pp_url&${FORM.entry}=${encodeURIComponent("削除 #" + n)}`, "_blank", "noopener");
-  };
   $("fLevel").onchange = draw; $("fSort").onchange = draw;
   // 研究ノート: scripts/human_games.py report が docs/human_findings.json に書く集計（src/carcassonne/human_findings.py）
   const KIND = {C: "都市", R: "道", F: "草原", M: "修道院"};

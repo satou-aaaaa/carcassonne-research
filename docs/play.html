@@ -1034,7 +1034,7 @@ function shareHtml() {
   const form = REC_FORM ? `<button type="button" class="primary" id="btnFormRec">棋譜を送る（アカウント不要）</button>` : "";
   const again = `<div class="row"><button type="button" id="btnReplayThis">この対局を再生</button><button type="button" id="btnLinkThis">再生リンクをコピー</button></div>`;
   return again + `<div class="share"><b>よければ、棋譜を研究に使わせてください（任意）</b><br>人との対局から、AIの弱点を探して学習に使います。送らなくても、対戦や再生はこれまでどおり使えます。` +
-    `<p class="pubnote">送った棋譜は <a href="games.html" target="_blank" rel="noopener">みんなの対局</a> のページで公開され、誰でも見られます（名前は出ません）。あとから消してほしいときは、そのページから頼めます。</p>` +
+    `<p class="pubnote">送った棋譜は <a href="games.html" target="_blank" rel="noopener">みんなの対局</a> のページで公開され、誰でも見られます（名前は出ません）。</p>` +
     `<div class="row">${form}<button type="button" id="btnSendRec">GitHubで送る</button><button type="button" id="btnSaveRec">ファイルに保存</button></div>` +
     `送るのは山札・指し手・得点・AIの強さだけで、名前は入りません。開いた画面で内容を確かめ、送信ボタンを押すと届きます。` +
     (REC_FORM ? `「棋譜を送る」は Google フォームで、アカウントもメールアドレスも要りません。` : "") +
