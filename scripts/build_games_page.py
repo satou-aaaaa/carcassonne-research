@@ -17,7 +17,9 @@ from site_nav import NAV_CSS, nav_html, support_html
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = "games.html"
-FORM = ROOT / "data" / "human_games_form.json"  # 棋譜を送るフォーム。消してほしいという依頼も同じフォームで受ける
+FORM = (
+    ROOT / "data" / "human_games_form.json"
+)  # 棋譜を送るフォーム。消してほしいという依頼も同じフォームで受ける
 
 
 def form_js() -> str:

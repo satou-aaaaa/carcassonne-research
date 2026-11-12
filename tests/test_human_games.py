@@ -170,17 +170,25 @@ def test_deletion_request_and_remove(tmp_path):
         hg.add(path, r)
     buf = io.StringIO()
     w = csv.writer(buf)
-    w.writerows([["タイムスタンプ", "棋譜"], ["2026/11/12 3:00:00", "削除 #1"], ["x", " delete 2 "]])
+    w.writerows(
+        [["タイムスタンプ", "棋譜"], ["2026/11/12 3:00:00", "削除 #1"], ["x", " delete 2 "]]
+    )
     w.writerow(["2026/11/12 3:05:00", json.dumps(recs[0])])
     text = buf.getvalue()
     assert hg.deletion_requests(text) == [
         {"ts": "2026/11/12 3:00:00", "game": 1}, {"ts": "", "game": 2}
     ]  # fmt: skip
-    assert "#1" in hg.deletion_body(hg.load(path), 1) and "remove 1" in hg.deletion_body(hg.load(path), 1)
+    assert "#1" in hg.deletion_body(hg.load(path), 1) and "remove 1" in hg.deletion_body(
+        hg.load(path), 1
+    )
     assert "ありませんでした" in hg.deletion_body(hg.load(path), 9)
     assert hg.remove(path, 1) == recs[0]
     assert hg.load(path) == [recs[1]]
     # 消した棋譜がフォームの表に残っていても、もう取り込まない。削除の依頼は無効とも数えない
-    assert hg.ingest_rows(hg.form_texts(text), path, TS) == {"added": 0, "duplicate": 1, "invalid": 0}
+    assert hg.ingest_rows(hg.form_texts(text), path, TS) == {
+        "added": 0,
+        "duplicate": 1,
+        "invalid": 0,
+    }
     with pytest.raises(hg.RecordError, match="ありません"):
         hg.remove(path, 5)

@@ -76,7 +76,9 @@ def cmd_ingest_form(a) -> int:
 def cmd_remove(a) -> int:
     rec = hg.remove(a.games, a.game)
     h = rec["human_seat"]
-    print(f"{a.game}局目（人 {rec['scores'][h]} − AI {rec['scores'][1 - h]}）を消しました。report で作り直してください")
+    print(
+        f"{a.game}局目（人 {rec['scores'][h]} − AI {rec['scores'][1 - h]}）を消しました。report で作り直してください"
+    )
     return 0
 
 

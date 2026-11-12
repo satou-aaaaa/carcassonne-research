@@ -314,10 +314,17 @@ def test_human_games_deletion_request_opens_issue_once(tmp_path: Path) -> None:
     reqs = [{"game": 3, "ts": "2026/11/12 3:00:00"}, {"game": 5, "ts": "2026/11/13 4:00:00"}]
     (tmp_path / "result.json").write_text(json.dumps({"added": 0, "delete": reqs}))
     r, log = rehearse(
-        tmp_path, "human-games.yml", "削除の依頼を Issue で知らせる", FAKE_SEEN="#5（2026/11/13 4:00:00"
+        tmp_path,
+        "human-games.yml",
+        "削除の依頼を Issue で知らせる",
+        FAKE_SEEN="#5（2026/11/13 4:00:00",
     )
     assert r.returncode == 0, r.stdout + r.stderr
     # 504 のあと、できていた Issue を見つけて2件目を作らない
-    assert log.count("gh issue create --title 棋譜の削除依頼: #3（2026/11/12 3:00:00 受付）") == 1, log
-    assert "issue create --title 棋譜の削除依頼: #5" not in log, log  # 閉じた Issue があれば作らない
+    assert (
+        log.count("gh issue create --title 棋譜の削除依頼: #3（2026/11/12 3:00:00 受付）") == 1
+    ), log
+    assert "issue create --title 棋譜の削除依頼: #5" not in log, (
+        log
+    )  # 閉じた Issue があれば作らない
     assert (tmp_path / "body.md").read_text(encoding="utf-8").startswith("依頼の本文 3"), log
