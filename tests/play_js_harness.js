@@ -7,6 +7,7 @@
 // match:  ブラウザ版のAI同士の対局結果
 // record: ランダムに指した対局の棋譜（公開ページが研究用に書き出す形。human_games.py が読む）
 // ntv:    ランダムに進めた局面で、候補手ごとの「次のタイルで平均した評価値」（返し手あり・なし）
+// replay: 棋譜（records）を再生ページの仕組み（LOCAL_API の /api/replay）で開き、途中と最後の盤・得点
 // move:   山札と着手列 [x, y, 種別, 向き, 断片] の局面で、ブラウザ版のAIが選ぶ手
 "use strict";
 const path = require("path");
@@ -65,6 +66,26 @@ if (args.cmd === "games") {
     out.push(gameRecord(C, eng, DATA, { S, deck, history, human_seat: seed % 2, level: "strong", coach: false, hints: 0, undos: 1 }));
   }
   console.log(JSON.stringify(out));
+} else if (args.cmd === "replay") {
+  // 画面用の部分（LOCAL_API）は、ブラウザに似せた入れ物の中で読み込む
+  const vm = require("vm"), fs = require("fs");
+  const box = { Carcassonne: C, PLAY_DATA: DATA, document: {}, console };
+  box.self = box;
+  vm.runInNewContext(fs.readFileSync(path.join(DOCS, "play_local.js"), "utf8"), box);
+  const LOCAL_API = box.LOCAL_API;
+  (async () => {
+    const out = [];
+    for (const rec of args.records) {
+      try {
+        const v0 = await LOCAL_API("/api/replay", { record: rec, ply: args.ply });
+        const v1 = await LOCAL_API("/api/replay_goto", { ply: 9999 });
+        out.push({ mid: { board: v0.board.length, replay: v0.replay, over: v0.over, placements: v0.placements.length },
+          end: { scores: v1.scores, over: v1.over, replay: v1.replay } });
+      } catch (e) { out.push({ error: e.message }); }
+    }
+    const closed = await LOCAL_API("/api/replay_close", {});
+    console.log(JSON.stringify({ out, closed }));
+  })();
 } else if (args.cmd === "ntv") {
   const out = [];
   const w = Float64Array.from(DATA.eval.w);

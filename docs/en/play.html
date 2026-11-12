@@ -74,6 +74,15 @@
   #result td, #result th { padding:2px 4px; border-bottom:1px solid var(--line); text-align:right; }
   #result td:first-child, #result th:first-child { text-align:left; font-weight:normal; color:var(--muted); }
   #result tr.sum td { font-weight:700; color:var(--ink); border-bottom:0; }
+  #replayBar { border:2px solid var(--accent); border-radius:8px; padding:6px 8px; display:flex; flex-direction:column; gap:4px; }
+  #replayBar[hidden] { display:none; }
+  #replayBar .row { align-items:center; justify-content:space-between; flex-wrap:nowrap; }
+  #replayBar button { min-width:44px; min-height:40px; }
+  #recList, #pubList { display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow:auto; }
+  #recList button, #pubList button { text-align:left; }
+  #recDlg .note { font-size:13px; color:var(--muted); margin:0 0 8px; }
+  #rpPos { font-size:14px; font-weight:600; text-align:center; flex:1; }
+  #rpRange { width:100%; }
   #result .share { margin-top:8px; padding-top:8px; border-top:1px solid var(--line); font-size:12.5px; color:var(--muted); line-height:1.5; }
   #result .share b { color:var(--ink); }
   #result .share .row { margin:6px 0 4px; flex-wrap:wrap; }
@@ -132,6 +141,19 @@
   <div class="row">
     <button class="primary" id="btnNew">New game</button>
     <button id="btnRematch" hidden>Rematch, same tiles, seats swapped</button>
+    <button id="btnOpenRec" type="button" hidden title="Replay a finished game or a saved record move by move">Replay a game</button>
+    <input id="recFile" type="file" accept=".json,application/json" hidden>
+  </div>
+  <div id="replayBar" hidden>
+    <div class="row">
+      <button type="button" id="rpFirst" aria-label="To the start" title="To the start">|◀</button>
+      <button type="button" id="rpPrev" aria-label="Back one move" title="Back one move (←)">◀</button>
+      <span id="rpPos" aria-live="polite"></span>
+      <button type="button" id="rpNext" aria-label="Forward one move" title="Forward one move (→)">▶</button>
+      <button type="button" id="rpLast" aria-label="To the end" title="To the end">▶|</button>
+    </div>
+    <input id="rpRange" type="range" min="0" value="0" aria-label="Which move to show">
+    <div class="row"><button type="button" id="rpLink" title="Copy a link anyone can use to replay this game">Copy replay link</button><button type="button" id="rpClose">Stop replay</button></div>
   </div>
   <div id="result" hidden></div>
   <div id="coachBox" hidden></div>
@@ -186,6 +208,18 @@
   </details>
 </aside>
 
+<dialog id="recDlg">
+  <form method="dialog">
+    <h3 style="margin-top:0">Replay a game</h3>
+    <p class="note">Games recently finished in this browser (newest first). Tap one to replay it move by move.</p>
+    <div id="recList"></div>
+    <div class="row" style="margin-top:10px"><button type="button" id="btnRecFile">Open a file</button></div>
+    <h4>Everyone's games</h4>
+    <p class="note">Game records people sent in for research (no names included).</p>
+    <div id="pubList"></div>
+    <div class="row" style="margin-top:14px;justify-content:flex-end"><button value="close">Close</button></div>
+  </form>
+</dialog>
 <dialog id="dlg">
   <form method="dialog" id="newForm">
     <h3 style="margin-top:0">New game</h3>
@@ -311,7 +345,7 @@ function resize() {
   const r = cv.getBoundingClientRect(); cv.width = r.width * devicePixelRatio; cv.height = r.height * devicePixelRatio; draw();
 }
 function cellAt(px, py) { return [Math.floor((px - view.ox)/view.s), -Math.floor((py - view.oy)/view.s)]; }
-function myTurn() { return G && !G.over && G.player === G.human_seat && !busy; }
+function myTurn() { return G && !G.replay && !G.over && G.player === G.human_seat && !busy; }
 function curVariants() { return G && G.current !== null ? LIB[G.current].variants.length : 0; }
 // そのマスに置ける向き（置き方）の一覧
 function cellPlacements(x, y) { return G.placements.filter(p => p.x === x && p.y === y); }
@@ -735,6 +769,7 @@ window.addEventListener("keydown", e => {
   if (e.target.tagName === "BUTTON" && (e.key === " " || e.key === "Enter")) return;
   if (e.key === "r" || e.key === "R" || e.key === " ") { e.preventDefault(); rotate(); }
   if (e.key === "Escape") cancelPending();
+  if (G && G.replay && (e.key === "ArrowLeft" || e.key === "ArrowRight") && e.target.tagName !== "INPUT") { e.preventDefault(); replayGoto(G.replay.ply + (e.key === "ArrowLeft" ? -1 : 1)); }
   if (e.key === "Enter" && pending && myTurn()) { e.preventDefault(); confirmMove(); }
 });
 function startPending(p, piece = null) {
@@ -832,7 +867,8 @@ function setState(next) {
   if (G && G.current !== null && G.placements.length) selV = G.placements[0].v;
   if (prev && G && prev.seed === G.seed && prev.human_seat === G.human_seat && G.board.length >= prev.board.length) animateDiff(prev, G, sent);
   refresh();
-  if (G && G.over && (!prev || !prev.over) && matchMedia("(max-width: 760px)").matches) $("result").scrollIntoView({behavior: "smooth", block: "center"});
+  if (G && G.over && G.record && !G.replay) rememberGame(G.record);
+  if (G && G.over && !G.replay && (!prev || !prev.over) && matchMedia("(max-width: 760px)").matches) $("result").scrollIntoView({behavior: "smooth", block: "center"});
 }
 function animateDiff(prev, next, sent) {
   const had = new Set(prev.board.map(b => keyOf(b.x, b.y)));
@@ -900,7 +936,7 @@ function refresh() {
   $("spMe").innerHTML = meepleIcons(G.supply[h], PCOL[h]); $("spAi").innerHTML = meepleIcons(G.supply[a], PCOL[a]);
   $("spMe").title = `meeples ${G.supply[h]}`; $("spAi").title = `meeples ${G.supply[a]}`;
   const mob = matchMedia("(max-width: 760px)").matches;
-  $("nameMe").textContent = mob ? (G.name || "You") : `${G.name || "You"} (${h === 0 ? "first, red" : "second, blue"})`;
+  $("nameMe").textContent = mob ? (G.replay ? "Human" : G.name || "You") : `${G.replay ? "Human" : G.name || "You"} (${h === 0 ? "first, red" : "second, blue"})`;
   $("boxMe").style.borderLeftColor = PCOL[h]; $("boxAi").style.borderLeftColor = PCOL[a];
   $("boxMe").classList.toggle("turn", !G.over && G.player === h); $("boxAi").classList.toggle("turn", !G.over && G.player === a);
   $("deckLeft").textContent = G.deck_left;
@@ -948,9 +984,19 @@ function refresh() {
   // Hint・結果
   const res = $("result");
   const keys = TOUCH ? "" : " (R: rotate, Enter: confirm, Esc: cancel)";
+  $("replayBar").hidden = !G.replay;
+  if (G.replay) {
+    const r = G.replay;
+    $("rpPos").textContent = `Move ${r.ply} / ${r.total}`;
+    $("rpRange").max = r.total; $("rpRange").value = r.ply;
+    $("rpFirst").disabled = $("rpPrev").disabled = r.ply === 0;
+    $("rpNext").disabled = $("rpLast").disabled = r.ply === r.total;
+  }
   if (G.over) {
     res.hidden = false; res.innerHTML = resultHtml();
-    setHint("Game over. The score breakdown is in the results section");
+    setHint(G.replay ? "Replay: game over. Use ◀ to step back" : "Game over. The score breakdown is in the results section");
+  } else if (G.replay) { res.hidden = true;
+    setHint(`Replay: after move ${G.replay.ply}. Use ◀ ▶ to step one move at a time`);
   } else { res.hidden = true;
     if (busy) setHint("The AI is thinking…");
     else if (G.player !== h) setHint("AI's turn");
@@ -960,7 +1006,7 @@ function refresh() {
   const cb = $("coachBox");
   cb.hidden = !G.last_coach;
   if (G.last_coach) cb.textContent = lastCoachText();
-  $("btnRematch").hidden = !G.over;
+  $("btnRematch").hidden = !G.over || !!G.replay;
   refreshInfo();
   layoutMobile();
   draw();
@@ -977,9 +1023,9 @@ function resultHtml() {
     ["End: fields (farmers)", p => E.kinds[p].F],
   ];
   const tr = (label, f, cls) => `<tr${cls ? ` class="${cls}"` : ""}><td>${label}</td><td>${f(h)}</td><td>${f(a)}</td></tr>`;
-  const verdict = d > 0 ? "You win" : d < 0 ? "AI wins" : "Draw";
+  const verdict = d > 0 ? (G.replay ? "Human wins" : "You win") : d < 0 ? "AI wins" : "Draw";
   return `<div class="title">Final: ${G.scores[h]} − ${G.scores[a]} (${verdict})</div>` +
-    `<table><tr><th></th><th style="color:${PCOL[h]}">You</th><th style="color:${PCOL[a]}">AI</th></tr>` +
+    `<table><tr><th></th><th style="color:${PCOL[h]}">${G.replay ? "Human" : "You"}</th><th style="color:${PCOL[a]}">AI</th></tr>` +
     rows.map(([l, f]) => tr(l, f)).join("") + tr("Total", p => G.scores[p], "sum") + "</table>" +
     (G.saved === false ? "" : `<div style="font-size:12px;color:var(--muted);margin-top:4px">Record saved.</div>`) +
     (G.record ? shareHtml() : "");
@@ -987,7 +1033,8 @@ function resultHtml() {
 // 終局後の「棋譜を送る」欄。Google フォーム（アカウント不要）は設定があるときだけ出す（data/human_games_form.json）
 function shareHtml() {
   const form = REC_FORM ? `<button type="button" class="primary" id="btnFormRec">Send game (no account needed)</button>` : "";
-  return `<div class="share"><b>Share this game for research</b><br>Games against people help us find the AI's weak spots and train it.` +
+  const again = `<div class="row"><button type="button" id="btnReplayThis">Replay this game</button><button type="button" id="btnLinkThis">Copy replay link</button></div>`;
+  return again + `<div class="share"><b>Share this game for research</b><br>Games against people help us find the AI's weak spots and train it.` +
     `<div class="row">${form}<button type="button" id="btnSendRec">Send via GitHub</button><button type="button" id="btnSaveRec">Save as file</button></div>` +
     `Only the tile order, moves, scores and AI level are sent; your name is not included. Check the content on the page that opens, then press its submit button.` +
     (REC_FORM ? `“Send game” uses a Google Form: no account or email address needed.` : "") +
@@ -1008,6 +1055,8 @@ $("result").addEventListener("click", e => {
   if (!G || !G.record) return;
   if (e.target.id === "btnFormRec") window.open(recordFormUrl(), "_blank", "noopener");
   if (e.target.id === "btnSendRec") window.open(recordIssueUrl(), "_blank", "noopener");
+  if (e.target.id === "btnReplayThis") replayOpen(G.record, 0);
+  if (e.target.id === "btnLinkThis") copyReplayLink(G.record, e.target);
   if (e.target.id === "btnSaveRec") {
     const url = URL.createObjectURL(new Blob([recordJson() + "\n"], {type: "application/json"}));
     const link = document.createElement("a");
@@ -1051,7 +1100,117 @@ $("newForm").addEventListener("submit", () => {
   start(lastForm);
 });
 $("btnRematch").onclick = () => start({...lastForm, human_seat: 1 - lastForm.human_seat});
+// ---------- 棋譜の再生（公開ページのみ。web/play_local.js の ReplayGame） ----------
+// 終局した自分の対局はこのブラウザに最近の20局まで残す（名前は入れない。棋譜の形は play_local.js の gameRecord）
+const RECENT_KEY = "cc_recent_games", RECENT_MAX = 20;
+function recentGames() { try { const a = JSON.parse(store.get(RECENT_KEY) || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+function rememberGame(rec) {
+  const id = JSON.stringify([rec.deck, rec.moves]);
+  const list = recentGames().filter(g => JSON.stringify([g.rec.deck, g.rec.moves]) !== id);
+  list.unshift({t: Date.now(), rec});
+  store.set(RECENT_KEY, JSON.stringify(list.slice(0, RECENT_MAX)));
+}
+// 再生リンク: play.html#rec=<棋譜の JSON を base64url>。サーバーに送らず、リンクを開いたHumanのブラウザで再生する
+function recordToHash(rec) {
+  const bytes = new TextEncoder().encode(JSON.stringify(rec));
+  let bin = ""; for (const b of bytes) bin += String.fromCharCode(b);
+  return "rec=" + btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function recordFromHash(s) {
+  const bin = atob(s.replace(/-/g, "+").replace(/_/g, "/"));
+  return JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0))));
+}
+async function copyReplayLink(rec, btn) {
+  const url = location.href.split("#")[0] + "#" + recordToHash(rec);
+  const old = btn.textContent;
+  try { await navigator.clipboard.writeText(url); btn.textContent = "Copied"; }
+  catch (e) { prompt("Copy this link", url); return; }
+  setTimeout(() => { btn.textContent = old; }, 1500);
+}
+// 送ってもらった棋譜の一覧（scripts/human_games.py report が docs/ に書く。英語版 docs/en/ からは一つ上）
+const PUBLIC_GAMES = document.documentElement.lang === "en" ? "../human_games.json" : "human_games.json";
+let replayRec = null;  // 再生中の棋譜（再生リンク用）。play_local.js は検査済みの棋譜しか開かない
+async function replayOpen(record, ply) {
+  const keep = G;
+  busy = true; G = null; anims = []; pending = null; draw();
+  try { setState(await api("/api/replay", {record, ply})); replayRec = record; fitAll(false); }
+  catch (err) { alert("Could not open the game record: " + err.message); if (keep) setState(keep); }
+  busy = false; refresh();
+}
+// 強さの名前の短い形（「最強（…）」の括弧の中を省く）
+function levelShort(k) { return String(LEVELS[k] || k).split(/[\uFF08(]/)[0].trim(); }
+function showRecent() {
+  const list = recentGames(), box = $("recList");
+  box.innerHTML = "";
+  if (!list.length) box.textContent = "None yet (finished games are kept here)";
+  for (const g of list) {
+    const r = g.rec, h = r.human_seat, b = document.createElement("button");
+    b.type = "button";
+    b.textContent = `${new Date(g.t).toLocaleString()}  ${r.scores[h]} − ${r.scores[1 - h]} (AI: ${levelShort(r.level)})`;
+    b.onclick = () => { $("recDlg").close(); replayOpen(r, 0); };
+    box.appendChild(b);
+  }
+  $("recDlg").showModal();
+  const pub = $("pubList");
+  pub.textContent = "Loading…";
+  fetch(PUBLIC_GAMES).then(x => x.json()).then(games => {
+    pub.innerHTML = "";
+    if (!games.length) pub.textContent = "None yet";
+    games.forEach((r, i) => {
+      const h = r.human_seat, b = document.createElement("button");
+      b.type = "button";
+      b.textContent = `Game ${i + 1}  Human ${r.scores[h]} − AI ${r.scores[1 - h]} (${levelShort(r.level)})`;
+      b.onclick = () => { $("recDlg").close(); const h = `#replay=${i + 1}`; if (location.hash === h) openFromHash(); else location.hash = h; };
+      pub.appendChild(b);
+    });
+  }).catch(() => { pub.textContent = "Could not load"; });
+}
+async function replayGoto(ply) {
+  if (!G || !G.replay || busy) return;
+  ply = Math.max(0, Math.min(G.replay.total, ply));
+  if (ply === G.replay.ply) return;
+  setState(await api("/api/replay_goto", {ply}));
+  if (G.replay.last) addAnim({type: "ping", x: G.replay.last.x, y: G.replay.last.y, dur: 1200});
+}
+$("rpFirst").onclick = () => replayGoto(0);
+$("rpPrev").onclick = () => replayGoto(G.replay.ply - 1);
+$("rpNext").onclick = () => replayGoto(G.replay.ply + 1);
+$("rpLast").onclick = () => replayGoto(G.replay.total);
+$("rpRange").oninput = e => replayGoto(+e.target.value);
+$("btnOpenRec").onclick = showRecent;
+$("btnRecFile").onclick = () => { $("recDlg").close(); $("recFile").click(); };
+$("rpLink").onclick = e => replayRec && copyReplayLink(replayRec, e.target);
+$("rpClose").onclick = async () => {
+  clearHash(); replayRec = null; const st = await api("/api/replay_close");
+  if (st) setState(st);
+  else { G = null; $("replayBar").hidden = $("result").hidden = true; setHint("Press “New game”"); draw(); $("btnNew").click(); }
+};
+$("recFile").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = "";
+  if (!f) return;
+  try { await replayOpen(JSON.parse(await f.text()), 0); } catch (err) { alert("Could not read the game record: " + err.message); }
+};
+// play.html#replay=3（送ってもらった対局の3局目）、#replay=3&ply=20 で20手目から、#rec=…（再生リンク）
+async function openFromHash() {
+  if (!window.LOCAL_API) return false;
+  const m = location.hash.match(/replay=(\d+)(?:&ply=(\d+))?/), r = location.hash.match(/rec=([A-Za-z0-9_-]+)/);
+  if (!m && !r) return false;
+  try {
+    let rec;
+    if (r) rec = recordFromHash(r[1]);
+    else {
+      const games = await fetch(PUBLIC_GAMES).then(x => x.json());
+      rec = games[+m[1] - 1];
+      if (!rec) throw new Error(`There is no game ${m[1]}`);
+    }
+    await replayOpen(rec, m && m[2] ? +m[2] : 0);
+  } catch (err) { alert("Could not open the game record: " + err.message); return false; }
+  return !!(G && G.replay);
+}
+window.addEventListener("hashchange", openFromHash);
+function clearHash() { if (location.hash) history.replaceState(null, "", location.pathname + location.search); }
 async function start(form) {
+  clearHash(); replayRec = null;
   lastForm = form; busy = true; G = null; inflight = null; anims = []; setHint("Preparing the game… (if the AI goes first, it is choosing its first move)"); draw();
   try { setState(await api("/api/new", form)); fitAll(false); }
   catch (err) { alert(err.message); }
@@ -1061,12 +1220,14 @@ async function start(form) {
 async function init() {
   const lib = await api("/api/tiles"); LIB = lib.tiles; LEVELS = lib.levels;
   for (const [k, v] of Object.entries(LEVELS)) { const o = document.createElement("option"); o.value = k; o.textContent = v; $("fLevel").appendChild(o); }
-  // 初めての人向けに「やさしい」と初心者モードを既定にする（前回の選択があればそれ）
+  // 初めてのHuman向けに「やさしい」と初心者モードを既定にする（前回の選択があればそれ）
   const lv = store.get("cc_level");
   $("fLevel").value = lv && LEVELS[lv] ? lv : (LEVELS.greedy ? "greedy" : Object.keys(LEVELS)[0]);
   setAreas(store.get("cc_areas") === "1");
   if (store.get("cc_coach") !== null) $("fCoach").checked = store.get("cc_coach") === "1";
   $("fName").value = store.get("cc_name") || "";
+  $("btnOpenRec").hidden = !window.LOCAL_API;
+  if (await openFromHash()) return;
   const st = await api("/api/state");
   if (st) { lastForm = {name: st.name, seed: st.seed, human_seat: st.human_seat, level: st.level, coach: st.coach}; setState(st); fitAll(false); }
   else { setHint("Press “New game”"); $("btnNew").click(); }

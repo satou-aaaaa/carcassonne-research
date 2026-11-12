@@ -5,7 +5,7 @@
                                                         # GitHub の Issue で届いた棋譜（human-games.yml から呼ぶ）
     py scripts/human_games.py ingest-form --result 結果.json
                                                         # Google フォームの回答（公開 CSV）を取り込む（human-games.yml から毎日）
-    py scripts/human_games.py report                    # docs/results/human_games.md を作り直す
+    py scripts/human_games.py report                    # docs/results/human_games.md と docs/human_games.json を作り直す
 
 棋譜は data/human_games.jsonl に1局1行でためる（形と検査は src/carcassonne/human_games.py）。
 ためた棋譜は自己対戦ループの学習に混ざる（selfplay_loop.Config.human_games）。
@@ -25,6 +25,7 @@ from carcassonne import human_games as hg
 
 GAMES = ROOT / "data" / "human_games.jsonl"
 REPORT = ROOT / "docs" / "results" / "human_games.md"
+REPLAY = ROOT / "docs" / "human_games.json"  # 対戦ページの再生（play.html#replay=番号）が読む
 FORM = ROOT / "data" / "human_games_form.json"
 
 
@@ -78,7 +79,9 @@ def cmd_report(a) -> int:
     w, mode = load_eval(champion_eval_path())
     if mode != 1:
         raise SystemExit("弱点分析は線形の評価関数だけに対応しています")
-    text = hg.report_md(Fast(), hg.load(a.games), w)
+    games = hg.load(a.games)
+    text = hg.report_md(Fast(), games, w)
+    REPLAY.write_text(json.dumps(games, separators=(",", ":")) + "\n", encoding="utf-8")
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     Path(a.out).write_text(text, encoding="utf-8")
     print(f"{a.out} を書きました")

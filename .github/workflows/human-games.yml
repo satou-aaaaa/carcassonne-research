@@ -70,7 +70,7 @@ jobs:
           python scripts/human_games.py report
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/human_games.jsonl docs/results/human_games.md
+          git add data/human_games.jsonl docs/results/human_games.md docs/human_games.json
           git commit -q -m "人との対局の棋譜を受け取る（Issue #$ISSUE、自動）"
           bash scripts/merge_via_pr.sh human-games "人との対局の棋譜を受け取る（Issue #$ISSUE、自動）"
       - name: Issue に結果を書いて閉じる
@@ -110,6 +110,6 @@ jobs:
           python scripts/human_games.py report
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/human_games.jsonl docs/results/human_games.md
+          git add data/human_games.jsonl docs/results/human_games.md docs/human_games.json
           git commit -q -m "人との対局の棋譜をフォームから $added 局受け取る（自動）"
           bash scripts/merge_via_pr.sh human-games "人との対局の棋譜をフォームから $added 局受け取る（自動）"

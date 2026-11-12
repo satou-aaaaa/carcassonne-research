@@ -21,5 +21,11 @@
  "／ 得点 ${who}+${gain}": "/ points ${who} +${gain}",
  "相手+${opp}": "opponent +${opp}",
  "未知の強さ": "Unknown strength",
- "対局が始まっていません": "No game in progress"
+ "対局が始まっていません": "No game in progress",
+ "棋譜の形が違います": "The game record is not in the right format",
+ "山札が基本セットの71枚になっていません": "The deck is not the 71 tiles of the base game",
+ "${k + 1}手目: もう終局しています": "Move ${k + 1}: the game is already over",
+ "${k + 1}手目がルール上置けない手です": "Move ${k + 1} is not a legal move",
+ "棋譜を開いていません": "No game record is open",
+ "人": "Human"
 }
