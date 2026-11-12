@@ -76,6 +76,8 @@
   #result tr.sum td { font-weight:700; color:var(--ink); border-bottom:0; }
   #replayBar { border:2px solid var(--accent); border-radius:8px; padding:6px 8px; display:flex; flex-direction:column; gap:4px; }
   #replayBar[hidden] { display:none; }
+  /* 再生中は置く・Hint・待ったのボタンを出さない（押せないボタンが並ぶだけになるため） */
+  body.replaying #tileCtl { display:none; }
   #replayBar .row { align-items:center; justify-content:space-between; flex-wrap:nowrap; }
   #replayBar button { min-width:44px; min-height:40px; }
   #recList { display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow:auto; }
@@ -107,6 +109,8 @@
     #viewBtns { top:auto; bottom:8px; right:8px; }
     aside { width:auto; border-left:0; border-top:1px solid var(--line); overflow:visible; padding:8px 10px; gap:8px; }
     #scoreSec { order:-3; } #tileSec { order:-2; } #result { order:-1; } #home { order:10; }
+    /* 再生中は ◀ ▶ を得点のすぐ下に出し、盤と同じ1画面に収める（引いたタイルの欄は畳む） */
+    body.replaying #replayBar { order:-2; } body.replaying #tileSec { display:none; }
     #scoreSec h2, #coachBox { display:none; }
     .score b { font-size:18px; }
     .score > div { padding:3px 8px; }
@@ -984,6 +988,7 @@ function refresh() {
   const res = $("result");
   const keys = TOUCH ? "" : " (R: rotate, Enter: confirm, Esc: cancel)";
   $("replayBar").hidden = !G.replay;
+  document.body.classList.toggle("replaying", !!G.replay);
   if (G.replay) {
     const r = G.replay;
     $("rpPos").textContent = `Move ${r.ply} / ${r.total}`;
@@ -1068,7 +1073,7 @@ $("result").addEventListener("click", e => {
 // スマホ: 盤の高さを「画面 − 操作欄（得点・引いたタイル）」にする
 function layoutMobile() {
   const mob = matchMedia("(max-width: 760px)").matches;
-  const barh = mob ? $("scoreSec").offsetHeight + $("tileSec").offsetHeight + 30 : 0;
+  const barh = mob ? $("scoreSec").offsetHeight + $("tileSec").offsetHeight + $("replayBar").offsetHeight + 30 : 0;
   const cur = document.documentElement.style.getPropertyValue("--barh");
   if (mob && cur !== barh + "px") {
     document.documentElement.style.setProperty("--barh", barh + "px");
@@ -1127,8 +1132,9 @@ async function copyReplayLink(rec, btn) {
   catch (e) { prompt("Copy this link", url); return; }
   setTimeout(() => { btn.textContent = old; }, 1500);
 }
-// 送ってもらった棋譜の一覧（scripts/human_games.py report が docs/ に書く。英語版 docs/en/ からは一つ上）
-const PUBLIC_GAMES = document.documentElement.lang === "en" ? "../human_games.json" : "human_games.json";
+// 送ってもらった棋譜（scripts/human_games.py report が docs/human_games/ に100局ずつ書く。英語版 docs/en/ からは一つ上）
+const PUBLIC_GAMES = document.documentElement.lang === "en" ? "../human_games/" : "human_games/";
+const PUBLIC_CHUNK = 100;  // src/carcassonne/human_games.py の CHUNK と同じ
 let replayRec = null;  // 再生中の棋譜（再生リンク用）。play_local.js は検査済みの棋譜しか開かない
 async function replayOpen(record, ply) {
   const keep = G;
@@ -1170,7 +1176,7 @@ $("rpLink").onclick = e => replayRec && copyReplayLink(replayRec, e.target);
 $("rpClose").onclick = async () => {
   clearHash(); replayRec = null; const st = await api("/api/replay_close");
   if (st) setState(st);
-  else { G = null; $("replayBar").hidden = $("result").hidden = true; setHint("Press “New game”"); draw(); $("btnNew").click(); }
+  else { G = null; $("replayBar").hidden = $("result").hidden = true; document.body.classList.remove("replaying"); setHint("Press “New game”"); draw(); $("btnNew").click(); }
 };
 $("recFile").onchange = async e => {
   const f = e.target.files[0]; e.target.value = "";
@@ -1186,8 +1192,9 @@ async function openFromHash() {
     let rec;
     if (r) rec = recordFromHash(r[1]);
     else {
-      const games = await fetch(PUBLIC_GAMES).then(x => x.json());
-      rec = games[+m[1] - 1];
+      const n = +m[1] - 1, games = await fetch(`${PUBLIC_GAMES}${Math.floor(n / PUBLIC_CHUNK)}.json`)
+        .then(x => x.ok ? x.json() : []).catch(() => []);
+      rec = games[n % PUBLIC_CHUNK];
       if (!rec) throw new Error(`There is no game ${m[1]}`);
     }
     await replayOpen(rec, m && m[2] ? +m[2] : 0);

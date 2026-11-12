@@ -52,16 +52,23 @@ p { margin: 0; max-width: 38em; }
 ol.games { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 ol.games a { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 14px; align-items: center; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; color: var(--ink); text-decoration: none; min-height: 44px; }
 ol.games a:hover, ol.games a:focus-visible { border-color: var(--field); outline: none; }
-ol.games .no { font-family: var(--font-num); color: var(--muted); font-size: 14px; }
+ol.games .no { font-family: var(--font-num); color: var(--muted); font-size: 14px; min-width: 5ch; }
 ol.games .sc { font-family: var(--font-num); font-weight: 500; font-size: 18px; }
 ol.games .sc .h { color: var(--red); }
 ol.games .sc .a { color: var(--blue); }
 ol.games .meta { font-size: 13.5px; color: var(--muted); grid-column: 2; }
 ol.games .res { font-size: 14px; font-weight: 700; grid-row: 1 / span 2; grid-column: 3; }
 ol.games .res.win { color: var(--field); }
-ol.games .go { color: var(--field); }
+ol.games .go { color: var(--field); white-space: nowrap; }
 p a { color: var(--field); }
 .thanks { font-weight: 700; color: var(--field); }
+h3 { font-size: 17px; margin: 8px 0 0; }
+.tools input { font: inherit; font-size: 15px; width: 6em; min-height: 44px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--ink); }
+.tools button { font: inherit; font-size: 15px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); cursor: pointer; }
+.pager { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.pager button { font: inherit; font-size: 15px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); cursor: pointer; }
+.pager button:disabled { opacity: .4; cursor: default; }
+.pager .num { font-size: 14px; color: var(--muted); white-space: nowrap; }
 .empty { background: var(--paper); border: 1px dashed var(--line); border-radius: 6px; padding: 16px; }
 .next { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
 .next a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 999px; background: var(--field); color: var(--paper); text-decoration: none; font-weight: 700; }
@@ -115,9 +122,17 @@ __NAV__
   <h2>対局の一覧</h2>
   <div class="tools">
     <label>AIの強さ <select id="fLevel"><option value="">すべて</option></select></label>
-    <label>並び <select id="fSort"><option value="new">新しい順</option><option value="diff">人の点差が大きい順</option></select></label>
+    <label>結果 <select id="fRes"><option value="">すべて</option><option value="win">人の勝ち</option><option value="loss">AIの勝ち</option><option value="draw">引き分け</option></select></label>
+    <label>並び <select id="fSort"><option value="new">新しい順</option><option value="old">古い順</option><option value="diff">人の点差が大きい順</option></select></label>
   </div>
+  <form class="tools" id="jump"><label>番号で開く # <input id="jumpNo" type="number" min="1" inputmode="numeric"></label><button type="submit">再生</button></form>
+  <p class="note" id="count" aria-live="polite"></p>
   <ol class="games" id="games"></ol>
+  <nav class="pager" id="pager" aria-label="対局の一覧のページ" hidden>
+    <button type="button" id="pgPrev">← 前の30局</button>
+    <span class="num" id="pgNow"></span>
+    <button type="button" id="pgNext">次の30局 →</button>
+  </nav>
   <p class="empty" id="empty" hidden>まだ届いた対局はありません。対戦ページで1局指して、終局後の「棋譜を送る」から送ってください。</p>
   <p class="note" id="loadErr" hidden>対局の一覧を読み込めませんでした。時間をおいて開き直してください。</p>
 </section>
@@ -152,47 +167,78 @@ __NAV__
 __SUPPORT__
 </div>
 <script>
-// 送ってもらった棋譜（scripts/human_games.py report が docs/human_games.json に書く）を並べる。
-// 英語版（docs/en/）からは一つ上を読む。再生は対戦ページ（play.html#replay=番号、1始まり）
+// 送ってもらった棋譜の一覧（scripts/human_games.py report が docs/human_games/index.json に書く軽い表。1局1行で
+// [強さ, 人の席, 人の得点, AIの得点, 手数, ヒント等あり]）。何千局になっても重くならないよう、30局ずつ並べる。
+// 英語版（docs/en/）からは一つ上を読む。再生は対戦ページ（play.html#replay=番号、1始まり）が、その局の入ったファイルだけ読む
 (() => {
   const EN = document.documentElement.lang === "en";
-  const SRC = EN ? "../human_games.json" : "human_games.json";
+  const SRC = EN ? "../human_games/index.json" : "human_games/index.json";
   const LEVELS = {strong: "最強", standard: "標準", greedy: "やさしい"};
+  const PAGE = 30;
   const $ = id => document.getElementById(id);
   const stat = (big, label) => `<div class="stat"><b>${big}</b><span>${label}</span></div>`;
-  let games = [];
-  function draw() {
-    const lv = $("fLevel").value, sort = $("fSort").value;
-    let list = games.map((r, i) => ({r, i})).filter(g => !lv || g.r.level === lv);
-    const diff = g => g.r.scores[g.r.human_seat] - g.r.scores[1 - g.r.human_seat];
-    list = sort === "diff" ? list.sort((a, b) => diff(b) - diff(a)) : list.reverse();
-    const ol = $("games"); ol.innerHTML = "";
-    for (const g of list) {
-      const r = g.r, h = r.human_seat, d = diff(g);
-      const res = d > 0 ? "人の勝ち" : d < 0 ? "AIの勝ち" : "引き分け";
-      const seat = h === 0 ? "人が先手" : "人が後手";
-      const li = document.createElement("li");
-      li.innerHTML = `<a href="play.html#replay=${g.i + 1}"><span class="no">#${g.i + 1}</span>` +
-        `<span class="sc"><span class="h">人 ${r.scores[h]}</span> − <span class="a">AI ${r.scores[1 - h]}</span></span>` +
-        `<span class="res${d > 0 ? " win" : ""}">${res}</span>` +
-        `<span class="meta">AI: ${LEVELS[r.level] || r.level}・${seat}・${r.moves.length}手 <span class="go">▶ 再生</span></span></a>`;
-      ol.appendChild(li);
+  const fmt = n => n.toLocaleString(EN ? "en-US" : "ja-JP");
+  let games = [], page = 0;
+  const diff = r => r[2] - r[3];
+  const resOf = r => diff(r) > 0 ? "win" : diff(r) < 0 ? "loss" : "draw";
+  function draw(keepPage) {
+    const lv = $("fLevel").value, rs = $("fRes").value, sort = $("fSort").value;
+    let list = [];
+    for (let i = 0; i < games.length; i++) {
+      const r = games[i];
+      if ((!lv || r[0] === lv) && (!rs || resOf(r) === rs)) list.push(i);
     }
+    if (sort === "new") list.reverse();
+    else if (sort === "diff") list.sort((a, b) => diff(games[b]) - diff(games[a]) || b - a);
+    const pages = Math.max(1, Math.ceil(list.length / PAGE));
+    if (!keepPage) page = 0;
+    page = Math.min(Math.max(page, 0), pages - 1);
+    const from = page * PAGE, shown = list.slice(from, from + PAGE);
+    const html = [];
+    for (const i of shown) {
+      const r = games[i], d = diff(r);
+      const res = d > 0 ? "人の勝ち" : d < 0 ? "AIの勝ち" : "引き分け";
+      const seat = r[1] === 0 ? "人が先手" : "人が後手";
+      html.push(`<li><a href="play.html#replay=${i + 1}"><span class="no">#${i + 1}</span>` +
+        `<span class="sc"><span class="h">人 ${r[2]}</span> − <span class="a">AI ${r[3]}</span></span>` +
+        `<span class="res${d > 0 ? " win" : ""}">${res}</span>` +
+        `<span class="meta">AI: ${LEVELS[r[0]] || r[0]}・${seat}・${r[4]}手 <span class="go">▶ 再生</span></span></a></li>`);
+    }
+    $("games").innerHTML = html.join("");
+    $("count").textContent = !games.length ? "" : !list.length ? "条件に合う対局はありません。" :
+      `${fmt(list.length)}局のうち ${fmt(from + 1)}〜${fmt(from + shown.length)} 局目を表示`;
+    $("pager").hidden = pages <= 1;
+    $("pgNow").textContent = `${page + 1} / ${pages}`;
+    $("pgPrev").disabled = page === 0; $("pgNext").disabled = page >= pages - 1;
     $("empty").hidden = games.length > 0;
+    $("jump").hidden = games.length === 0;
   }
+  function go(step) {
+    page += step; draw(true);
+    $("list").scrollIntoView({block: "start"});
+  }
+  $("pgPrev").onclick = () => go(-1); $("pgNext").onclick = () => go(1);
+  $("jump").onsubmit = e => {
+    e.preventDefault();
+    const n = parseInt($("jumpNo").value, 10);
+    if (!(n >= 1 && n <= games.length)) { $("jumpNo").setCustomValidity(`1〜${games.length} の番号を入れてください`); $("jumpNo").reportValidity(); return; }
+    location.href = `play.html#replay=${n}`;
+  };
+  $("jumpNo").oninput = e => e.target.setCustomValidity("");
   function summary() {
     const n = games.length;
-    const win = games.filter(r => r.scores[r.human_seat] > r.scores[1 - r.human_seat]).length;
-    const avg = n ? games.reduce((s, r) => s + r.scores[r.human_seat] - r.scores[1 - r.human_seat], 0) / n : 0;
-    $("stats").innerHTML = stat(n, "届いた対局") + stat(n ? Math.round(100 * win / n) + "%" : "−", "人の勝率") +
+    const win = games.filter(r => diff(r) > 0).length;
+    const avg = n ? games.reduce((s, r) => s + diff(r), 0) / n : 0;
+    $("stats").innerHTML = stat(fmt(n), "届いた対局") + stat(n ? Math.round(100 * win / n) + "%" : "−", "人の勝率") +
       stat(n ? (avg > 0 ? "+" : "") + avg.toFixed(1) : "−", "人から見た平均点差");
-    const pos = games.reduce((s, r) => s + r.moves.length, 0);
-    $("useStats").innerHTML = stat(pos, "学習にまぜている局面") + stat(n, "弱点探しに使った対局");
-    for (const k of Object.keys(LEVELS)) if (games.some(r => r.level === k)) {
+    const pos = games.reduce((s, r) => s + r[4], 0);
+    $("useStats").innerHTML = stat(fmt(pos), "学習にまぜている局面") + stat(fmt(n), "弱点探しに使った対局");
+    $("jumpNo").max = n;
+    for (const k of Object.keys(LEVELS)) if (games.some(r => r[0] === k)) {
       const o = document.createElement("option"); o.value = k; o.textContent = LEVELS[k]; $("fLevel").appendChild(o);
     }
   }
-  $("fLevel").onchange = draw; $("fSort").onchange = draw;
+  $("fLevel").onchange = $("fRes").onchange = $("fSort").onchange = () => draw();
   // 研究ノート: scripts/human_games.py report が docs/human_findings.json に書く集計（src/carcassonne/human_findings.py）
   const KIND = {C: "都市", R: "道", F: "草原", M: "修道院"};
   const CAT = {
@@ -208,7 +254,7 @@ __SUPPORT__
   const item = (href, no, main, meta) => `<li><a href="${href}"><span class="no">${no}</span><span class="sc">${main}</span><span class="meta">${meta} <span class="go">▶ 再生</span></span></a></li>`;
   function findings(s) {
     const n = s.games;
-    if (!n) { $("fNote").textContent = "まだ届いた対局がないので、分かったことはまだありません。"; $("fBody").hidden = true; return; }
+    if (!n) { $("fNote").textContent = s.pending ? "届いた対局をAIで採点しているところです。採点が済んだら、ここにまとめます。" : "まだ届いた対局がないので、分かったことはまだありません。"; $("fBody").hidden = true; return; }
     $("fNote").textContent = s.trend ? `${n}局の集計です。` :
       `まだ${n}局なので、傾向ではなく「届いた対局ではこうだった」という例として見てください。10局たまったら傾向としてまとめます。`;
     $("fLead").textContent = s.loss_small_per_game > s.loss_bad_per_game ?
@@ -227,11 +273,12 @@ __SUPPORT__
     $("fAi").textContent = `人の勝ち: ${s.human_wins}局（${n}局中）。人の手のあとにAIの見積もりが大きく下がった場面は、AIが人の手の価値を低く見ていた候補です。ここからAIの弱点を探します。`;
     $("fMis").innerHTML = s.ai_misreads.map(m => item(`play.html#replay=${m.game}&ply=${m.ply - 1}`, `#${m.game}`,
       `見積もりが${m.drop}点下がった`, `${m.ply}手目の人の手のあと`)).join("");
-    $("fMeta").textContent = `採点したAI: ${s.ai.join(", ")}・更新: ${s.updated}`;
+    $("fMeta").textContent = `採点したAI: ${s.ai.join(", ")}・更新: ${s.updated}` +
+      (s.pending ? `・採点待ち: ${fmt(s.pending)}局（届いた順に少しずつ採点します）` : "");
   }
   fetch(EN ? "../human_findings.json" : "human_findings.json").then(r => r.json()).then(findings)
     .catch(() => { $("fNote").textContent = "研究ノートを読み込めませんでした。時間をおいて開き直してください。"; $("fBody").hidden = true; });
-  fetch(SRC).then(r => r.json()).then(g => { games = Array.isArray(g) ? g : []; summary(); draw(); })
+  fetch(SRC).then(r => r.ok ? r.json() : Promise.reject(r.status)).then(g => { games = Array.isArray(g) ? g : []; summary(); draw(); })
     .catch(() => { $("loadErr").hidden = false; summary(); });
 })();
 </script>

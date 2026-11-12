@@ -111,6 +111,40 @@ def key(rec: dict) -> str:
     return hashlib.sha256(s.encode()).hexdigest()[:16]
 
 
+def _raw_key(obj) -> str | None:
+    """検査する前の棋譜の key（形が違えば None）。normalize は山札・指し手・席を変えないので key と同じになる。"""
+    try:
+        return key({k: obj[k] for k in ("deck", "moves", "human_seat")})
+    except (KeyError, TypeError):
+        return None
+
+
+def public_index(games: list[dict]) -> list[list]:
+    """「みんなの対局」の一覧に要る分だけの軽い表（1局1行）。棋譜の本体は `public_chunks` に分けて置く。
+
+    1行は [強さ, 人の席, 人の得点, AIの得点, 手数, 初心者モード・ヒント・待ったの有無(0/1)]。
+    """
+    out = []
+    for r in games:
+        h = r["human_seat"]
+        assisted = r["coach"] or r["hints"] > 0 or r["undos"] > 0
+        out.append(
+            [r["level"], h, r["scores"][h], r["scores"][1 - h], len(r["moves"]), int(assisted)]
+        )
+    return out
+
+
+CHUNK = 100  # 公開する棋譜を何局ずつのファイルに分けるか（再生は1ファイルだけ読む）
+
+
+def public_chunks(games: list[dict], size: int = CHUNK) -> list[list[dict]]:
+    """棋譜を size 局ずつに分ける。n 局目（1始まり）は (n-1)//size 番目のファイルの (n-1)%size 番目。
+
+    局は後ろに足されるだけなので、新しい局が届いても書き換わるのは最後のファイルだけ。
+    """
+    return [games[i : i + size] for i in range(0, len(games), size)]
+
+
 def from_issue_body(body: str) -> dict:
     """Issue の本文から棋譜の JSON（```json の枠の中）を取り出す。"""
     if not body or MARK not in body:
@@ -133,14 +167,27 @@ def load(path: str | Path) -> list[dict]:
     return [json.loads(line) for line in p.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
-def add(path: str | Path, rec: dict) -> bool:
-    """棋譜を1行足す。同じ対局がもうあれば足さずに False。"""
+def known_keys(path: str | Path) -> set[str]:
+    """もうある対局の key（二重に足さないため）。"""
+    return {key(r) for r in load(path)}
+
+
+def add(path: str | Path, rec: dict, known: set[str] | None = None) -> bool:
+    """棋譜を1行足す。同じ対局がもうあれば足さずに False。
+
+    known（`known_keys` の結果）を渡すと、ファイルを読み直さずにそれで見分け、足した key を加える
+    （フォームの表は回答がたまり続けるので、1行ごとに全部を読み直すと局数に比例して遅くなる）。
+    """
     p = Path(path)
-    if any(key(r) == key(rec) for r in load(p)):
+    if known is None:
+        known = known_keys(p)
+    k = key(rec)
+    if k in known:
         return False
     p.parent.mkdir(parents=True, exist_ok=True)
     with p.open("a", encoding="utf-8") as f:
         f.write(json.dumps(rec, ensure_ascii=False, separators=(",", ":")) + "\n")
+    known.add(k)
     return True
 
 
@@ -232,8 +279,12 @@ def replay_url(game: int, ply: int | None = None) -> str:
     return f"{PLAY_URL}#replay={game}" + (f"&ply={ply}" if ply is not None else "")
 
 
-def report_md(fast: Fast, games: list[dict], w: np.ndarray) -> str:
-    """弱点分析のレポート（Markdown）。"""
+REPORT_LIST = 50  # レポートに並べる対局の数（新しい順。全部は「みんなの対局」ページで見る）
+GAMES_URL = "https://satou-aaaaa.github.io/carcassonne-research/games.html"
+
+
+def report_md(fast: Fast, games: list[dict], w: np.ndarray, sw: list[dict] | None = None) -> str:
+    """弱点分析のレポート（Markdown）。sw は `swings` の結果（省くとここで計算する）。"""
     lines = [
         "# 人との対局のまとめ（自動）",
         "",
@@ -256,7 +307,10 @@ def report_md(fast: Fast, games: list[dict], w: np.ndarray) -> str:
             f"| {lv} | {r['games']} | {r['human_wins']} | {r['draws']} | {r['mean_diff']:+.1f} | {r['assisted']} |"
         )
     lines += ["", "## 対局の一覧（押すと一手ずつ再生）", ""]
-    for gi, rec in enumerate(games):
+    if len(games) > REPORT_LIST:
+        lines += [f"新しい{REPORT_LIST}局だけ。全部は [みんなの対局]({GAMES_URL}) で見られる。", ""]
+    for gi in range(len(games) - 1, max(-1, len(games) - 1 - REPORT_LIST), -1):
+        rec = games[gi]
         h = rec["human_seat"]
         sc = rec["scores"]
         seat = "先手" if h == 0 else "後手"
@@ -278,7 +332,7 @@ def report_md(fast: Fast, games: list[dict], w: np.ndarray) -> str:
         "| 対局 | 手数 | 置いた場所 (x, y) | 下がり幅 |",
         "|---:|---:|---|---:|",
     ]
-    for s in swings(fast, games, w):
+    for s in (swings(fast, games, w) if sw is None else sw)[:10]:
         url = replay_url(s["game"] + 1, s["ply"] - 1)
         lines.append(
             f"| [{s['game'] + 1}]({url}) | {s['ply']} | ({s['x']}, {s['y']}) | {s['drop']:+.1f} |"
@@ -290,15 +344,20 @@ def ingest_rows(texts, path: str | Path, ts: TileSet | None = None) -> dict:
     """Google フォームの回答（棋譜の JSON の文字列の並び）を検査して足す。数を返す（added / duplicate / invalid）。"""
     ts = ts or load_tileset()
     out = {"added": 0, "duplicate": 0, "invalid": 0}
+    known = known_keys(path)
     for text in texts:
         try:
             if len(text) > MAX_BODY:
                 raise RecordError("長すぎます")
-            rec = normalize(json.loads(text), ts)
+            obj = json.loads(text)
+            if _raw_key(obj) in known:  # もう受け取った対局（表には残り続ける）は検査を省く
+                out["duplicate"] += 1
+                continue
+            rec = normalize(obj, ts)
         except (RecordError, json.JSONDecodeError, TypeError):
             out["invalid"] += 1
             continue
-        out["added" if add(path, rec) else "duplicate"] += 1
+        out["added" if add(path, rec, known) else "duplicate"] += 1
     return out
 
 
