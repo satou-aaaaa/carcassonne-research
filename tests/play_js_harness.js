@@ -10,6 +10,8 @@
 // replay: 棋譜（records）を再生ページの仕組み（LOCAL_API の /api/replay）で開き、途中と最後の盤・得点
 // endgame: ランダムに残り bag 枚まで進めた局面で、終盤の厳密解（endgameBest）の手と値・かかった時間
 // move:   山札と着手列 [x, y, 種別, 向き, 断片] の局面で、ブラウザ版のAIが選ぶ手
+// copy:   局面の写し（copyInto。盤は置いたマスだけ書き直す）が、深い局面・浅い局面のどちらからでも元と同じになるか
+// egcap:  時間の上限つきの終盤読み切り（endgameBest の budgetMs）が、時間切れでも合法な手を返すか
 "use strict";
 const path = require("path");
 const DOCS = path.join(__dirname, "..", "docs");
@@ -43,11 +45,15 @@ if (args.cmd === "games") {
     const f = new Float64Array(C.NF);
     while (!S.sc[C.SC_OVER]) {
       const legal = eng.legalMoves(S).map(mv);
+      // 置ける場所の列挙の順番（ロールアウトの乱数がどの手を選ぶかに効く。Python の gen_placements と同じ順か）
+      const k = eng.genPlacements(S, S.sc[C.SC_CUR], false);
+      const order = [];
+      for (let q = 0; q < k; q++) { const [x, y] = C.xyOf(eng.outCell[q]); order.push([x, y, eng.gVi[eng.outG[q]]]); }
       eng.features(S, S.sc[C.SC_PL], f);
       const feats = Array.from(f);
       const m = eng.randomMove(S, args.meeple_prob ?? 0.5);
       eng.applyMove(S, m[0], m[1], m[2]);
-      steps.push({ legal, move: mv(m), snap: snap(S), projected: eng.projected(S), feats });
+      steps.push({ legal, order, move: mv(m), snap: snap(S), projected: eng.projected(S), feats });
     }
     out.push({ seed, deck, start: snap(eng.newGame(deck)), steps });
   }
@@ -160,4 +166,39 @@ if (args.cmd === "games") {
   const S = eng.newGame(args.deck);
   for (const [x, y, ti, vi, piece] of args.history) eng.applyMove(S, C.cellOf(x, y), eng.vbase[ti] + vi, piece === null ? -1 : piece);
   console.log(JSON.stringify(mv(aiMove(eng, DATA, S, args.level, args.seed))));
+} else if (args.cmd === "copy") {
+  const KEYS = ["grid", "tg", "tcell", "parent", "kind", "opn", "pen", "t0", "t1", "t2", "meep", "sc", "deck", "fr", "fp"];
+  const same = (a, b) => KEYS.every(k => a[k].length === b[k].length && a[k].every((v, i) => v === b[k][i]));
+  const out = [];
+  for (const seed of args.seeds) {
+    eng.rng.seed(seed);
+    const S = eng.newGame(eng.shuffledDeck(seed));
+    const snaps = [C.copyState(S)];
+    while (!S.sc[C.SC_OVER]) { const m = eng.randomMove(S, 0.5); eng.applyMove(S, m[0], m[1], m[2]); snaps.push(C.copyState(S)); }
+    // 作業用の局面に、深い局面と浅い局面を順不同に写す（探索・読み切りと同じ使い方）
+    const W = C.makeState(eng.P);
+    let ok = true;
+    for (let i = 0; i < 200; i++) {
+      const src = snaps[eng.rng.randint(0, snaps.length)];
+      C.copyInto(W, src);
+      if (!same(W, src)) ok = false;
+      if (!src.sc[C.SC_OVER]) { const m = eng.randomMove(W, 0.5); eng.applyMove(W, m[0], m[1], m[2]); } // 写した後に進めても次の写しに残らない
+    }
+    out.push(ok);
+  }
+  console.log(JSON.stringify(out));
+} else if (args.cmd === "egcap") {
+  const out = [];
+  for (const seed of args.seeds) {
+    eng.rng.seed(seed);
+    const S = eng.newGame(eng.shuffledDeck(seed));
+    while (!S.sc[C.SC_OVER] && eng.bagLeft(S) > 3) { const m = eng.randomMove(S, 0.5); eng.applyMove(S, m[0], m[1], m[2]); }
+    if (S.sc[C.SC_OVER]) continue;
+    const legal = new Set(eng.legalMoves(S).map(m => m.join(",")));
+    const prefer = eng.legalMoves(S).slice(-1)[0];
+    const t = Date.now();
+    const [m] = eng.endgameBest(S, prefer, args.budget);
+    out.push({ legal: legal.has(m.join(",")), timedOut: eng.egTimedOut, ms: Date.now() - t });
+  }
+  console.log(JSON.stringify(out));
 }

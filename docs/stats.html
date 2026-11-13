@@ -283,7 +283,7 @@ summary { padding-block: 6px; }
     <li>終盤に点差が大きく開いていれば、勝ち負けはほぼ決まっています。考える時間は、僅差の終盤に使いましょう。</li>
     <li>ほとんどの局面では、点をいちばん多く取る手が勝つ確率でも最善です。ただし僅差の最終盤では、残りのタイルを数えて「どのタイルが出たら勝ちか負けか」まで考えると、点を少し捨てても勝つ確率が上がる手が見つかることがあります。</li>
   </ul></div>
-  <p class="note">読み切りは、残りのタイルの種類ごとに引く確率で重み付けし、手番の側は勝つ確率（引き分けは0.5勝）が最大の手を選ぶとして終局まで調べたものです（期待ミニマックス法。<a href="https://aima.cs.berkeley.edu/4th-ed/pdfs/newchap06.pdf">Russell &amp; Norvig『AIMA』6章</a>）。残り3枚なら1手数秒以内で読めますが、4枚では1局面に数分かかることがあり、対戦ページでは使っていません。局面はAIどうしの対局の棋譜から取り、「最強」の手はその局面から改めて探索させました。プログラムは <code>src/carcassonne/endgame.py</code>・<code>scripts/gto_endgame.py</code>、集計結果は <code>docs/results/gto_endgame.json</code>。</p>
+  <p class="note">読み切りは、残りのタイルの種類ごとに引く確率で重み付けし、手番の側は勝つ確率（引き分けは0.5勝）が最大の手を選ぶとして終局まで調べたものです（期待ミニマックス法。<a href="https://aima.cs.berkeley.edu/4th-ed/pdfs/newchap06.pdf">Russell &amp; Norvig『AIMA』6章</a>）。残り3枚ならたいてい数秒以内で読めます（対戦ページのAIは3秒で打ち切り、それまでに確かめた中の最善手を指します）。4枚では1局面に数分かかることがあり、対戦ページでは使っていません。局面はAIどうしの対局の棋譜から取り、「最強」の手はその局面から改めて探索させました。プログラムは <code>src/carcassonne/endgame.py</code>・<code>scripts/gto_endgame.py</code>、集計結果は <code>docs/results/gto_endgame.json</code>。</p>
 </section>
 
 <section id="method">

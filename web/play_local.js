@@ -17,7 +17,8 @@
     if (!lv.sims) return eng.greedy(S);
     const move = eng.search(S, searchOpts(data, lv));
     // 山札の残りが少なければ、終局まで読み切った勝率最大の手で指す（FastMCTSAgent の endgame）
-    if (lv.eg && eng.bagLeft(S) <= lv.eg) return eng.endgameBest(S, move)[0];
+    // egMs があれば読み切りにかける時間の上限（遅い端末で長く待たせない。読み切れなければ探索の手か、そこまでで確かめた良い手）
+    if (lv.eg && eng.bagLeft(S) <= lv.eg) return eng.endgameBest(S, move, lv.egMs || 0)[0];
     return move;
   }
   function searchOpts(data, lv) {
@@ -66,35 +67,59 @@
   const LIB = DATA.tiles;
 
   // ---- 思考（Worker） ----------------------------------------------------
-  let worker = null, jobId = 0;
-  const waiting = new Map();
-  try {
-    worker = new Worker("play_worker.js");
-    worker.onmessage = e => {
-      const w = waiting.get(e.data.id);
-      waiting.delete(e.data.id);
-      if (e.data.error) w.reject(new Error(e.data.error));
-      else w.resolve(e.data.result);
+  // Worker を2つまで用意し、コーチの解析とAIの手を同時に計算できるようにする（1つずつだと待ち時間が足し算になる）
+  const cores = (typeof navigator !== "undefined" && navigator.hardwareConcurrency) || 4;
+  const NWORKERS = Math.max(1, Math.min(2, cores - 1));
+  const workers = [], queue = [];
+  let jobId = 0, useWorkers = typeof Worker !== "undefined";
+  function startWorker() {
+    let w;
+    try { w = new Worker("play_worker.js"); } catch (err) { return null; }
+    const slot = { w, job: null };
+    w.onmessage = e => {
+      const j = slot.job;
+      slot.job = null;
+      if (j && j.id === e.data.id) {
+        if (e.data.error) j.reject(new Error(e.data.error));
+        else j.resolve(e.data.result);
+      }
+      pump();
     };
     // 読み込めなかったときは画面側の計算に切り替え、待っている計算もやり直す
-    worker.onerror = () => {
-      worker = null;
-      for (const w of waiting.values()) computeHere(w.job).then(w.resolve, w.reject);
-      waiting.clear();
+    w.onerror = () => {
+      useWorkers = false;
+      const pend = workers.filter(s => s.job).map(s => s.job).concat(queue.splice(0));
+      workers.length = 0;
+      for (const j of pend) computeHere(j.job).then(j.resolve, j.reject);
     };
-  } catch (err) {
-    worker = null;
+    return slot;
+  }
+  function pump() {
+    while (queue.length && useWorkers) {
+      let slot = workers.find(s => !s.job);
+      if (!slot && workers.length < NWORKERS) {
+        slot = startWorker();
+        if (!slot) { useWorkers = false; break; }
+        workers.push(slot);
+      }
+      if (!slot) return;
+      const j = queue.shift();
+      slot.job = j;
+      slot.w.postMessage({ ...j.job, id: j.id });
+    }
+    if (!useWorkers) for (const j of queue.splice(0)) computeHere(j.job).then(j.resolve, j.reject);
   }
   // 画面を描き直す時間を与えてから計算する
   function computeHere(job) {
     return new Promise(resolve => setTimeout(() => resolve(runJob(eng, DATA, job)), 30));
   }
+  // job.history はその時点の写しを渡す（計算が始まる前に対局が進んでも混ざらないように）
   function compute(job) {
-    if (!worker) return computeHere(job);
+    job = { ...job, history: job.history.slice() };
+    if (!useWorkers) return computeHere(job);
     return new Promise((resolve, reject) => {
-      const id = ++jobId;
-      waiting.set(id, { job, resolve, reject });
-      worker.postMessage({ ...job, id });
+      queue.push({ id: ++jobId, job, resolve, reject });
+      pump();
     });
   }
 
@@ -146,17 +171,32 @@
       this.last_ai = null;
       this.last_coach = null;
       this.hint = null;
-      if (this.coach) {
-        const opts = await compute({ kind: "analyze", deck: this.deck, history: this.history, seed: this.seed * 1000 + this.history.length });
-        const best = opts[0];
-        this.last_coach = { best: bestDict((g, p) => this.pieceKind(g, p), best), loss: null };
-        const mine = opts.find(o => o.cell === cell && o.g === g && o.piece === p);
-        if (mine) this.last_coach.loss = Math.round(Math.max(0, best.diff - mine.diff) * 10) / 10;
-      }
+      // コーチの解析（置く前の局面）とAIの返し手を同時に計算し始める
+      const coachJob = this.coach ? compute({ kind: "analyze", deck: this.deck, history: this.history, seed: this.seed * 1000 + this.history.length }) : null;
       this.play(cell, g, p);
-      if (this.last_coach) this.events.push({ player: this.human_seat, text: coachText(this.last_coach), x: this.last_coach.best.x, y: this.last_coach.best.y });
+      const aiJob = this.startAiJob();
+      if (coachJob) {
+        if (root.onInterimState) root.onInterimState(this.view()); // 解析を待たずに自分の手を見せる
+        // 手はもう置いたので、解析が失敗してもAIの手番は進める（ヒントだけ出さない）
+        const opts = await coachJob.catch(() => null);
+        const best = opts && opts[0];
+        if (best) {
+          this.last_coach = { best: bestDict((g, p) => this.pieceKind(g, p), best), loss: null };
+          const mine = opts.find(o => o.cell === cell && o.g === g && o.piece === p);
+          if (mine) this.last_coach.loss = Math.round(Math.max(0, best.diff - mine.diff) * 10) / 10;
+          this.events.push({ player: this.human_seat, text: coachText(this.last_coach), x: this.last_coach.best.x, y: this.last_coach.best.y });
+        }
+      }
       if (root.onInterimState) root.onInterimState(this.view());
-      await this.advanceAi();
+      await this.advanceAi(aiJob);
+    }
+
+    // AIの手番なら、その手の計算を始めて { ply, promise } を返す
+    startAiJob() {
+      const S = this.S;
+      if (S.sc[C.SC_OVER] || S.sc[C.SC_PL] === this.human_seat) return null;
+      const ply = this.history.length;
+      return { ply, promise: compute({ kind: "move", deck: this.deck, history: this.history, level: this.level, seed: (this.seed * 2 + 1 - this.human_seat) * 1000 + ply }) };
     }
 
     // 待った: 直前の自分の手（とそれに続くAIの手）を取り消す。局面は山札と着手列から作り直す
@@ -182,11 +222,12 @@
       this.hints++;
     }
 
-    async advanceAi() {
+    async advanceAi(started) {
       const S = this.S;
       while (!S.sc[C.SC_OVER] && S.sc[C.SC_PL] !== this.human_seat) {
-        const ply = this.history.length;
-        const m = await compute({ kind: "move", deck: this.deck, history: this.history, level: this.level, seed: (this.seed * 2 + 1 - this.human_seat) * 1000 + ply });
+        const job = started && started.ply === this.history.length ? started : this.startAiJob();
+        started = null;
+        const m = await job.promise;
         this.play(m[0], m[1], m[2]);
         const [x, y] = C.xyOf(m[0]);
         this.last_ai = { x, y };
