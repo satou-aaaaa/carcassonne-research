@@ -165,5 +165,8 @@
  "AIなら紫の点線のマスに置き、${put}": "the AI would play the purple dotted square, ${put}",
  "この手（${who}）: AIがほとんど考えなかった手です。${ai}。": "This move (${who}): one the AI barely considered; ${ai}.",
  "この手（${who}）: AIの最善手とほぼ同じ、いい手です。": "This move (${who}): about as good as the AI's best. Nice.",
- "この手（${who}）: AIの見積もりでは最善より約${a.loss.toFixed(0)}点の損。${ai}。": "This move (${who}): about ${a.loss.toFixed(0)} points worse than the AI's best by its estimate; ${ai}."
+ "この手（${who}）: AIの見積もりでは最善より約${a.loss.toFixed(0)}点の損。${ai}。": "This move (${who}): about ${a.loss.toFixed(0)} points worse than the AI's best by its estimate; ${ai}.",
+ "<small>AI<span class=\"think\" id=\"thinkAi\" role=\"status\">考え中</span></small><b id=\"scAi\">0</b><span class=\"pr\" id=\"prAi\"></span><span class=\"mp\" id=\"spAi\"></span>": "<small>AI<span class=\"think\" id=\"thinkAi\" role=\"status\">thinking</span></small><b id=\"scAi\">0</b><span class=\"pr\" id=\"prAi\"></span><span class=\"mp\" id=\"spAi\"></span>",
+ "AIが終局まで読み切っています…": "The AI is calculating the endgame exactly…",
+ "${head}（${sec}秒）": "${head} (${sec}s)"
 }

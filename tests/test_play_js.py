@@ -13,7 +13,7 @@ import numpy as np
 import pytest
 
 from carcassonne import State, load_tileset
-from carcassonne.fast import Fast
+from carcassonne.fast import C0, Fast, G, gen_placements
 from carcassonne.fast_eval import NF, features, load_eval
 from carcassonne.state import Move
 
@@ -55,6 +55,15 @@ def test_engine_matches_python():
         for step in game["steps"]:
             legal = {tuple(m) for m in step["legal"]}
             assert legal == {(m.x, m.y, st.current, m.variant, m.piece) for m in st.legal_moves()}
+            # 置ける場所の列挙の順番も Python（fast.gen_placements）と同じ（JS は候補のマスを差分で持つ）
+            sc = fast.scratch
+            sc.stamp_box[0] += 1
+            k = gen_placements(
+                S, fast.T, st.current, sc.stamp, sc.stamp_box[0], sc.out_cell, sc.out_g, False
+            )
+            order = [[int(c) // G - C0, int(c) % G - C0, int(g) - int(fast.T[11][st.current])]
+                     for c, g in zip(sc.out_cell[:k], sc.out_g[:k])]  # fmt: skip
+            assert step["order"] == order
             features(S, fast.T, fast.P, st.player, f)
             np.testing.assert_allclose(step["feats"], f, atol=1e-9)
             x, y, ti, vi, piece = step["move"]
@@ -105,6 +114,18 @@ def test_endgame_matches_python():
         assert r["value"] == pytest.approx(v)
         m, _ = best_move(fast, S, prefer=tuple(r["prefer"]))
         assert list(m) == r["move"]
+
+
+def test_copy_into_restores_state():
+    """局面の写し（盤は置いたマスだけ書き直す）が、どの局面からでも元と全く同じになる。"""
+    assert run_js({"cmd": "copy", "seeds": [1, 2, 3]}) == [True, True, True]
+
+
+def test_endgame_time_limit_returns_legal_move():
+    """読み切りの時間が足りなくても、すぐに合法な手を返す。"""
+    res = run_js({"cmd": "egcap", "seeds": list(range(6)), "budget": 1})
+    assert res and all(r["legal"] for r in res)
+    assert all(r["ms"] < 1000 for r in res)
 
 
 def test_search_returns_legal_moves():

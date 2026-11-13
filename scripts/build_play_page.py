@@ -58,6 +58,9 @@ LEVELS = {
         "depth": 10,
         **RESELECT,  # 相手の返し手まで読む選び直し（webplay.make_agent と同じ）
         "eg": ENDGAME,  # 終盤は読み切った勝率最大の手（webplay.make_agent と同じ）
+        # ブラウザだけ: 読み切りは長いと数十秒かかる局面があるので時間の上限（ミリ秒）を置く。読み切れなければ
+        # 探索の手か、そこまでに確かめた良い手で指す（測定は docs/EXPERIMENTS.md「対戦ページの思考時間」）
+        "egMs": 3000,
     },
     "standard": {
         "label": "標準（探索を減らした版。すぐ指す）",
@@ -65,6 +68,7 @@ LEVELS = {
         "depth": 0,
         **RESELECT,
         "eg": ENDGAME,
+        "egMs": 1000,  # 標準は「すぐ指す」ので読み切りも短く
     },
     "greedy": {"label": "やさしい（目先の点だけを見る練習相手）"},
 }

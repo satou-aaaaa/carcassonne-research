@@ -17,8 +17,8 @@
   const MEEPLES = 7;
   const NF = 38; // 特徴量数（fast_eval.NF）
   const HARD = 3; // fast_eval.HARD
-  const SC_N = 0, SC_PL = 1, SC_S0 = 2, SC_S1 = 3, SC_SUP0 = 4, SC_OVER = 6, SC_DRAW = 7, SC_CUR = 8, SC_DISC = 9;
-  const SC_LEN = 10;
+  const SC_N = 0, SC_PL = 1, SC_S0 = 2, SC_S1 = 3, SC_SUP0 = 4, SC_OVER = 6, SC_DRAW = 7, SC_CUR = 8, SC_DISC = 9, SC_NFR = 10;
+  const SC_LEN = 11;
   const DIRCELL = [1, G, -1, -G]; // N,E,S,W
 
   function popcnt(x) {
@@ -63,11 +63,24 @@
       meep: new Int8Array(NN * 2), // meep[node*2+player]
       sc: new Int32Array(SC_LEN),
       deck: new Int8Array(NT), // 山札（開始タイルを除く71枚の種別index）
+      fr: new Int16Array(NT * 4), // 置けるマスの候補（置いたタイルに隣接する空きマス。見つけた順。件数は sc[SC_NFR]）
+      fp: new Int16Array(NT * 4), // fr の各マスの隣の辺の要求（patAt）
     };
   }
-  const KEYS = ["grid", "tg", "tcell", "parent", "kind", "opn", "pen", "t0", "t1", "t2", "meep", "sc", "deck"];
-  function copyInto(dst, src) { for (const k of KEYS) dst[k].set(src[k]); }
+  const KEYS = ["grid", "tg", "tcell", "parent", "kind", "opn", "pen", "t0", "t1", "t2", "meep", "sc", "deck", "fr", "fp"];
+  const KEYS_NOGRID = KEYS.filter(k => k !== "grid");
+  // dst を src と同じ局面にする。盤（145×145）は全体を写さず、置いたタイルのマスだけ消して書き直す
+  // （grid が 0 でないのは tcell のマスだけ、という不変条件を使う。grid を書くのは placeTile だけ）
+  function copyInto(dst, src) {
+    const dg = dst.grid, dt = dst.tcell, st = src.tcell, sn = src.sc[SC_N];
+    for (let t = dst.sc[SC_N] - 1; t >= 0; t--) dg[dt[t]] = 0;
+    for (let t = 0; t < sn; t++) dg[st[t]] = t + 1;
+    for (const k of KEYS_NOGRID) dst[k].set(src[k]);
+  }
   function copyState(S) { const o = {}; for (const k of KEYS) o[k] = S[k].slice(); return o; }
+
+  const nowMs = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
+  const EG_TIMEOUT = { egTimeout: true }; // 終盤の読み切りの時間切れ（endgameBest が受け止める）
 
   function find(parent, x) {
     while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; }
@@ -100,8 +113,6 @@
         for (let vi = 0; vi < this.nvar[ti]; vi++) { this.gTi[this.vbase[ti] + vi] = ti; this.gVi[this.vbase[ti] + vi] = vi; }
       }
       // 作業用バッファ
-      this.stamp = new Int32Array(G * G);
-      this.stampVal = 0;
       this.outCell = new Int32Array((G * G) >> 2);
       this.outG = new Int16Array((G * G) >> 2);
       this.free = new Int32Array(16);
@@ -114,6 +125,24 @@
       this.fpc = new Int32Array(NT * P);
       this.fpf = new Int32Array(NT * P);
       this.cnt = new Int32Array(this.nvar.length);
+      // 隣の辺の要求（各辺 -1/0/1/2 → 4進4桁）ごとに、どれかの向きで合うタイル種別のビット集合（nFit の高速化）
+      this.fitMask = new Int32Array(256);
+      // varMask[ti*256+pat]: その要求に合う向き vi のビット集合（genPlacements の高速化）
+      this.varMask = new Int32Array(this.nvar.length * 256);
+      const rq = [0, 0, 0, 0];
+      for (let pat = 0; pat < 256; pat++) {
+        for (let d = 0; d < 4; d++) rq[d] = ((pat >> (2 * d)) & 3) - 1;
+        let m = 0;
+        for (let ti = 0; ti < this.nvar.length; ti++) {
+          for (let vi = 0; vi < this.nvar[ti]; vi++) {
+            const g = this.vbase[ti] + vi;
+            let ok = true;
+            for (let d = 0; d < 4; d++) if (rq[d] >= 0 && rq[d] !== this.edge[g * 4 + d]) { ok = false; break; }
+            if (ok) { m |= 1 << ti; this.varMask[ti * 256 + pat] |= 1 << vi; }
+          }
+        }
+        this.fitMask[pat] = m;
+      }
       this.rng = new Rng(0);
     }
 
@@ -134,6 +163,44 @@
 
     ntiles(S, r) { return popcnt(S.t0[r]) + popcnt(S.t1[r]) + popcnt(S.t2[r]); }
 
+    // 置いたマスを候補から外し、新しく隣接した空きマスを末尾に足す。タイルの置き順・辺の順に初めて
+    // 隣接した順になるので、置いたタイルを順に見ていく列挙（fast.gen_placements）と同じ順番になる
+    updateFrontier(S, cell) {
+      const fr = S.fr, fp = S.fp, sc = S.sc, grid = S.grid;
+      let n = sc[SC_NFR], j = 0;
+      for (let i = 0; i < n; i++) {
+        const c = fr[i];
+        if (c === cell) continue;
+        const dc = c - cell;
+        fr[j] = c;
+        fp[j] = dc === 1 || dc === -1 || dc === G || dc === -G ? this.patAt(S, c) : fp[i];
+        j++;
+      }
+      n = j;
+      for (let s = 0; s < 4; s++) {
+        const c = cell + DIRCELL[s];
+        if (grid[c] !== 0) continue;
+        let seen = false; // 置いたマス以外のタイルに既に隣接していれば候補に入っている
+        for (let d = 0; d < 4; d++) {
+          const c2 = c + DIRCELL[d];
+          if (c2 !== cell && grid[c2] !== 0) { seen = true; break; }
+        }
+        if (!seen) { fr[n] = c; fp[n] = this.patAt(S, c); n++; }
+      }
+      sc[SC_NFR] = n;
+    }
+
+    // 空きマス cell の4辺の要求（隣のタイルの辺 0/1/2、なければ -1）を 4進4桁（各桁 +1）にした値
+    patAt(S, cell) {
+      const grid = S.grid, tg = S.tg, edge = this.edge;
+      let pat = 0;
+      for (let d = 0; d < 4; d++) {
+        const nt = grid[cell + DIRCELL[d]] - 1;
+        if (nt >= 0) pat |= (edge[tg[nt] * 4 + (d + 2) % 4] + 1) << (2 * d);
+      }
+      return pat;
+    }
+
     placeTile(S, cell, g) {
       const P = this.P, sc = S.sc, parent = S.parent;
       const t = sc[SC_N];
@@ -141,6 +208,7 @@
       S.grid[cell] = t + 1;
       S.tg[t] = g;
       S.tcell[t] = cell;
+      this.updateFrontier(S, cell);
       const base = t * P;
       for (let i = 0; i < this.npc[g]; i++) {
         const n = base + i, k = this.pkind[g * P + i];
@@ -181,28 +249,17 @@
 
     // タイル種別 ti の合法配置を outCell/outG に列挙して件数を返す
     genPlacements(S, ti, limitFirst) {
-      const grid = S.grid, tcell = S.tcell, req = this.req, stamp = this.stamp;
-      const sv = ++this.stampVal;
-      const nPlaced = S.sc[SC_N], vb = this.vbase[ti], nv = this.nvar[ti];
+      const fr = S.fr, fp = S.fp;
+      const nfr = S.sc[SC_NFR], vb = this.vbase[ti], vm = this.varMask, mb = ti * 256;
       let k = 0;
-      for (let t = 0; t < nPlaced; t++) {
-        const c0 = tcell[t];
-        for (let s = 0; s < 4; s++) {
-          const c = c0 + DIRCELL[s];
-          if (grid[c] !== 0 || stamp[c] === sv) continue;
-          stamp[c] = sv;
-          this.reqAt(S, c, req);
-          for (let vi = 0; vi < nv; vi++) {
-            const g = vb + vi;
-            let ok = true;
-            for (let d = 0; d < 4; d++) {
-              if (req[d] >= 0 && req[d] !== this.edge[g * 4 + d]) { ok = false; break; }
-            }
-            if (ok) {
-              this.outCell[k] = c; this.outG[k] = g; k++;
-              if (limitFirst) return k;
-            }
-          }
+      for (let i = 0; i < nfr; i++) {
+        let m = vm[mb + fp[i]];
+        if (m === 0) continue;
+        const c = fr[i];
+        for (let vi = 0; m !== 0; vi++, m >>>= 1) {
+          if (!(m & 1)) continue;
+          this.outCell[k] = c; this.outG[k] = vb + vi; k++;
+          if (limitFirst) return k;
         }
       }
       return k;
@@ -435,11 +492,12 @@
     }
 
     // S を破壊的に進める。maxSteps<0 で終局まで。戻り値は（予測）得点 [s0, s1]。rec があれば着手を記録する
-    rollout(S, meepleProb, maxSteps, rec) {
+    // noResult なら途中で止めたときの得点を計算しない（戻り値は null。探索の葉で評価関数を使う場合）
+    rollout(S, meepleProb, maxSteps, rec, noResult) {
       const sc = S.sc;
       let steps = 0;
       while (sc[SC_OVER] === 0) {
-        if (maxSteps >= 0 && steps >= maxSteps) return this.projected(S);
+        if (maxSteps >= 0 && steps >= maxSteps) return noResult ? null : this.projected(S);
         const [cell, g, piece] = this.randomMove(S, meepleProb);
         if (rec) rec.push([cell, g, piece]);
         this.applyMove(S, cell, g, piece);
@@ -452,20 +510,8 @@
 
     // 空きマス cell に置ける残りタイルの枚数（fast_eval.n_fit）
     nFit(S, cell, cnt) {
-      const req = this.req;
-      this.reqAt(S, cell, req);
-      let n = 0;
-      for (let ti = 0; ti < cnt.length; ti++) {
-        if (cnt[ti] === 0) continue;
-        for (let vi = 0; vi < this.nvar[ti]; vi++) {
-          const g = this.vbase[ti] + vi;
-          let ok = true;
-          for (let d = 0; d < 4; d++) {
-            if (req[d] >= 0 && req[d] !== this.edge[g * 4 + d]) { ok = false; break; }
-          }
-          if (ok) { n += cnt[ti]; break; }
-        }
-      }
+      let m = this.fitMask[this.patAt(S, cell)], n = 0;
+      for (let ti = 0; m !== 0; ti++, m >>>= 1) if (m & 1) n += cnt[ti];
       return n;
     }
 
@@ -530,13 +576,25 @@
     }
 
     features(S, me, out) {
-      const P = this.P, sc = S.sc, pts = this.pts, parent = S.parent, meep = S.meep;
+      this.endPoints(S, this.pts);
+      this.minFit(S, this.mf);
+      this.featuresFrom(S, me, out);
+    }
+
+    // 両方の手番から見た特徴量（共通部分の endPoints・minFit は1回だけ計算する）
+    featuresBoth(S, out0, out1) {
+      this.endPoints(S, this.pts);
+      this.minFit(S, this.mf);
+      this.featuresFrom(S, 0, out0);
+      this.featuresFrom(S, 1, out1);
+    }
+
+    // features の本体（this.pts と this.mf は計算済み）
+    featuresFrom(S, me, out) {
+      const P = this.P, sc = S.sc, pts = this.pts, parent = S.parent, meep = S.meep, mf = this.mf;
       out.fill(0);
       const sign0 = me === 0 ? 1 : -1;
       out[0] = sign0 * (sc[SC_S0] - sc[SC_S0 + 1]);
-      this.endPoints(S, pts);
-      const mf = this.mf;
-      this.minFit(S, mf);
       out[34] = this.fieldOpenCities(S, me, mf);
       for (let t = 0; t < sc[SC_N]; t++) {
         for (let i = 0; i < this.npc[S.tg[t]]; i++) {
@@ -624,9 +682,9 @@
       const ostart = new Int32Array(N), ocnt = new Int32Array(N).fill(-1);
       const optA = new Int32Array(POOL), optB = new Int16Array(POOL);
       const path = new Int32Array(NT * 2 + 4);
-      const fbuf = new Float64Array(NF);
+      const fbuf = new Float64Array(NF), fbuf1 = new Float64Array(NF);
       const W = copyState(root), wsc = W.sc;
-      const evalLin = me => { this.features(W, me, fbuf); let v = 0; for (let q = 0; q < NF; q++) v += ew[q] * fbuf[q]; return v; };
+      const dot = f => { let v = 0; for (let q = 0; q < NF; q++) v += ew[q] * f[q]; return v; };
       const reward = diff => (scale <= 0 ? (diff > 0 ? 1 : diff === 0 ? 0.5 : 0) : 0.5 + 0.5 * Math.tanh(diff / scale));
       let poolUsed = 0, nNodes = 1;
       for (let it = 0; it < sims; it++) {
@@ -691,8 +749,8 @@
         let v0, v1m;
         const useEval = ew && NT - 1 - wsc[SC_DRAW] > late;
         if (useEval && wsc[SC_OVER] === 0) {
-          if (depth > 0) this.rollout(W, mp, depth, null);
-          if (wsc[SC_OVER] === 0) { v0 = evalLin(0); v1m = evalLin(1); }
+          if (depth > 0) this.rollout(W, mp, depth, null, true);
+          if (wsc[SC_OVER] === 0) { this.featuresBoth(W, fbuf, fbuf1); v0 = dot(fbuf); v1m = dot(fbuf1); }
           else { v0 = wsc[SC_S0] - wsc[SC_S0 + 1]; v1m = -v0; }
         } else {
           let s0, s1;
@@ -908,12 +966,12 @@
     egChance(S, alpha, beta, d) {
       const lo = S.sc[SC_DRAW], end = NT - 1;
       const X = this.egState(d);
-      if (lo >= end) {
-        copyInto(X, S);
-        X.sc[SC_CUR] = -1;
-        this.finish(X);
-        return this.egTerminal(X);
+      if (lo >= end) { // S は呼び出し側の作業用の局面（次の手で写し直す）なので、そのまま終局させてよい
+        S.sc[SC_CUR] = -1;
+        this.finish(S);
+        return this.egTerminal(S);
       }
+      if (this.egDeadline && (++this.egTick & 1023) === 0 && nowMs() > this.egDeadline) throw EG_TIMEOUT;
       const n = end - lo, seen = new Uint8Array(128);
       let done = 0, rem = 1;
       for (let j = lo; j < end; j++) {
@@ -967,20 +1025,33 @@
     }
 
     // 勝率最大の手 [マス, 向きID, 断片] と値（先手視点）。prefer（探索の手）より厳密に良い手が無ければ prefer
-    endgameBest(S, prefer) {
+    endgameBest(S, prefer, budgetMs) {
       const eps = 1e-9, me = S.sc[SC_PL];
       let moves = this.egMoves(S, true, 0).map(m => [m[0], m[1], m[2]]);
       if (prefer) moves = [prefer].concat(moves.filter(m => !(m[0] === prefer[0] && m[1] === prefer[1] && m[2] === prefer[2])));
       const X = this.egState(0);
       let best = null, bm = null;
-      for (const m of moves) {
-        let a = 0, b = 1;
-        if (best !== null) { if (me === 0) a = best + eps; else b = best - eps; }
-        if (a > b) break; // もう必勝・必敗に届いている
-        copyInto(X, S);
-        this.applyNoDraw(X, m[0], m[1], m[2]);
-        const v = this.egChance(X, a, b, 1);
-        if (best === null || (me === 0 && v > best + eps) || (me === 1 && v < best - eps)) { best = v; bm = m; }
+      // budgetMs があれば、その時間で読み切れなかったときは、そこまでに確かめた手の中の最善を返す
+      // （最初に prefer＝探索の手を読むので、探索の手より悪くはならない）。時間切れなら timedOut=true
+      this.egDeadline = budgetMs > 0 ? nowMs() + budgetMs : 0;
+      this.egTick = 0;
+      this.egTimedOut = false;
+      try {
+        for (const m of moves) {
+          let a = 0, b = 1;
+          if (best !== null) { if (me === 0) a = best + eps; else b = best - eps; }
+          if (a > b) break; // もう必勝・必敗に届いている
+          copyInto(X, S);
+          this.applyNoDraw(X, m[0], m[1], m[2]);
+          const v = this.egChance(X, a, b, 1);
+          if (best === null || (me === 0 && v > best + eps) || (me === 1 && v < best - eps)) { best = v; bm = m; }
+        }
+      } catch (err) {
+        if (err !== EG_TIMEOUT) throw err;
+        this.egTimedOut = true;
+        if (bm === null) bm = prefer || moves[0];
+      } finally {
+        this.egDeadline = 0;
       }
       return [bm, best];
     }
