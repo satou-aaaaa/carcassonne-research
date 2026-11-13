@@ -56,7 +56,7 @@ def city_shape(sides, with_road=False):
         P, Q = CORNER[s], CORNER[e]
         if gap == 2:  # 隣り合う2辺: 道がなければふくらませて大きく、道があれば角へ引っこめる
             k = CORNER[(e + 1) % 4]
-            v, h = (k[0] - 0.5, k[1] - 0.5), (0.24 if with_road else -0.13)
+            v, h = (k[0] - 0.5, k[1] - 0.5), (0.12 if with_road else -0.13)
         else:
             v = (0.5 - (P[0] + Q[0]) / 2, 0.5 - (P[1] + Q[1]) / 2)
             h = 0.373 if gap == 3 else (0.33 if n == 3 else 0.27)
@@ -77,7 +77,7 @@ def city_anchor(sides, with_road=False):
         return (0.5, 0.5)
     if n == 2:
         k = next(c for c in range(4) if c in sides and (c + 3) % 4 in sides)
-        f = 0.6 if with_road else 0.5
+        f = 0.55 if with_road else 0.5
         return (0.5 + (CORNER[k][0] - 0.5) * f, 0.5 + (CORNER[k][1] - 0.5) * f)
     miss = next(c for c in range(4) if c not in sides)
     e = EM[miss]

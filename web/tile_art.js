@@ -47,7 +47,7 @@
       while (!S.has(e)) { e = (e + 1) % 4; gap++; }   // 草原の辺 s..e-1
       const P = CORNER[s], Q = CORNER[e];
       let v, h;
-      if (gap === 2) { const k = CORNER[(e + 1) % 4]; v = [k[0]-.5, k[1]-.5]; h = withRoad ? .24 : -.13; }  // 隣り合う2辺: 道がなければ草原の側へふくらませて大きく、道があれば角へ引っこめる
+      if (gap === 2) { const k = CORNER[(e + 1) % 4]; v = [k[0]-.5, k[1]-.5]; h = withRoad ? .12 : -.13; }  // 隣り合う2辺: 道がなければ草原の側へふくらませて大きく、道があれば角へ引っこめる
       else { v = [.5 - (P[0]+Q[0])/2, .5 - (P[1]+Q[1])/2]; h = gap === 3 ? .373 : (n === 3 ? .33 : .27); }
       const L = Math.hypot(v[0], v[1]), w = bend(P, Q, h, [v[0]/L, v[1]/L]);
       walls.push(w);
@@ -64,7 +64,7 @@
     const n = sides.length;
     if (n === 1) return [[.5,.13],[.87,.5],[.5,.87],[.13,.5]][sides[0]];
     if (n >= 4 || (n === 2 && Math.abs(sides[0] - sides[1]) === 2)) return [.5, .5];
-    if (n === 2) { const k = [0,1,2,3].find(c => sides.includes(c) && sides.includes((c + 3) % 4)); const f = withRoad ? .6 : .5; return [.5 + (CORNER[k][0]-.5)*f, .5 + (CORNER[k][1]-.5)*f]; }
+    if (n === 2) { const k = [0,1,2,3].find(c => sides.includes(c) && sides.includes((c + 3) % 4)); const f = withRoad ? .55 : .5; return [.5 + (CORNER[k][0]-.5)*f, .5 + (CORNER[k][1]-.5)*f]; }
     const miss = [0,1,2,3].find(c => !sides.includes(c)), e = EM[miss];
     return [.5 - (e[0]-.5)*.2, .5 - (e[1]-.5)*.2];
   }
