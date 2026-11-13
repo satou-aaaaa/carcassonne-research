@@ -180,7 +180,7 @@ function inspect(isMobile) {
 }
 
 // 対戦ページ: 新しい対局を始め、置ける場所に1枚置いて確定するまで
-async function exercisePlay(page, shotDir, vpName) {
+async function exercisePlay(page, shotDir, vpName, moveProblems = []) {
   // 開いた直後に「新しい対局」の窓が出る。出ていなければボタンで開く
   let dlg = page.locator("dialog[open]");
   if (!(await dlg.count())) {
@@ -199,8 +199,13 @@ async function exercisePlay(page, shotDir, vpName) {
     const r = document.getElementById("board").getBoundingClientRect();
     return { x: r.left + cellLeft(p.x) + view.s / 2, y: r.top + cellTop(p.y) + view.s / 2 };
   });
+  const boardH = () => page.evaluate(() => Math.round(document.getElementById("board").getBoundingClientRect().height));
+  const h0 = await boardH();
   await page.mouse.click(pt.x, pt.y);
   await page.waitForTimeout(300);
+  // 仮置きしても盤の高さが変わらないこと（変わると、押そうとしたタイルや円が指の下から動く）
+  const h1 = await boardH();
+  if (Math.abs(h1 - h0) > 2) moveProblems.push(`仮置きすると盤の高さが ${h0}px → ${h1}px に変わる`);
   // 仮置きすると、タイルのすぐ下に操作バー（回転・やめる・確定）が出る
   if (!(await page.locator("#tileBar:not([hidden]) #tbOk").count())) return false;
   if (shotDir) await page.screenshot({ path: path.join(shotDir, `play_pending_${vpName}.png`) });
@@ -353,7 +358,7 @@ async function main() {
       if (page.url() !== base + file) problems.push(`別のページに移された: ${page.url().replace(base, "")}`);
       if (file.endsWith("play.html")) {
         try {
-          const placed = await exercisePlay(page, shotDir, vp.name);
+          const placed = await exercisePlay(page, shotDir, vp.name, problems);
           if (!placed) problems.push("対戦ページ: 最初の1枚を置ける場所が見つからない");
           const r2 = await page.evaluate(inspect, vp.isMobile);
           res = { errors: [...res.errors, ...r2.errors], warns: [...res.warns, ...r2.warns] };
