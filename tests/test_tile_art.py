@@ -1,5 +1,6 @@
 """タイルの色と形（都市の輪郭・城壁・道）が、対戦ページ・クイズ（web/tile_art.js）と解説ページの図（scripts/board_svg.py）でそろっている。"""
 
+import itertools
 import json
 import re
 import shutil
@@ -37,8 +38,8 @@ def _js_geometry():
         f"require({json.dumps(str(ROOT / 'web' / 'tile_art.js'))});"
         f"const S = {json.dumps(ALL_SIDES)};"
         "console.log(JSON.stringify({"
-        " city: S.map(s => { const [p] = TileArt.cityShapes(s); return {poly: p, walls: p.walls}; }),"
-        " anchor: S.map(s => TileArt.cityAnchor(s)),"
+        " city: [false, true].flatMap(r => S.map(s => { const [p] = TileArt.cityShapes(s, r); return {poly: p, walls: p.walls}; })),"
+        " anchor: [false, true].flatMap(r => S.map(s => TileArt.cityAnchor(s, r))),"
         " road: [[0,2],[1,3],[0,1],[1,2],[2,3],[0,3],[0]].map(s => TileArt.roadLine(s, 1)).concat([TileArt.roadLine([1], 3)]),"
         "}));"
     )
@@ -55,13 +56,14 @@ def _close(a, b):
 def test_tile_shapes_match_js():
     """都市の輪郭・城壁の線・盾の位置・道の線が、対戦ページ（JS）と解説ページの図（Python）で同じ。"""
     js = _js_geometry()
-    for s, c, a in zip(ALL_SIDES, js["city"], js["anchor"]):
-        poly, walls = city_shape(s)
+    cases = [(s, r) for r in (False, True) for s in ALL_SIDES]
+    for (s, r), c, a in zip(cases, js["city"], js["anchor"], strict=True):
+        poly, walls = city_shape(s, r)
         _close(poly, c["poly"])
         assert len(walls) == len(c["walls"])
         for w, jw in zip(walls, c["walls"]):
             _close(w, jw)
-        _close([city_anchor(s)], [a])
+        _close([city_anchor(s, r)], [a])
     road_sides = [[0, 2], [1, 3], [0, 1], [1, 2], [2, 3], [0, 3], [0]]
     py_roads = [road_line(s, 1) for s in road_sides] + [road_line([1], 3)]
     for r, jr in zip(py_roads, js["road"]):
@@ -82,3 +84,31 @@ def test_city_shapes_are_simple():
         for w in city_shape(s)[1]:
             for x, y in w[1:-1]:
                 assert 0 < x < 1 and 0 < y < 1, (s, x, y)
+
+
+def test_walls_keep_clear_of_roads():
+    """城壁が同じタイルの道（通り抜ける道）に触れない＝道と都市の間の草原が切れて見えない（2026-11 利用者の声）。"""
+    from carcassonne.tiles import load_tileset
+
+    road_half, wall_half, margin = 0.23 / 2, 0.075 / 2, 0.03
+    for t in load_tileset().types:
+        for v in t.variants:
+            roads = [p for p in v.pieces if p.kind == "R"]
+            for c in (p for p in v.pieces if p.kind == "C"):
+                walls = city_shape(list(c.sides), bool(roads))[1]
+                for r in roads:
+                    if len(r.sides) < 2:
+                        continue  # 行き止まりの道は都市の門で終わってよい
+                    line = road_line(list(r.sides), len(roads))
+                    pts = [
+                        (a[0] + (b[0] - a[0]) * k / 10, a[1] + (b[1] - a[1]) * k / 10)
+                        for a, b in itertools.pairwise(line)
+                        for k in range(11)
+                    ]
+                    gap = min(
+                        ((w[0] - q[0]) ** 2 + (w[1] - q[1]) ** 2) ** 0.5
+                        for wl in walls
+                        for w in wl
+                        for q in pts
+                    )
+                    assert gap > road_half + wall_half + margin, (t, c.sides, r.sides, gap)
