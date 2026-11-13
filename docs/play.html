@@ -304,7 +304,7 @@ const HP = [[.25,0],[.75,0],[1,.25],[1,.75],[.75,1],[.25,1],[0,.75],[0,.25]]; //
 const cityShapes = TileArt.cityShapes;
 function anchorOf(p, variant) {
   if (p.kind === "M") return [.5, .5];
-  if (p.kind === "C") return TileArt.cityAnchor(p.sides);
+  if (p.kind === "C") return TileArt.cityAnchor(p.sides, TileArt.hasRoad(variant));
   if (p.kind === "R") {
     if (p.sides.length >= 2) {
       const pts = p.sides.map(s => EM[s]);
@@ -371,11 +371,12 @@ function placeCells() {
 // マスを押したときの向き: 今の向きで置ければそれ、だめなら置ける最初の向き
 function preferred(x, y) { const ps = cellPlacements(x, y); return ps.find(p => p.v === selV) || ps[0]; }
 function boardWith(extra) { return extra ? G.board.concat([extra]) : G.board; }
-function pieceOf(x, y, pi) {
-  if (pending && pending.x === x && pending.y === y) return LIB[G.current].variants[pending.v].pieces[pi];
+function variantAt(x, y) {
+  if (pending && pending.x === x && pending.y === y) return LIB[G.current].variants[pending.v];
   const b = G.board.find(q => q.x === x && q.y === y);
-  return b ? LIB[b.t].variants[b.v].pieces[pi] : null;
+  return b ? LIB[b.t].variants[b.v] : null;
 }
+function pieceOf(x, y, pi) { const vr = variantAt(x, y); return vr ? vr.pieces[pi] : null; }
 
 // ---- 演出（タイルの出現・得点の表示・完成した特徴の点滅） ----
 let anims = [], rafOn = false, viewAnim = null;
@@ -392,7 +393,7 @@ function fillPart(x, y, p, color, alpha) {
   const pt = q => [L + q[0]*s, T + q[1]*s];
   ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = color; ctx.strokeStyle = color;
   const poly = pts => { ctx.beginPath(); pts.forEach((q, i) => { const [a, b] = pt(q); i ? ctx.lineTo(a, b) : ctx.moveTo(a, b); }); ctx.closePath(); ctx.fill(); };
-  if (p.kind === "C") for (const sh of cityShapes(p.sides)) poly(sh);
+  if (p.kind === "C") { const vr = variantAt(x, y); for (const sh of cityShapes(p.sides, !!vr && TileArt.hasRoad(vr))) poly(sh); }
   else if (p.kind === "M") poly([[.3,.28],[.7,.28],[.7,.7],[.3,.7]]);
   else if (p.kind === "R") {
     ctx.lineWidth = s*.24; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.beginPath();

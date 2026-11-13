@@ -4,6 +4,7 @@
 //
 // 見やすさの決まり（2026-11 利用者の声「2辺の都市が見づらい」から）:
 // - 1つにつながった都市は大きく（隣り合う2辺なら角をふくらませる）、別々の都市は細い弧にして間に草原を見せる。
+// - ただし同じタイルに道があるときは、隣り合う2辺の都市を角へ引っこめ、道との間の草原を太く見せる（城壁が道に触れると草原が切れて見える）。
 // - 城壁は草原との境だけに描く（タイルの継ぎ目に壁を描かない＝隣のタイルとつながった都市が1つに見える）。
 // - 小さい画面（スマホ36px）でも潰れないよう、細かい模様は描かず、道は太く濃く、修道院は大きく。
 (function (root) {
@@ -33,8 +34,8 @@
     return pts;
   }
 
-  // 都市1つの輪郭（多角形1つの配列で返す）。shape.walls = 草原との境の線（城壁を描く所）
-  function cityShapes(sides) {
+  // 都市1つの輪郭（多角形1つの配列で返す）。shape.walls = 草原との境の線（城壁を描く所）。withRoad = 同じタイルに道がある
+  function cityShapes(sides, withRoad) {
     const S = new Set(sides), n = sides.length;
     if (n >= 4) { const p = CORNER.map(q => q.slice()); p.walls = []; return [p]; }
     const start = sides.find(s => !S.has((s + 3) % 4));
@@ -46,7 +47,7 @@
       while (!S.has(e)) { e = (e + 1) % 4; gap++; }   // 草原の辺 s..e-1
       const P = CORNER[s], Q = CORNER[e];
       let v, h;
-      if (gap === 2) { const k = CORNER[(e + 1) % 4]; v = [k[0]-.5, k[1]-.5]; h = -.13; }  // 隣り合う2辺: 草原の側へふくらませて大きく
+      if (gap === 2) { const k = CORNER[(e + 1) % 4]; v = [k[0]-.5, k[1]-.5]; h = withRoad ? .24 : -.13; }  // 隣り合う2辺: 道がなければ草原の側へふくらませて大きく、道があれば角へ引っこめる
       else { v = [.5 - (P[0]+Q[0])/2, .5 - (P[1]+Q[1])/2]; h = gap === 3 ? .373 : (n === 3 ? .33 : .27); }
       const L = Math.hypot(v[0], v[1]), w = bend(P, Q, h, [v[0]/L, v[1]/L]);
       walls.push(w);
@@ -59,11 +60,11 @@
   }
 
   // 都市のミープル・盾の位置
-  function cityAnchor(sides) {
+  function cityAnchor(sides, withRoad) {
     const n = sides.length;
     if (n === 1) return [[.5,.13],[.87,.5],[.5,.87],[.13,.5]][sides[0]];
     if (n >= 4 || (n === 2 && Math.abs(sides[0] - sides[1]) === 2)) return [.5, .5];
-    if (n === 2) { const k = [0,1,2,3].find(c => sides.includes(c) && sides.includes((c + 3) % 4)); return [.5 + (CORNER[k][0]-.5)*.5, .5 + (CORNER[k][1]-.5)*.5]; }
+    if (n === 2) { const k = [0,1,2,3].find(c => sides.includes(c) && sides.includes((c + 3) % 4)); const f = withRoad ? .6 : .5; return [.5 + (CORNER[k][0]-.5)*f, .5 + (CORNER[k][1]-.5)*f]; }
     const miss = [0,1,2,3].find(c => !sides.includes(c)), e = EM[miss];
     return [.5 - (e[0]-.5)*.2, .5 - (e[1]-.5)*.2];
   }
@@ -115,7 +116,7 @@
 
     // 都市: 明るい色＋城壁の内側にうすい影＋草原との境だけに太い城壁
     for (const ct of cities) {
-      for (const sh of cityShapes(ct.sides)) {
+      for (const sh of cityShapes(ct.sides, roads.length > 0)) {
         const cg = g.createLinearGradient(0, 0, S, S);
         cg.addColorStop(0, COL.cityHi); cg.addColorStop(1, COL.cityLo);
         g.save(); g.beginPath(); line(g, sh, S, true); g.fillStyle = cg; g.fill(); g.clip();
@@ -129,7 +130,7 @@
         }
         g.setLineDash([]);
       }
-      if (ct.pennant) { const [ax, ay] = cityAnchor(ct.sides); shield(g, ax*S, ay*S, S*.085); }
+      if (ct.pennant) { const [ax, ay] = cityAnchor(ct.sides, roads.length > 0); shield(g, ax*S, ay*S, S*.085); }
     }
 
     // 修道院: 明るい庭＋白い礼拝堂（赤い屋根・十字・扉）。小さい画面でも分かるよう大きめ
@@ -149,5 +150,6 @@
     g.strokeStyle = COL.border; g.lineWidth = S*.016; g.strokeRect(S*.008, S*.008, S*.984, S*.984);
   }
 
-  root.TileArt = { paint, COL, EM, cityShapes, cityAnchor, roadLine };
+  const hasRoad = vr => vr.pieces.some(p => p.kind === "R");
+  root.TileArt = { paint, COL, EM, cityShapes, cityAnchor, roadLine, hasRoad };
 })(typeof self !== "undefined" ? self : this);

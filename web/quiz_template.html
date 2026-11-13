@@ -154,9 +154,9 @@ const EM = [[.5,0],[1,.5],[.5,1],[0,.5]];
 const HP = [[.25,0],[.75,0],[1,.25],[1,.75],[.75,1],[.25,1],[0,.75],[0,.25]];
 // 都市の形・ミープルの位置・道の線は tile_art.js（絵と同じ形を使う）
 const cityShapes = TileArt.cityShapes;
-function anchorOf(p) {
+function anchorOf(p, variant) {
   if (p.kind === "M") return [.5, .5];
-  if (p.kind === "C") return TileArt.cityAnchor(p.sides);
+  if (p.kind === "C") return TileArt.cityAnchor(p.sides, TileArt.hasRoad(variant));
   if (p.kind === "R") {
     if (p.sides.length >= 2) {
       const pts = p.sides.map(s => EM[s]);
@@ -173,7 +173,7 @@ const anchorCache = new Map();
 function anchors(t, v) {
   const key = t + ":" + v;
   if (anchorCache.has(key)) return anchorCache.get(key);
-  const vr = LIB[t].variants[v], res = vr.pieces.map(p => anchorOf(p));
+  const vr = LIB[t].variants[v], res = vr.pieces.map(p => anchorOf(p, vr));
   const dist = (a, b) => Math.hypot(a[0]-b[0], a[1]-b[1]);
   vr.pieces.forEach((p, i) => {
     if (p.kind !== "F") return;

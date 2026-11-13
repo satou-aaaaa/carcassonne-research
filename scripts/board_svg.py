@@ -35,7 +35,7 @@ def _bend(P, Q, h, n):
     return pts
 
 
-def city_shape(sides):
+def city_shape(sides, with_road=False):
     """都市1つの輪郭（点の並び）と、草原との境の線（城壁を描く所）の一覧。"""
     S, n = set(sides), len(sides)
     if n >= 4:
@@ -54,9 +54,9 @@ def city_shape(sides):
             e = (e + 1) % 4
             gap += 1
         P, Q = CORNER[s], CORNER[e]
-        if gap == 2:  # 隣り合う2辺: 草原の側へふくらませて大きく
+        if gap == 2:  # 隣り合う2辺: 道がなければふくらませて大きく、道があれば角へ引っこめる
             k = CORNER[(e + 1) % 4]
-            v, h = (k[0] - 0.5, k[1] - 0.5), -0.13
+            v, h = (k[0] - 0.5, k[1] - 0.5), (0.24 if with_road else -0.13)
         else:
             v = (0.5 - (P[0] + Q[0]) / 2, 0.5 - (P[1] + Q[1]) / 2)
             h = 0.373 if gap == 3 else (0.33 if n == 3 else 0.27)
@@ -69,7 +69,7 @@ def city_shape(sides):
     return poly, walls
 
 
-def city_anchor(sides):
+def city_anchor(sides, with_road=False):
     n = len(sides)
     if n == 1:
         return [(0.5, 0.13), (0.87, 0.5), (0.5, 0.87), (0.13, 0.5)][sides[0]]
@@ -77,7 +77,8 @@ def city_anchor(sides):
         return (0.5, 0.5)
     if n == 2:
         k = next(c for c in range(4) if c in sides and (c + 3) % 4 in sides)
-        return (0.5 + (CORNER[k][0] - 0.5) * 0.5, 0.5 + (CORNER[k][1] - 0.5) * 0.5)
+        f = 0.6 if with_road else 0.5
+        return (0.5 + (CORNER[k][0] - 0.5) * f, 0.5 + (CORNER[k][1] - 0.5) * f)
     miss = next(c for c in range(4) if c not in sides)
     e = EM[miss]
     return (0.5 - (e[0] - 0.5) * 0.2, 0.5 - (e[1] - 0.5) * 0.2)
@@ -101,11 +102,11 @@ def road_line(sides, nroads):
     return [a, (a[0] + (0.5 - a[0]) * f, a[1] + (0.5 - a[1]) * f)]
 
 
-def _anchor(p):
+def _anchor(p, with_road=False):
     if p.kind == "M":
         return (0.5, 0.5)
     if p.kind == "C":
-        return city_anchor(list(p.sides))
+        return city_anchor(list(p.sides), with_road)
     if p.kind == "R":
         if len(p.sides) >= 2:
             pts = [EM[s] for s in p.sides]
@@ -119,7 +120,8 @@ def _anchor(p):
 
 
 def anchors(v):
-    res = [_anchor(p) for p in v.pieces]
+    wr = any(p.kind == "R" for p in v.pieces)
+    res = [_anchor(p, wr) for p in v.pieces]
 
     def dist(a, b):
         return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
@@ -222,7 +224,7 @@ def _tile_unit(v):
         out.append(f'<circle cx="50" cy="50" r="{S * 0.1:.1f}" fill="{COL["roadEdge"]}"/>')
         out.append(f'<circle cx="50" cy="50" r="{S * 0.066:.1f}" fill="{COL["hub"]}"/>')
     for i, c in enumerate(p for p in v.pieces if p.kind == "C"):
-        poly, walls = city_shape(list(c.sides))
+        poly, walls = city_shape(list(c.sides), bool(roads))
         out.append(f'<clipPath id="tk{uid}_{i}"><path d="{path(poly, True)}"/></clipPath>')
         out.append(f'<path d="{path(poly, True)}" fill="url(#tc{uid})"/>')
         wd = " ".join(path(w) for w in walls)
@@ -237,7 +239,7 @@ def _tile_unit(v):
                 f'<path d="{wd}" stroke="{COL["wall"]}" stroke-width="{S * 0.035:.1f}" stroke-dasharray="{S * 0.03:.1f} {S * 0.03:.1f}"/></g>'
             )
         if c.pennant:
-            ax, ay = city_anchor(list(c.sides))
+            ax, ay = city_anchor(list(c.sides), bool(roads))
             out.append(_shield(ax * S, ay * S, S * 0.085))
     if any(p.kind == "M" for p in v.pieces):
         k = 1.3
