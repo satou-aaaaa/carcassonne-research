@@ -117,7 +117,8 @@
     body { flex-direction:column; height:auto; }
     /* 盤と操作欄（得点・引いたタイル）で1画面に収める。高さは操作欄に合わせて画面側で決める */
     #stage { height:calc(100vh - var(--barh, 220px)); height:calc(100dvh - var(--barh, 220px)); min-height:240px; flex:none; display:flex; flex-direction:column; }
-    #hint { position:static; max-width:none; border-radius:0; border-width:0 0 1px; padding:4px 10px; font-size:13px; }
+    /* 案内文は2行の高さに決める（行数が変わると盤が上下に動き、押そうとしたマスが指の下からずれる） */
+    #hint { position:static; max-width:none; border-radius:0; border-width:0 0 1px; padding:4px 10px; font-size:13px; line-height:1.45; height:calc(2.9em + 9px); flex:none; overflow:hidden; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
     canvas#board { flex:1; min-height:0; }
     /* 盤の上のボタンは右下に縦に小さくまとめ、盤をふさがない（指で使う端末では拡大・縮小は2本指で行うので隠す） */
     #viewBtns { top:auto; bottom:8px; right:8px; flex-direction:column; align-items:stretch; gap:4px; }
@@ -145,8 +146,8 @@
     #pieceDock { display:flex; position:absolute; left:0; right:0; bottom:0; z-index:2; gap:6px; padding:6px 8px; overflow-x:auto; background:color-mix(in srgb, var(--panel) 92%, transparent); border-top:1px solid var(--line); box-shadow:0 -2px 8px rgba(0,0,0,.12); }
     #pieceDock:empty { display:none; }
     #pieceDock button { flex:none; min-height:44px; font-size:14px; padding:4px 12px; white-space:nowrap; }
-    /* ミープルを選ぶ間は、右下の盤のボタンを隠す（重ならないように） */
-    #stage:has(#pieceDock:not(:empty)) #viewBtns { display:none; }
+    /* 仮置き・ミープルを選ぶ間は、右下の盤のボタンを隠す（タイルの操作バーやミープル選びと重ならないように） */
+    #stage:has(#pieceDock:not(:empty)) #viewBtns, #stage:has(#tileBar:not([hidden])) #viewBtns { display:none; }
     /* 細い画面でも「ヒント」「待った」を1行に並べ、操作欄を低くする */
     #tileCtl .row:not(#pieceBtns) { gap:6px; flex-wrap:nowrap; } #tileCtl .row:not(#pieceBtns) button { padding:6px 9px; white-space:nowrap; }
     #featInfo { height:54px; min-height:0; overflow-y:auto; font-size:12px; line-height:1.45; }
@@ -468,6 +469,7 @@ function draw() {
     if (!pending) {
       ctx.fillStyle = "rgba(46,125,50,.28)"; ctx.strokeStyle = "rgba(46,125,50,.9)"; ctx.lineWidth = 2;
       for (const p of placeCells()) { ctx.fillRect(cellLeft(p.x), cellTop(p.y), s, s); ctx.strokeRect(cellLeft(p.x)+1, cellTop(p.y)+1, s-2, s-2); }
+      drawOffMarks(W, H);
       if (hover) {
         const p = cellPlacements(hover[0], hover[1]).length ? preferred(hover[0], hover[1]) : null;
         if (p) { ctx.globalAlpha = .8; ctx.drawImage(tileCanvas(G.current, p.v), cellLeft(p.x), cellTop(p.y), s, s); ctx.globalAlpha = 1; }
@@ -516,6 +518,33 @@ function draw() {
       ctx.strokeRect(cellLeft(a.x) - g, cellTop(a.y) - g, s + 2*g, s + 2*g); ctx.restore();
     }
   }
+}
+// 画面の外にある置ける緑のマスを、画面の端の緑の矢印で示す（押すとそのマスへ盤が動く）。
+// スマホでは盤を大きく見せるので、置ける場所の多くが画面の外になる（2026-11 点検で iPhone SE の後半は半分以上）
+let offMarks = [];
+function drawOffMarks(W, H) {
+  const a = safeArea(), s = view.s, top = a.top, bottom = a.bottom, r = 9, seen = new Set();
+  const vbe = $("viewBtns"), c = cv.getBoundingClientRect(), vr = vbe.getBoundingClientRect();
+  const vb = isMobile() && vbe.offsetWidth && getComputedStyle(vbe).display !== "none" ? {l: vr.left - c.left, t: vr.top - c.top} : null;
+  offMarks = [];
+  for (const p of placeCells()) {
+    const L = cellLeft(p.x), T = cellTop(p.y), cx = L + s/2, cy = T + s/2;
+    if (L + s > 0 && L < W && T + s > top && T < bottom) continue;  // 少しでも見えている
+    const px = Math.max(r + 3, Math.min(W - r - 3, cx));
+    let py = Math.max(top + r + 3, Math.min(bottom - r - 3, cy));
+    if (vb && px > vb.l - r - 3 && py > vb.t - r - 3) py = vb.t - r - 6;  // 右下のボタンの下に出さない（押せないため）
+    const k = Math.round(px / 22) + ":" + Math.round(py / 22);
+    if (seen.has(k)) continue;  // 近い矢印は1つにまとめる
+    seen.add(k); offMarks.push({x: p.x, y: p.y, px, py});
+    const ang = Math.atan2(cy - py, cx - px);
+    ctx.save(); ctx.translate(px, py); ctx.rotate(ang);
+    ctx.beginPath(); ctx.arc(0, 0, r + 2, 0, 7); ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(r, 0); ctx.lineTo(-r*.6, -r*.75); ctx.lineTo(-r*.6, r*.75); ctx.closePath();
+    ctx.fillStyle = "#2e7d32"; ctx.fill(); ctx.restore();
+  }
+  const n = placeCells().length, vis = n - placeCells().filter(p => { const L = cellLeft(p.x), T = cellTop(p.y); return !(L + s > 0 && L < W && T + s > top && T < bottom); }).length;
+  const t = offMarks.length ? (vis ? `緑のマスを押して仮置き。画面の外にもあります（緑の矢印を押すと移動）` : `置ける緑のマスは画面の外です。緑の矢印を押すと移動します`) : "緑のマスを押してタイルを仮置き（向きは置いてから変えられます）";
+  if ($("hint").textContent !== t) setHint(t);
 }
 // 仮置きしたタイルの下（入らなければ上）に操作バーを出す。盤の外にはみ出さないよう寄せる
 function placeTileBar() {
@@ -711,7 +740,7 @@ function fitTarget(focus, all) {
 }
 function fitAll(animate, focus, all) {
   if (!G || !G.board.length) return;
-  const to = fitTarget(focus, all);
+  const to = dodgeButtons(fitTarget(focus, all), focus);
   if (animate) { viewAnim = {from: {...view}, to, t0: performance.now()}; requestDraw(); }
   else { Object.assign(view, to); draw(); }
 }
@@ -719,7 +748,36 @@ function fitAll(animate, focus, all) {
 function ensureVisible(cells, focus) {
   const a = safeArea(), m = 4;
   const out = cells.some(c => cellLeft(c.x) < m || cellTop(c.y) < a.top + m || cellLeft(c.x) + view.s > a.w - m || cellTop(c.y) + view.s > a.bottom - m);
-  if (out) fitAll(true, focus);
+  if (out) return fitAll(true, focus);
+  const to = dodgeButtons({...view}, focus);
+  if (to.ox !== view.ox || to.oy !== view.oy) { viewAnim = {from: {...view}, to, t0: performance.now()}; requestDraw(); }
+}
+// スマホで、置ける緑のマスが盤の右下のボタン（陣地・全体を表示）の下に隠れるなら、盤を少しずらして見えるようにする
+// （隠れたマスを押すとボタンが反応して置けない。画面の外のマスは緑の矢印で示すので、隠れるよりは外に出るほうがよい）
+function dodgeButtons(to, focus) {
+  if (!isMobile() || !G || !G.placements || !G.placements.length) return to;
+  const vb = $("viewBtns");
+  if (getComputedStyle(vb).display === "none" || !vb.offsetWidth) return to;
+  const c = cv.getBoundingClientRect(), r = vb.getBoundingClientRect(), a = safeArea(), s = to.s, k = s * .3;
+  const bl = r.left - c.left, bt = r.top - c.top;  // ボタンの左上（盤の中の座標）
+  const cells = placeCells();
+  // ボタンの下に真ん中（押す所）が隠れるマスと、それを出すのに要る左・上へのずらし量
+  const hidden = v => cells.map(p => [v.ox + (p.x + .5)*s, v.oy - (p.y - .5)*s])
+    .filter(([x, y]) => x > bl - k && y > bt - k && x < a.w && y < a.bottom);
+  let best = to, bn = hidden(to).length;
+  for (let v = to, i = 0; i < 3 && bn; i++) {
+    const h = hidden(v);
+    if (!h.length) break;
+    const dx = Math.min(...h.map(([x]) => bl - k - x)), dy = Math.min(...h.map(([, y]) => bt - k - y));
+    // 直前に置かれたマス（focus）は画面の外に出さない。左と上のうち、ずらす量の少ないほうから試す
+    const keeps = w => (focus || []).every(f => { const L = w.ox + f.x*s, T = w.oy - f.y*s; return L >= 0 && T >= a.top && L + s <= a.w && T + s <= a.bottom; });
+    const opts = [{...v, ox: v.ox + dx}, {...v, oy: v.oy + dy}].sort((p, q) => Math.abs(p.ox - v.ox + p.oy - v.oy) - Math.abs(q.ox - v.ox + q.oy - v.oy)).filter(keeps);
+    if (!opts.length) break;
+    v = opts[0];
+    const n = hidden(v).length;
+    if (n < bn) { best = v; bn = n; }
+  }
+  return best;
 }
 
 // ---------- 操作 ----------
@@ -793,7 +851,9 @@ $("btnZoomOut").onclick = () => zoomCenter(1/1.25);
 $("btnFit").onclick = () => fitAll(true, null, true);
 $("btnAreas").onclick = () => setAreas(!showAreas);
 window.addEventListener("keydown", e => {
-  if ($("dlg").open) return;
+  if (document.querySelector("dialog[open]")) return;
+  // 入力欄・チェックボックス・スライダー・リンクでは、そのキー本来の働き（スペースでチェック、R の入力など）を優先する
+  if (["INPUT", "SELECT", "TEXTAREA", "A", "SUMMARY"].includes(e.target.tagName) || e.target.isContentEditable) return;
   if (e.target.tagName === "BUTTON" && (e.key === " " || e.key === "Enter")) return;
   if (e.key === "r" || e.key === "R" || e.key === " ") { e.preventDefault(); rotate(); }
   if (e.key === "Escape") cancelPending();
@@ -819,6 +879,14 @@ function onClick(e) {
   const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
   const [cx, cy] = cellAt(px, py);
   const mine = myTurn() && G.current !== null;
+  if (mine && !pending) {
+    const hit = offMarks.find(m => Math.hypot(m.px - px, m.py - py) <= 22);
+    if (hit) {
+      const a = safeArea(), s = view.s;
+      viewAnim = {from: {...view}, to: dodgeButtons({s, ox: a.w/2 - (hit.x + .5)*s, oy: (a.top + a.bottom)/2 + (hit.y - .5)*s}), t0: performance.now()};
+      return requestDraw();
+    }
+  }
   if (mine && pending) {
     // 円はタイルの端にもあるので、マスの外側（となりのマス）を押しても近い円を選ぶ
     const pi = candidateNear(px, py);
@@ -1090,7 +1158,7 @@ function shareHtml() {
   const form = REC_FORM ? `<button type="button" class="primary" id="btnFormRec">規約に同意して送る（アカウント不要）</button>` : "";
   const again = `<div class="row"><button type="button" id="btnReplayThis">この対局を再生</button><button type="button" id="btnLinkThis">再生リンクをコピー</button></div>`;
   return again + `<div class="share"><b>よければ、棋譜を研究に使わせてください（任意）</b><br>人との対局から、AIの弱点を探して学習に使います。送らなくても、対戦や再生はこれまでどおり使えます。` +
-    `<p class="pubnote">送った棋譜は <a href="games.html" target="_blank" rel="noopener">みんなの対局</a> のページで公開され、誰でも見て使えるデータ（CC BY 4.0）になります。名前は出ませんが、あとから消すことはできません。送る前に <a href="terms.html" target="_blank" rel="noopener">利用規約・データの扱い</a> を読んでください。</p>` +
+    `<p class="pubnote">送った棋譜は <a href="games.html" target="_blank" rel="noopener">みんなの対局</a> のページで公開され、誰でも見て使えるデータ（CC BY 4.0）になります。名前は出ませんが、あとから消すことはできません。送る前に <a href="terms.html" target="_blank" rel="noopener">利用規約・データの扱い</a>を読んでください。</p>` +
     `<div class="row">${form}<button type="button" id="btnSendRec">規約に同意してGitHubで送る</button><button type="button" id="btnSaveRec">ファイルに保存</button></div>` +
     `送るのは山札・指し手・得点・AIの強さだけで、名前は入りません。開いた画面で内容を確かめ、送信ボタンを押すと届きます。` +
     (REC_FORM ? `「規約に同意して送る」は Google フォームで、アカウントもメールアドレスも要りません。` : "") +
@@ -1271,7 +1339,7 @@ $("btnRecFile").onclick = () => { $("recDlg").close(); $("recFile").click(); };
 $("rpLink").onclick = e => replayRec && copyReplayLink(replayRec, e.target);
 $("rpClose").onclick = async () => {
   clearHash(); replayRec = null; const st = await api("/api/replay_close");
-  if (st) setState(st);
+  if (st) { setState(st); fitAll(false, G.last_ai && [G.last_ai]); }
   else { G = null; $("replayBar").hidden = $("result").hidden = true; document.body.classList.remove("replaying"); setHint("「新しい対局」を押してください"); draw(); $("btnNew").click(); }
 };
 $("recFile").onchange = async e => {

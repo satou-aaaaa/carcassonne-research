@@ -220,6 +220,85 @@ async function exercisePlay(page, shotDir, vpName, moveProblems = []) {
   return true;
 }
 
+// 対戦ページの対局の途中（盤が広がって画面に入りきらない頃）を、小さいスマホ（iPhone SE 320×568）で確かめる。
+// 2026-11 の点検で見つかった問題の再発防止:
+//   - 置ける緑のマスが右下のボタン（陣地・全体を表示）の下に隠れて押せない
+//   - 画面の外にある置ける場所が分からない（緑の矢印が出ない・矢印がボタンの下で押せない）
+//   - 案内文の行数が変わるたびに盤が上下に動く（押そうとしたマスが指の下からずれる）／案内文が切れる
+//   - 読み込み直す（スマホでアプリを切り替えるとよく起きる）と、途中の対局が消える
+const MID_TURNS = 24;
+async function exerciseMidGame(browser, base, file) {
+  const problems = [];
+  const ctx = await browser.newContext({
+    viewport: { width: 320, height: 568 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1,
+    locale: file.startsWith("en/") ? "en-US" : "ja-JP",
+  });
+  const page = await ctx.newPage();
+  page.on("pageerror", (e) => problems.push(`スクリプトエラー: ${String(e).slice(0, 160)}`));
+  await page.goto(base + file, { waitUntil: "load" });
+  await page.waitForSelector("#dlg[open]");
+  await page.evaluate(() => {
+    $("fSeed").value = "1";
+    $("fLevel").value = "greedy";
+    $("fCoach").checked = false;
+  });
+  await page.locator("#dlg button.primary").click();
+  const myTurnNow = () => page.waitForFunction(() => G && G.board && (G.over || myTurn()), null, { timeout: 30000 });
+  const tops = new Set();
+  let covered = 0, noArrow = 0, badArrow = 0, clipped = 0;
+  for (let t = 1; t <= MID_TURNS; t++) {
+    await myTurnNow();
+    await page.waitForTimeout(400); // 盤を寄せる動き（260ms）が終わるまで
+    const r = await page.evaluate(() => {
+      const c = cv.getBoundingClientRect(), s = view.s, a = safeArea();
+      let cov = 0, off = 0;
+      for (const p of placeCells()) {
+        const x = cellLeft(p.x) + s / 2, y = cellTop(p.y) + s / 2;
+        const L = x - s / 2, T = y - s / 2;
+        if (L + s <= 0 || L >= a.w || T + s <= a.top || T >= a.bottom) { off++; continue; } // まったく見えない（矢印で示す）
+        if (x < 0 || x > a.w || y < a.top || y > a.bottom) continue; // 端だけ見えている（見えている所を押せる）
+        if (document.elementFromPoint(c.left + x, c.top + y) !== cv) cov++;
+      }
+      const marks = typeof offMarks === "undefined" ? [] : offMarks;
+      const badMarks = marks.filter((m) => document.elementFromPoint(c.left + m.px, c.top + m.py) !== cv).length;
+      const h = $("hint");
+      return { cov, off, marks: marks.length, badMarks, top: Math.round(c.top), clip: h.scrollHeight > h.clientHeight + 1 };
+    });
+    covered += r.cov;
+    if (r.off && !r.marks) noArrow++;
+    badArrow += r.badMarks;
+    if (r.clip) clipped++;
+    tops.add(r.top);
+    // 置いた直後（AIの考え中）も盤の上端が変わらないこと
+    tops.add(await page.evaluate(() => { const p = G.placements[0]; sendMove(p.x, p.y, p.v, null); return Math.round(cv.getBoundingClientRect().top); }));
+  }
+  await myTurnNow();
+  if (covered) problems.push(`置ける緑のマスが盤の上のボタンの下に隠れて押せない（${covered} マス）`);
+  if (noArrow) problems.push(`置ける場所が画面の外にあるのに緑の矢印が出ない（${noArrow} 手）`);
+  if (badArrow) problems.push(`緑の矢印がボタンの下に隠れて押せない（${badArrow} 個）`);
+  if (clipped) problems.push(`案内文が2行に収まらず切れる（${clipped} 手）`);
+  if (tops.size > 1) problems.push(`手番ごとに盤の上端が動く（${[...tops].join(", ")}px）`);
+  // 読み込み直しても途中の対局が続けられる（待ったも使える）
+  const before = await page.evaluate(() => G.board.length);
+  await page.reload({ waitUntil: "load" });
+  try {
+    await page.waitForFunction(() => G && G.board && myTurn(), null, { timeout: 30000 });
+    const after = await page.evaluate(() => ({ n: G.board.length, undo: G.can_undo }));
+    if (after.n !== before || !after.undo) problems.push(`読み込み直すと途中の対局が戻らない（盤 ${before} 枚 → ${after.n} 枚、待った ${after.undo}）`);
+  } catch {
+    problems.push("読み込み直すと途中の対局が消える");
+  }
+  await ctx.close();
+  return problems;
+}
+
+// 英語のページで、文と文の間の空白が抜けていないか（日本語の文をつないだ所を訳すと抜けやすい）
+function englishJoins(text) {
+  const bad = [];
+  for (const m of text.matchAll(/[a-z)][.!?][“"A-Z][a-z]|\w \.(?:\s|$)/g)) bad.push(text.slice(Math.max(0, m.index - 25), m.index + 10));
+  return bad;
+}
+
 // 棋譜が何千局になっても「みんなの対局」が崩れない・重くならないか。一覧（human_games/index.json）を
 // MANY 局分のにせものに差し替えて開き、一覧が分けて並ぶこと、番号で開いた局が再生でき、
 // スマホでも ◀ ▶ が盤と同じ1画面に見えることを確かめる（棋譜の本体は届いている1局目を使い回す）
@@ -367,6 +446,26 @@ async function main() {
         } catch (e) {
           problems.push(`対戦ページの操作に失敗: ${String(e).slice(0, 160)}`);
         }
+      }
+      if (file.startsWith("en/")) {
+        // 終局の欄（棋譜を送る説明）は対局が終わるまで出ないので、組み立てる関数の文も確かめる
+        const text = await page.evaluate(() => document.body.innerText + "\n" +
+          (() => {
+            if (typeof shareHtml !== "function") return "";
+            const d = Object.assign(document.createElement("div"), { innerHTML: shareHtml() });
+            d.style.cssText = "position:absolute;left:-9999px;width:600px";
+            document.body.appendChild(d);
+            const t = d.innerText;
+            d.remove();
+            return t;
+          })());
+        for (const b of englishJoins(text)) problems.push(`英文の空白が抜けている: 「${b}」`);
+      }
+      if (file.endsWith("play.html") && vp.isMobile) {
+        const mid = await exerciseMidGame(browser, base, file);
+        console.log(`${mid.length ? "✗" : "✓"} ${file} 対局の途中 ${MID_TURNS}手 [iPhone SE 320px]`);
+        for (const e of mid) console.log(`    ✗ ${e}`);
+        failed += mid.length ? 1 : 0;
       }
       const errs = [...new Set([...problems, ...res.errors])];
       const warns = [...new Set(res.warns)];
