@@ -300,34 +300,11 @@ const cache = new Map();
 // ---------- タイル描画 ----------
 const EM = [[.5,0],[1,.5],[.5,1],[0,.5]];            // 辺の中点 N,E,S,W（画面座標 0..1）
 const HP = [[.25,0],[.75,0],[1,.25],[1,.75],[.75,1],[.25,1],[0,.75],[0,.25]]; // 半辺
-const D = 0.28;
-function cityShapes(sides) {
-  const trap = {
-    0: [[0,0],[1,0],[.8,D],[.2,D]],
-    1: [[1,0],[1,1],[1-D,.8],[1-D,.2]],
-    2: [[0,1],[1,1],[.8,1-D],[.2,1-D]],
-    3: [[0,0],[0,1],[D,.8],[D,.2]],
-  };
-  const inner = {0:[[.2,D],[.8,D]], 1:[[1-D,.2],[1-D,.8]], 2:[[.2,1-D],[.8,1-D]], 3:[[D,.2],[D,.8]]};
-  const shapes = sides.map(s => trap[s]);
-  if (sides.length > 1) shapes.push(hull(sides.flatMap(s => inner[s])));
-  return shapes;
-}
-function hull(pts) {
-  pts = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-  const cr = (o, a, b) => (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0]);
-  const lo = [], up = [];
-  for (const p of pts) { while (lo.length >= 2 && cr(lo[lo.length-2], lo[lo.length-1], p) <= 0) lo.pop(); lo.push(p); }
-  for (const p of pts.slice().reverse()) { while (up.length >= 2 && cr(up[up.length-2], up[up.length-1], p) <= 0) up.pop(); up.push(p); }
-  return lo.slice(0, -1).concat(up.slice(0, -1));
-}
+// Cityの形・ミープルの位置・Roadの線は tile_art.js（絵と同じ形を使う）
+const cityShapes = TileArt.cityShapes;
 function anchorOf(p, variant) {
   if (p.kind === "M") return [.5, .5];
-  if (p.kind === "C") {
-    const inner = {0:[.5,D*.7], 1:[1-D*.7,.5], 2:[.5,1-D*.7], 3:[D*.7,.5]};
-    const pts = p.sides.map(s => inner[s]);
-    return [pts.reduce((a,q)=>a+q[0],0)/pts.length, pts.reduce((a,q)=>a+q[1],0)/pts.length];
-  }
+  if (p.kind === "C") return TileArt.cityAnchor(p.sides);
   if (p.kind === "R") {
     if (p.sides.length >= 2) {
       const pts = p.sides.map(s => EM[s]);
@@ -367,7 +344,7 @@ function tileCanvas(t, v) {
   // 256px で描く（Zoom in・高解像度の画面でもにじまない）。絵柄は tile_art.js
   const S = 256, c = document.createElement("canvas"); c.width = c.height = S;
   const vr = LIB[t].variants[v];
-  TileArt.paint(c.getContext("2d"), S, vr, { EM, cityShapes, anchor: p => anchorOf(p, vr) }, t * 4 + v);
+  TileArt.paint(c.getContext("2d"), S, vr);
   cache.set(key, c); return c;
 }
 
@@ -418,10 +395,8 @@ function fillPart(x, y, p, color, alpha) {
   if (p.kind === "C") for (const sh of cityShapes(p.sides)) poly(sh);
   else if (p.kind === "M") poly([[.3,.28],[.7,.28],[.7,.7],[.3,.7]]);
   else if (p.kind === "R") {
-    ctx.lineWidth = s*.2; ctx.lineCap = "round"; ctx.beginPath();
-    const a = pt(EM[p.sides[0]]), m = pt([.5, .5]);
-    ctx.moveTo(a[0], a[1]); ctx.lineTo(m[0], m[1]);
-    if (p.sides[1] !== undefined) { const b = pt(EM[p.sides[1]]); ctx.lineTo(b[0], b[1]); }
+    ctx.lineWidth = s*.24; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.beginPath();
+    TileArt.roadLine(p.sides, p.sides.length >= 2 ? 1 : 0).forEach((q, i) => { const [a, b] = pt(q); i ? ctx.lineTo(a, b) : ctx.moveTo(a, b); });
     ctx.stroke();
   } else {
     const seg = [[[0,0],[.5,0]],[[.5,0],[1,0]],[[1,0],[1,.5]],[[1,.5],[1,1]],[[1,1],[.5,1]],[[.5,1],[0,1]],[[0,1],[0,.5]],[[0,.5],[0,0]]];
