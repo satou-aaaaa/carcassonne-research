@@ -177,12 +177,15 @@
       const aiJob = this.startAiJob();
       if (coachJob) {
         if (root.onInterimState) root.onInterimState(this.view()); // 解析を待たずに自分の手を見せる
-        const opts = await coachJob;
-        const best = opts[0];
-        this.last_coach = { best: bestDict((g, p) => this.pieceKind(g, p), best), loss: null };
-        const mine = opts.find(o => o.cell === cell && o.g === g && o.piece === p);
-        if (mine) this.last_coach.loss = Math.round(Math.max(0, best.diff - mine.diff) * 10) / 10;
-        this.events.push({ player: this.human_seat, text: coachText(this.last_coach), x: this.last_coach.best.x, y: this.last_coach.best.y });
+        // 手はもう置いたので、解析が失敗してもAIの手番は進める（ヒントだけ出さない）
+        const opts = await coachJob.catch(() => null);
+        const best = opts && opts[0];
+        if (best) {
+          this.last_coach = { best: bestDict((g, p) => this.pieceKind(g, p), best), loss: null };
+          const mine = opts.find(o => o.cell === cell && o.g === g && o.piece === p);
+          if (mine) this.last_coach.loss = Math.round(Math.max(0, best.diff - mine.diff) * 10) / 10;
+          this.events.push({ player: this.human_seat, text: coachText(this.last_coach), x: this.last_coach.best.x, y: this.last_coach.best.y });
+        }
       }
       if (root.onInterimState) root.onInterimState(this.view());
       await this.advanceAi(aiJob);
