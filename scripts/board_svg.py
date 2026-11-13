@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import itertools
-import random
 import sys
 from pathlib import Path
 
@@ -14,48 +13,99 @@ from carcassonne.state import Move, State
 PCOL = ["#d64541", "#2f6fd6"]
 EM = [(0.5, 0), (1, 0.5), (0.5, 1), (0, 0.5)]
 HP = [(0.25, 0), (0.75, 0), (1, 0.25), (1, 0.75), (0.75, 1), (0.25, 1), (0, 0.75), (0, 0.25)]
-D = 0.28
-TRAP = {
-    0: [(0, 0), (1, 0), (0.8, D), (0.2, D)],
-    1: [(1, 0), (1, 1), (1 - D, 0.8), (1 - D, 0.2)],
-    2: [(0, 1), (1, 1), (0.8, 1 - D), (0.2, 1 - D)],
-    3: [(0, 0), (0, 1), (D, 0.8), (D, 0.2)],
-}
-INNER = {
-    0: [(0.2, D), (0.8, D)],
-    1: [(1 - D, 0.2), (1 - D, 0.8)],
-    2: [(0.2, 1 - D), (0.8, 1 - D)],
-    3: [(D, 0.2), (D, 0.8)],
-}
+CORNER = [(0, 0), (1, 0), (1, 1), (0, 1)]
 
 
-def _hull(pts):
-    pts = sorted(set(pts))
-    if len(pts) <= 2:
-        return pts
+# 都市・道の形は web/tile_art.js と同じ計算（tests/test_tile_art.py が一致を確かめる）
+def _bend(P, Q, h, n):
+    d = (Q[0] - P[0], Q[1] - P[1])
+    c1 = (P[0] + d[0] * 0.445 + n[0] * h, P[1] + d[1] * 0.445 + n[1] * h)
+    c2 = (P[0] + d[0] * 0.555 + n[0] * h, P[1] + d[1] * 0.555 + n[1] * h)
+    pts = []
+    for i in range(17):
+        t = i / 16
+        u = 1 - t
+        a, b, c, e = u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t
+        pts.append(
+            (
+                a * P[0] + b * c1[0] + c * c2[0] + e * Q[0],
+                a * P[1] + b * c1[1] + c * c2[1] + e * Q[1],
+            )
+        )
+    return pts
 
-    def cr(o, a, b):
-        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
 
-    lo, up = [], []
-    for p in pts:
-        while len(lo) >= 2 and cr(lo[-2], lo[-1], p) <= 0:
-            lo.pop()
-        lo.append(p)
-    for p in reversed(pts):
-        while len(up) >= 2 and cr(up[-2], up[-1], p) <= 0:
-            up.pop()
-        up.append(p)
-    return lo[:-1] + up[:-1]
+def city_shape(sides):
+    """都市1つの輪郭（点の並び）と、草原との境の線（城壁を描く所）の一覧。"""
+    S, n = set(sides), len(sides)
+    if n >= 4:
+        return list(CORNER), []
+    start = next(s for s in sides if (s + 3) % 4 not in S)
+    poly, walls = [CORNER[start]], []
+    s, done = start, 0
+    while done < 4:
+        if s in S:
+            poly.append(CORNER[(s + 1) % 4])
+            s = (s + 1) % 4
+            done += 1
+            continue
+        e, gap = s, 0
+        while e not in S:
+            e = (e + 1) % 4
+            gap += 1
+        P, Q = CORNER[s], CORNER[e]
+        if gap == 2:  # 隣り合う2辺: 草原の側へふくらませて大きく
+            k = CORNER[(e + 1) % 4]
+            v, h = (k[0] - 0.5, k[1] - 0.5), -0.13
+        else:
+            v = (0.5 - (P[0] + Q[0]) / 2, 0.5 - (P[1] + Q[1]) / 2)
+            h = 0.373 if gap == 3 else (0.33 if n == 3 else 0.27)
+        L = (v[0] ** 2 + v[1] ** 2) ** 0.5
+        w = _bend(P, Q, h, (v[0] / L, v[1] / L))
+        walls.append(w)
+        poly.extend(w[1:])
+        s, done = e, done + gap
+    poly.pop()
+    return poly, walls
+
+
+def city_anchor(sides):
+    n = len(sides)
+    if n == 1:
+        return [(0.5, 0.13), (0.87, 0.5), (0.5, 0.87), (0.13, 0.5)][sides[0]]
+    if n >= 4 or (n == 2 and abs(sides[0] - sides[1]) == 2):
+        return (0.5, 0.5)
+    if n == 2:
+        k = next(c for c in range(4) if c in sides and (c + 3) % 4 in sides)
+        return (0.5 + (CORNER[k][0] - 0.5) * 0.5, 0.5 + (CORNER[k][1] - 0.5) * 0.5)
+    miss = next(c for c in range(4) if c not in sides)
+    e = EM[miss]
+    return (0.5 - (e[0] - 0.5) * 0.2, 0.5 - (e[1] - 0.5) * 0.2)
+
+
+def road_line(sides, nroads):
+    """道の線（点の並び）。曲がり道はなめらかな弧、行き止まり（3本以上）は中心の手前で止める。"""
+    a = EM[sides[0]]
+    if len(sides) >= 2:
+        b = EM[sides[1]]
+        if (sides[0] + sides[1]) % 2 == 0:
+            return [a, (0.5, 0.5), b]
+        return [
+            (
+                (1 - t) ** 2 * a[0] + 2 * (1 - t) * t * 0.5 + t * t * b[0],
+                (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * 0.5 + t * t * b[1],
+            )
+            for t in (i / 12 for i in range(13))
+        ]
+    f = 0.78 if nroads >= 3 else 1
+    return [a, (a[0] + (0.5 - a[0]) * f, a[1] + (0.5 - a[1]) * f)]
 
 
 def _anchor(p):
     if p.kind == "M":
         return (0.5, 0.5)
     if p.kind == "C":
-        inner = {0: (0.5, D * 0.7), 1: (1 - D * 0.7, 0.5), 2: (0.5, 1 - D * 0.7), 3: (D * 0.7, 0.5)}
-        pts = [inner[s] for s in p.sides]
-        return (sum(q[0] for q in pts) / len(pts), sum(q[1] for q in pts) / len(pts))
+        return city_anchor(list(p.sides))
     if p.kind == "R":
         if len(p.sides) >= 2:
             pts = [EM[s] for s in p.sides]
@@ -94,19 +144,20 @@ def anchors(v):
 COL = {
     "fieldHi": "#9fcf78",
     "fieldLo": "#78ad5a",
-    "tuft": "rgba(52,105,38,.55)",
-    "roadEdge": "#8a6f48",
-    "road": "#f2e2b6",
-    "pebble": "rgba(201,178,128,.55)",
+    "roadEdge": "#5e4a2e",
+    "road": "#fbf0d0",
     "hub": "#c9b07a",
-    "wall": "#6a4a30",
-    "cityHi": "#e2ad78",
-    "cityLo": "#c98656",
+    "wall": "#5a3a22",
+    "wallStone": "#c9b9a0",
+    "cityHi": "#f3cf8e",
+    "cityLo": "#e2a865",
+    "shade": "rgba(95,55,25,.16)",
     "shield": "#2f5fb5",
     "shieldMark": "#ffd75e",
     "garden": "#b4dd8f",
     "chapel": "#f3ead6",
     "roof": "#b8463a",
+    "border": "rgba(30,25,10,.3)",
 }
 _ids = itertools.count()
 
@@ -141,132 +192,88 @@ def tile_svg(v, x0, y0, S):
 
 
 def _tile_unit(v):
-    x0 = y0 = 0
+    """web/tile_art.js の paint と同じ絵（一辺100）。"""
     S = 100
     uid = "@ID@"
-    rnd = random.Random(hash_variant(v))
 
-    def pt(q):
-        return (x0 + q[0] * S, y0 + q[1] * S)
+    def P(q):
+        return f"{q[0] * S:.1f},{q[1] * S:.1f}"
 
-    def pts_str(pts):
-        return " ".join(f"{a:.0f},{b:.0f}" for a, b in map(pt, pts))
+    def path(pts, close=False):
+        return "M" + " L".join(P(q) for q in pts) + (" Z" if close else "")
 
-    defs = (
-        f'<defs><radialGradient id="tf{uid}" cx="0.4" cy="0.35" r="0.8" fx="0.4" fy="0.35">'
-        f'<stop offset="0.12" stop-color="{COL["fieldHi"]}"/><stop offset="1" stop-color="{COL["fieldLo"]}"/></radialGradient>'
-        f'<linearGradient id="tc{uid}" x1="0" y1="0" x2="1" y2="1">'
-        f'<stop offset="0" stop-color="{COL["cityHi"]}"/><stop offset="1" stop-color="{COL["cityLo"]}"/></linearGradient></defs>'
-    )
-    out = [defs, f'<rect x="{x0}" y="{y0}" width="{S}" height="{S}" fill="url(#tf{uid})"/>']
-    tufts = []
-    for _ in range(14):
-        x, y, h = rnd.random(), rnd.random(), 0.025 + rnd.random() * 0.02
-        a, b, c, d = (
-            pt((x - h * 0.5, y - h)),
-            pt((x, y)),
-            pt((x + h * 0.5, y - h)),
-            pt((x, y - h * 1.1)),
-        )
-        tufts.append(
-            f"M{a[0]:.0f},{a[1]:.0f}L{b[0]:.0f},{b[1]:.0f}L{c[0]:.0f},{c[1]:.0f}M{b[0]:.0f},{b[1]:.0f}L{d[0]:.0f},{d[1]:.0f}"
-        )
-    out.append(
-        f'<path d="{"".join(tufts)}" stroke="{COL["tuft"]}" stroke-width="{S * 0.008:.1f}" fill="none" stroke-linecap="round"/>'
-    )
-    for _ in range(5):
-        col = "rgba(255,248,200,.85)" if rnd.random() < 0.5 else "rgba(255,255,255,.8)"
-        cx, cy = pt((rnd.random(), rnd.random()))
-        out.append(f'<circle cx="{cx:.0f}" cy="{cy:.0f}" r="{S * 0.009:.1f}" fill="{col}"/>')
+    out = [
+        (
+            f'<defs><radialGradient id="tf{uid}" cx="0.4" cy="0.35" r="0.8" fx="0.4" fy="0.35">'
+            f'<stop offset="0.12" stop-color="{COL["fieldHi"]}"/><stop offset="1" stop-color="{COL["fieldLo"]}"/></radialGradient>'
+            f'<linearGradient id="tc{uid}" x1="0" y1="0" x2="1" y2="1">'
+            f'<stop offset="0" stop-color="{COL["cityHi"]}"/><stop offset="1" stop-color="{COL["cityLo"]}"/></linearGradient></defs>'
+        ),
+        f'<rect width="{S}" height="{S}" fill="url(#tf{uid})"/>',
+    ]
     roads = [p for p in v.pieces if p.kind == "R"]
-    paths = []
-    for r in roads:
-        if len(r.sides) >= 2:
-            a, b, m = pt(EM[r.sides[0]]), pt(EM[r.sides[1]]), pt((0.5, 0.5))
-            paths.append(f"M{a[0]:.0f},{a[1]:.0f} L{m[0]:.0f},{m[1]:.0f} L{b[0]:.0f},{b[1]:.0f}")
-        else:
-            a = pt(EM[r.sides[0]])
-            f = 0.78 if len(roads) >= 3 else 1
-            c = (x0 + S / 2, y0 + S / 2)
-            e = (a[0] + (c[0] - a[0]) * f, a[1] + (c[1] - a[1]) * f)
-            paths.append(f"M{a[0]:.0f},{a[1]:.0f} L{e[0]:.0f},{e[1]:.0f}")
-    for w, col, dash in (
-        (0.19, COL["roadEdge"], ""),
-        (0.135, COL["road"], ""),
-        (0.135, COL["pebble"], f' stroke-dasharray="{S * 0.012:.0f} {S * 0.05:.0f}"'),
-    ):
-        for d in paths:
+    for w, col in ((0.23, COL["roadEdge"]), (0.16, COL["road"])):
+        for r in roads:
+            d = path(road_line(list(r.sides), len(roads)))
             out.append(
-                f'<path d="{d}" stroke="{col}" stroke-width="{S * w:.0f}" fill="none" stroke-linejoin="round"{dash}/>'
+                f'<path d="{d}" stroke="{col}" stroke-width="{S * w:.1f}" fill="none" stroke-linejoin="round"/>'
             )
     if len(roads) >= 3:
-        cx, cy = x0 + S / 2, y0 + S / 2
-        out.append(f'<circle cx="{cx}" cy="{cy}" r="{S * 0.085:.0f}" fill="{COL["roadEdge"]}"/>')
-        out.append(f'<circle cx="{cx}" cy="{cy}" r="{S * 0.055:.0f}" fill="{COL["hub"]}"/>')
-    cities = [p for p in v.pieces if p.kind == "C"]
-    shapes = []
-    for c in cities:
-        shapes.append(TRAP[s] for s in c.sides)
-        if len(c.sides) > 1:
-            shapes.append([_hull([q for s in c.sides for q in INNER[s]])])
-    shapes = [s for group in shapes for s in group]
-    if shapes:
-        wall = COL["wall"]
-        for sh in shapes:
+        out.append(f'<circle cx="50" cy="50" r="{S * 0.1:.1f}" fill="{COL["roadEdge"]}"/>')
+        out.append(f'<circle cx="50" cy="50" r="{S * 0.066:.1f}" fill="{COL["hub"]}"/>')
+    for i, c in enumerate(p for p in v.pieces if p.kind == "C"):
+        poly, walls = city_shape(list(c.sides))
+        out.append(f'<clipPath id="tk{uid}_{i}"><path d="{path(poly, True)}"/></clipPath>')
+        out.append(f'<path d="{path(poly, True)}" fill="url(#tc{uid})"/>')
+        wd = " ".join(path(w) for w in walls)
+        if wd:
             out.append(
-                f'<polygon points="{pts_str(sh)}" fill="none" stroke="{wall}" stroke-width="{S * 0.06:.0f}" stroke-linejoin="miter"/>'
+                f'<g clip-path="url(#tk{uid}_{i})" fill="none" stroke="{COL["shade"]}" stroke-linejoin="round">'
+                f'<path d="{wd}" stroke-width="{S * 0.2:.1f}"/><path d="{wd}" stroke-width="{S * 0.12:.1f}"/></g>'
             )
-        for sh in shapes:
             out.append(
-                f'<polygon points="{pts_str(sh)}" fill="none" stroke="{wall}" stroke-width="{S * 0.1:.0f}" '
-                f'stroke-dasharray="{S * 0.04:.0f} {S * 0.035:.0f}" stroke-linejoin="miter"/>'
+                f'<g fill="none" stroke-linejoin="round"><path d="{wd}" stroke="{COL["wall"]}" stroke-width="{S * 0.075:.1f}"/>'
+                f'<path d="{wd}" stroke="{COL["wallStone"]}" stroke-width="{S * 0.035:.1f}"/>'
+                f'<path d="{wd}" stroke="{COL["wall"]}" stroke-width="{S * 0.035:.1f}" stroke-dasharray="{S * 0.03:.1f} {S * 0.03:.1f}"/></g>'
             )
-        clip = "".join(f'<polygon points="{pts_str(sh)}"/>' for sh in shapes)
-        out.append(f'<clipPath id="tk{uid}">{clip}</clipPath>')
-        for sh in shapes:
-            out.append(
-                f'<polygon points="{pts_str(sh)}" fill="url(#tc{uid})" stroke="url(#tc{uid})" stroke-width="{S * 0.008:.0f}" stroke-linejoin="round"/>'
-            )
-        roofs = []
-        for _ in range(14):
-            x, y, w = rnd.random(), rnd.random(), 0.035
-            col = "rgba(178,72,52,.55)" if rnd.random() < 0.5 else "rgba(150,90,60,.45)"
-            roofs.append(
-                f'<polygon points="{pts_str([(x - w, y), (x, y - w * 0.9), (x + w, y)])}" fill="{col}"/>'
-            )
-        out.append(f'<g clip-path="url(#tk{uid})">{"".join(roofs)}</g>')
-        for c in cities:
-            if c.pennant:
-                ax, ay = pt(_anchor(c))
-                out.append(_shield(ax, ay, S * 0.065))
+        if c.pennant:
+            ax, ay = city_anchor(list(c.sides))
+            out.append(_shield(ax * S, ay * S, S * 0.085))
     if any(p.kind == "M" for p in v.pieces):
-        cx, cy = pt((0.5, 0.5))
-        out.append(
-            f'<circle cx="{cx:.0f}" cy="{cy:.0f}" r="{S * 0.2:.0f}" fill="{COL["garden"]}"/>'
-        )
+        k = 1.3
+
+        def T(x, y):
+            return (S * (0.5 + (x - 0.5) * k), S * (0.5 + (y - 0.5) * k))
 
         def rect(x, y, w, h, fill):
-            return f'<rect x="{x0 + S * x:.0f}" y="{y0 + S * y:.0f}" width="{S * w:.0f}" height="{S * h:.0f}" fill="{fill}"/>'
+            a, b = T(x, y)
+            return f'<rect x="{a:.1f}" y="{b:.1f}" width="{S * w * k:.1f}" height="{S * h * k:.1f}" fill="{fill}"/>'
 
+        out.append(f'<circle cx="50" cy="50" r="{S * 0.2 * k:.1f}" fill="{COL["garden"]}"/>')
         out.append(rect(0.39, 0.49, 0.27, 0.2, "rgba(0,0,0,.18)"))
         out.append(rect(0.37, 0.46, 0.26, 0.2, COL["chapel"]))
-        out.append(
-            f'<polygon points="{pts_str([(0.33, 0.47), (0.5, 0.31), (0.67, 0.47)])}" fill="{COL["roof"]}"/>'
+        roof = " ".join(
+            "{:.1f},{:.1f}".format(*T(*q)) for q in ((0.33, 0.47), (0.5, 0.31), (0.67, 0.47))
         )
-        a, b = pt((0.47, 0.66)), pt((0.47, 0.57))
-        e = pt((0.53, 0.66))
+        out.append(f'<polygon points="{roof}" fill="{COL["roof"]}"/>')
+        (a0, a1), (b0, b1), (e0, e1) = T(0.47, 0.66), T(0.47, 0.57), T(0.53, 0.66)
+        r = S * 0.03 * k
         out.append(
-            f'<path d="M{a[0]:.0f},{a[1]:.0f} L{b[0]:.0f},{b[1]:.0f} A{S * 0.03:.0f},{S * 0.03:.0f} 0 0 1 {b[0] + S * 0.06:.0f},{b[1]:.0f} L{e[0]:.0f},{e[1]:.0f} Z" fill="{COL["wall"]}"/>'
+            f'<path d="M{a0:.1f},{a1:.1f} L{b0:.1f},{b1:.1f} A{r:.1f},{r:.1f} 0 0 1 {b0 + 2 * r:.1f},{b1:.1f} L{e0:.1f},{e1:.1f} Z" fill="{COL["wall"]}"/>'
         )
-        p1, p2, p3, p4 = pt((0.5, 0.31)), pt((0.5, 0.23)), pt((0.465, 0.26)), pt((0.535, 0.26))
+        (p1, p2), (q1, q2), (r1, r2), (s1, s2) = (
+            T(0.5, 0.31),
+            T(0.5, 0.23),
+            T(0.465, 0.26),
+            T(0.535, 0.26),
+        )
         out.append(
-            f'<path d="M{p1[0]:.0f},{p1[1]:.0f}L{p2[0]:.0f},{p2[1]:.0f}M{p3[0]:.0f},{p3[1]:.0f}L{p4[0]:.0f},{p4[1]:.0f}" '
-            f'stroke="{COL["wall"]}" stroke-width="{S * 0.012:.0f}" stroke-linecap="round" fill="none"/>'
+            f'<path d="M{p1:.1f},{p2:.1f}L{q1:.1f},{q2:.1f}M{r1:.1f},{r2:.1f}L{s1:.1f},{s2:.1f}" '
+            f'stroke="{COL["wall"]}" stroke-width="{S * 0.012 * k:.1f}" stroke-linecap="round" fill="none"/>'
         )
-    lw, o, e = S * 0.012, S * 0.006, S * 0.994
     out.append(
-        f'<path d="M{x0 + o:.0f},{y0 + S:.0f} L{x0 + o:.0f},{y0 + o:.0f} L{x0 + S:.0f},{y0 + o:.0f}" stroke="rgba(255,255,255,.35)" stroke-width="{lw:.0f}" fill="none"/>'
-        f'<path d="M{x0 + e:.0f},{y0:.0f} L{x0 + e:.0f},{y0 + e:.0f} L{x0:.0f},{y0 + e:.0f}" stroke="rgba(40,30,10,.45)" stroke-width="{lw:.0f}" fill="none"/>'
+        f'<rect x="{S * 0.008:.1f}" y="{S * 0.008:.1f}" width="{S * 0.984:.1f}" height="{S * 0.984:.1f}" '
+        f'fill="none" stroke="{COL["border"]}" stroke-width="{S * 0.016:.1f}"/>'
     )
     return "".join(out)
 
