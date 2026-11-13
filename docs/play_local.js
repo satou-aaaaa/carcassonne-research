@@ -68,7 +68,8 @@
 
   // ---- 思考（Worker） ----------------------------------------------------
   // Worker を2つまで用意し、コーチの解析とAIの手を同時に計算できるようにする（1つずつだと待ち時間が足し算になる）
-  const NWORKERS = Math.max(1, Math.min(2, (navigator.hardwareConcurrency || 4) - 1));
+  const cores = (typeof navigator !== "undefined" && navigator.hardwareConcurrency) || 4;
+  const NWORKERS = Math.max(1, Math.min(2, cores - 1));
   const workers = [], queue = [];
   let jobId = 0, useWorkers = typeof Worker !== "undefined";
   function startWorker() {
