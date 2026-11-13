@@ -39,6 +39,11 @@
   .score .pop { position:absolute; right:10px; top:6px; font-weight:700; font-size:18px; animation:pop 1.4s ease-out forwards; pointer-events:none; }
   @keyframes pop { 0% { opacity:0; transform:translateY(6px); } 15% { opacity:1; transform:translateY(0); } 70% { opacity:1; } 100% { opacity:0; transform:translateY(-14px); } }
   .turn { outline:2px solid var(--accent); }
+  /* AIの考え中: AIの得点欄の右上に回る印と「考え中」（スマホで盤の上の案内が見えなくても分かるように。欄の高さは変えない） */
+  .score .think { display:none; position:absolute; right:8px; top:6px; background:var(--panel); font-size:12px; line-height:16px; font-weight:600; color:var(--accent); white-space:nowrap; }
+  .score .think::before { content:""; display:inline-block; width:9px; height:9px; margin-right:4px; border-radius:50%; border:2px solid currentColor; border-right-color:transparent; animation:spin .8s linear infinite; vertical-align:-1px; }
+  .score .thinking .think { display:inline; }
+  @media (prefers-reduced-motion: reduce) { .score .think::before, #hint.busy::before { animation-duration:2.4s; } }
   button { font:inherit; padding:6px 12px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--ink); cursor:pointer; }
   button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
   button:disabled { opacity:.45; cursor:default; }
@@ -193,7 +198,7 @@
     <h2>得点（「予測」は今終局した場合の点）</h2>
     <div class="score">
       <div class="me" id="boxMe"><small id="nameMe">あなた</small><b id="scMe">0</b><span class="pr" id="prMe"></span><span class="mp" id="spMe"></span></div>
-      <div class="ai" id="boxAi"><small>AI</small><b id="scAi">0</b><span class="pr" id="prAi"></span><span class="mp" id="spAi"></span></div>
+      <div class="ai" id="boxAi"><small>AI<span class="think" id="thinkAi" role="status">考え中</span></small><b id="scAi">0</b><span class="pr" id="prAi"></span><span class="mp" id="spAi"></span></div>
     </div>
   </div>
   <div id="tileSec">
@@ -896,10 +901,28 @@ async function api(path, body) {
 }
 async function sendMove(x, y, v, piece) {
   inflight = {x, y, v, t: G.current, piece};
-  busy = true; pending = null; hoverPiece = null; refresh(); setHint("AIが考えています…");
+  busy = true; pending = null; hoverPiece = null; startThinking(); refresh();
   try { setState(await api("/api/move", {x, y, variant: v, piece})); }
   catch (err) { alert(err.message); inflight = null; }
-  busy = false; refresh();
+  busy = false; stopThinking(); refresh();
+}
+// AIの考え中の表示: AIの得点欄の「考え中」と、案内の経過秒数（2秒を過ぎたら。終盤は読み切り中と出す）
+let thinkT0 = 0, thinkTimer = null;
+function startThinking() {
+  thinkT0 = Date.now();
+  clearInterval(thinkTimer);
+  thinkTimer = setInterval(() => { if (busy && thinkT0) setHint(thinkingText()); }, 1000);
+  $("boxAi").classList.add("thinking");
+}
+function stopThinking() {
+  thinkT0 = 0; clearInterval(thinkTimer); thinkTimer = null;
+  $("boxAi").classList.remove("thinking");
+}
+function thinkingText() {
+  const sec = thinkT0 ? Math.floor((Date.now() - thinkT0) / 1000) : 0;
+  const endgame = G && !G.over && G.deck_left <= 3 && lastForm && lastForm.level !== "greedy";
+  const head = endgame ? "AIが終局まで読み切っています…" : "AIが考えています…";
+  return sec >= 2 ? `${head}（${sec}秒）` : head;
 }
 // 自分の手を置いた直後の盤面（AIの思考中に表示する）
 window.onInterimState = v => setState(v);
@@ -1048,7 +1071,7 @@ function refresh() {
   } else if (G.replay) { res.hidden = true;
     setHint(`棋譜の再生: ${G.replay.ply}手目まで。◀ ▶ で一手ずつ見られます`);
   } else { res.hidden = true;
-    if (busy) setHint("AIが考えています…");
+    if (busy) setHint(thinkingText());
     else if (G.player !== h) setHint("AIの手番です");
     else if (pending) setHint(`向きは ⟳ かタイルを押して変更。ミープルは円を押して選び、✓確定${keys}`);
     else setHint("緑のマスを押してタイルを仮置き（向きは置いてから変えられます）");
@@ -1296,7 +1319,7 @@ window.addEventListener("hashchange", openFromHash);
 function clearHash() { if (location.hash) history.replaceState(null, "", location.pathname + location.search); }
 async function start(form) {
   clearHash(); replayRec = null;
-  lastForm = form; busy = true; G = null; inflight = null; anims = []; setHint("対局を準備中…（AI先手の場合は初手を考えます）"); draw();
+  lastForm = form; busy = true; G = null; inflight = null; anims = []; stopThinking(); setHint("対局を準備中…（AI先手の場合は初手を考えます）"); draw();
   try { setState(await api("/api/new", form)); fitAll(false); }
   catch (err) { alert(err.message); }
   busy = false; refresh();
