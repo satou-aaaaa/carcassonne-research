@@ -248,8 +248,22 @@ async function exerciseManyGames(ctx, base, file, isMobile) {
   try {
     await page.waitForSelector("#replayBar:not([hidden])", { timeout: 20000 });
     await page.waitForTimeout(500);
-    const bar = await page.evaluate(() => document.getElementById("replayBar").getBoundingClientRect().bottom <= window.innerHeight);
+    // ◀ ▶・形勢グラフ・その手の説明までが1画面に入ること（評価の切り替え・リンクのボタンは下にあってよい）
+    const bar = await page.evaluate(() => ["rpNext", "rpGraph", "rpNote"].every(id => document.getElementById(id).getBoundingClientRect().bottom <= window.innerHeight));
     if (isMobile && !bar) problems.push("再生の ◀ ▶ が最初の画面に見えない（スクロールしないと押せない）");
+    if (isMobile) {
+      // 終局まで進めても、スマホではタイルが小さくなりすぎず（MIN_AUTO_TILE 以上）、直前に置いたマスが盤の中に見えること
+      await page.click("#rpLast");
+      await page.waitForTimeout(800);
+      const v = await page.evaluate(() => {
+        const r = cv.getBoundingClientRect(), l = G.replay.last;
+        const inside = !!l && cellLeft(l.x) >= 0 && cellTop(l.y) >= 0 && cellLeft(l.x) + view.s <= r.width && cellTop(l.y) + view.s <= r.height;
+        return { s: Math.round(view.s), min: typeof MIN_AUTO_TILE === "number" ? MIN_AUTO_TILE : 36, inside, h: Math.round(r.height) };
+      });
+      if (v.s < v.min) problems.push(`終盤の盤のタイルが ${v.s}px（スマホは ${v.min}px 以上にする）`);
+      if (!v.inside) problems.push("終盤に再生で進めると、直前に置いたマスが盤の外になる");
+      if (v.h < 300) problems.push(`再生中の盤の高さが ${v.h}px しかない`);
+    }
   } catch (e) {
     problems.push(`番号で開いた局が再生できない: ${String(e).slice(0, 120)}`);
   }
