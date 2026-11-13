@@ -23,6 +23,7 @@
   /* 仮置きしたタイルのすぐ下に出す操作（回転・やめる・確定）。盤から目と指を離さずに置ける */
   #tileBar { position:absolute; z-index:2; display:flex; gap:6px; padding:5px; background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,.25); }
   #tileBar[hidden] { display:none; }
+  #pieceDock { display:none; }
   #tileBar button { min-width:40px; min-height:36px; font-size:15px; padding:4px 10px; }
   #tileBar button.primary { font-weight:600; }
   aside { width:340px; background:var(--panel); border-left:1px solid var(--line); padding:12px; overflow-y:auto; display:flex; flex-direction:column; gap:12px; }
@@ -31,7 +32,7 @@
   .score > div { flex:1; border:1px solid var(--line); border-radius:8px; padding:6px 8px; position:relative; }
   .score .me { border-left:5px solid var(--p0); } .score .ai { border-left:5px solid var(--p1); }
   .score b { font-size:22px; }
-  .score small { color:var(--muted); display:block; }
+  .score small { color:var(--muted); display:block; font-size:12px; }
   .score .pr { color:var(--muted); font-size:12px; margin-left:4px; }
   .score .mp { display:block; height:14px; line-height:0; }
   .score .mp svg { width:12px; height:12px; margin-right:1px; }
@@ -113,7 +114,16 @@
     #stage { height:calc(100vh - var(--barh, 220px)); height:calc(100dvh - var(--barh, 220px)); min-height:240px; flex:none; display:flex; flex-direction:column; }
     #hint { position:static; max-width:none; border-radius:0; border-width:0 0 1px; padding:4px 10px; font-size:13px; }
     canvas#board { flex:1; min-height:0; }
-    #viewBtns { top:auto; bottom:8px; right:8px; }
+    /* 盤の上のボタンは右下に縦に小さくまとめ、盤をふさがない（指で使う端末では拡大・縮小は2本指で行うので隠す） */
+    #viewBtns { top:auto; bottom:8px; right:8px; flex-direction:column; align-items:stretch; gap:4px; }
+    #viewBtns button { padding:2px 10px; font-size:13px; min-height:44px; background:color-mix(in srgb, var(--panel) 88%, transparent); box-shadow:0 1px 4px rgba(0,0,0,.18); }
+    .touch #btnZoomIn, .touch #btnZoomOut { display:none; }
+    /* 再生中の操作欄を低くして盤を広く取る（形勢グラフは細く、説明文は高さを決めて盤の高さが手ごとに変わらないように） */
+    #rpPos { white-space:nowrap; font-size:13px; }
+    #rpGraphBox .cap { display:none; }
+    #rpGraph { height:40px; }
+    #rpNote { height:4.5em; overflow-y:auto; }
+    #rpEvalLbl { order:2; margin-top:0; font-size:12.5px; } #replayBar > .row:last-child { order:3; }
     aside { width:auto; border-left:0; border-top:1px solid var(--line); overflow:visible; padding:8px 10px; gap:8px; }
     #scoreSec { order:-3; } #tileSec { order:-2; } #result { order:-1; } #home { order:10; }
     /* 再生中は ◀ ▶ を得点のすぐ下に出し、盤と同じ1画面に収める（引いたタイルの欄は畳む） */
@@ -126,6 +136,14 @@
     #cur { width:76px !important; height:76px !important; }
     /* スマホでは回転・確定は盤の上（#tileBar）で行うので、操作欄の同じボタンは隠して盤を広く取る */
     .dupctl { display:none !important; }
+    #pieceBtns { display:none; }
+    #pieceDock { display:flex; position:absolute; left:0; right:0; bottom:0; z-index:2; gap:6px; padding:6px 8px; overflow-x:auto; background:color-mix(in srgb, var(--panel) 92%, transparent); border-top:1px solid var(--line); box-shadow:0 -2px 8px rgba(0,0,0,.12); }
+    #pieceDock:empty { display:none; }
+    #pieceDock button { flex:none; min-height:44px; font-size:14px; padding:4px 12px; white-space:nowrap; }
+    /* ミープルを選ぶ間は、右下の盤のボタンを隠す（重ならないように） */
+    #stage:has(#pieceDock:not(:empty)) #viewBtns { display:none; }
+    /* 細い画面でも「ヒント」「待った」を1行に並べ、操作欄を低くする */
+    #tileCtl .row:not(#pieceBtns) { gap:6px; flex-wrap:nowrap; } #tileCtl .row:not(#pieceBtns) button { padding:6px 9px; white-space:nowrap; }
     #featInfo { height:54px; min-height:0; overflow-y:auto; font-size:12px; line-height:1.45; }
   }
 </style>
@@ -140,6 +158,7 @@
     <button id="btnAreas" aria-pressed="false" title="ミープルが乗っている都市・道・草原などを持ち主の色で塗る">陣地</button>
     <button id="btnFit">全体を表示</button>
   </div>
+  <div id="pieceDock"></div>
   <div id="tileBar" hidden>
     <button id="tbRot" type="button" title="向きを変える（R）" aria-label="回転">⟳</button>
     <button id="tbCancel" type="button" title="仮置きをやめる（Esc）" aria-label="やめる">✕</button>
@@ -676,29 +695,44 @@ function bounds(cells) {
   const xs = cells.map(c => c.x), ys = cells.map(c => c.y);
   return {x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys)};
 }
-// 盤の上に重なるボタン・案内文の分だけ、上（PC）か下（スマホ）を空けて使う
+// 盤の上に重なるボタン・案内文の分だけ、上を空けて使う（PC。スマホのボタンは右下に小さく置く）
 function safeArea() {
   const r = cv.getBoundingClientRect(), mob = matchMedia("(max-width: 760px)").matches;
-  return {w: r.width, top: mob ? 0 : 52, bottom: r.height - (mob ? 44 : 0)};
+  const dock = $("pieceDock"), dh = mob && dock.childElementCount ? dock.offsetHeight : 0;
+  return {w: r.width, top: mob ? 0 : 52, bottom: r.height - dh};
 }
-// 盤と置けるマスが全部見えるように拡大率と位置を決める
-function fitTarget() {
+const isMobile = () => matchMedia("(max-width: 760px)").matches;
+// スマホで自動で合わせるときの、タイル1枚の最小の大きさ（px）。これより小さいと絵もミープルも見分けられない
+const MIN_AUTO_TILE = 36;
+// 盤と置けるマスが全部見えるように拡大率と位置を決める。
+// スマホで全部入れるとタイルが小さくなりすぎるときは、focus（直前に置かれたマス）を中心に MIN_AUTO_TILE で見せる
+// （盤の端より外に余白が出ないように寄せる）。all なら小さくなっても全部入れる（「全体を表示」ボタン）
+function fitTarget(focus, all) {
   const a = safeArea(), cells = G.board.concat(G.placements || []);
   const b = bounds(cells), w = b.x1 - b.x0 + 1, h = b.y1 - b.y0 + 1, H = a.bottom - a.top;
-  const s = Math.max(24, Math.min(TOUCH ? 84 : 96, Math.min(a.w / (w + .8), H / (h + .8))));
-  return {s, ox: a.w/2 - (b.x0 + w/2) * s, oy: a.top + H/2 + (b.y0 + h/2 - 1) * s};
+  const fit = Math.min(a.w / (w + .8), H / (h + .8));
+  const minS = all ? 12 : isMobile() && focus && focus.length ? MIN_AUTO_TILE : 24;
+  const s = Math.max(minS, Math.min(TOUCH ? 84 : 96, fit));
+  if (fit >= minS || minS !== MIN_AUTO_TILE) return {s, ox: a.w/2 - (b.x0 + w/2) * s, oy: a.top + H/2 + (b.y0 + h/2 - 1) * s};
+  const f = bounds(focus), m = s * .4;
+  const clamp = (v, lo, hi) => lo > hi ? (lo + hi) / 2 : Math.max(lo, Math.min(hi, v));
+  // 盤の左端（b.x0）が画面の左 m より右に来ない・右端が画面の右 m より左に来ない範囲で寄せる
+  const ox = clamp(a.w/2 - ((f.x0 + f.x1) / 2 + .5) * s, a.w - m - (b.x1 + 1) * s, m - b.x0 * s);
+  // 上下も同じ（y は上が大きい）: 盤の上端が画面の上 m より下に来ない・下端が画面の下 m より上に来ない
+  const oy = clamp(a.top + H/2 + ((f.y0 + f.y1) / 2 - .5) * s, a.bottom - m + (b.y0 - 1) * s, a.top + m + b.y1 * s);
+  return {s, ox, oy, focused: true};
 }
-function fitAll(animate) {
+function fitAll(animate, focus, all) {
   if (!G || !G.board.length) return;
-  const to = fitTarget();
+  const to = fitTarget(focus, all);
   if (animate) { viewAnim = {from: {...view}, to, t0: performance.now()}; requestDraw(); }
   else { Object.assign(view, to); draw(); }
 }
-// 指定のマスが画面外なら全体表示に戻す
-function ensureVisible(cells) {
+// 指定のマスが画面外なら全体表示に戻す（スマホで全体が小さくなりすぎるときは focus のマスへ寄る）
+function ensureVisible(cells, focus) {
   const a = safeArea(), m = 4;
   const out = cells.some(c => cellLeft(c.x) < m || cellTop(c.y) < a.top + m || cellLeft(c.x) + view.s > a.w - m || cellTop(c.y) + view.s > a.bottom - m);
-  if (out) fitAll(true);
+  if (out) fitAll(true, focus);
 }
 
 // ---------- 操作 ----------
@@ -730,7 +764,7 @@ window.addEventListener("pointermove", e => {
   if (pinch && touches.size === 2) {
     const [a, b] = [...touches.values()], r = cv.getBoundingClientRect();
     const mx = (a[0]+b[0])/2 - r.left, my = (a[1]+b[1])/2 - r.top;
-    const ns = Math.max(24, Math.min(160, pinch.s * Math.hypot(a[0]-b[0], a[1]-b[1]) / pinch.d));
+    const ns = Math.max(12, Math.min(160, pinch.s * Math.hypot(a[0]-b[0], a[1]-b[1]) / pinch.d));
     viewAnim = null; view.s = ns; view.ox = mx - pinch.wx * ns; view.oy = my - pinch.wy * ns; draw();
     return;
   }
@@ -763,13 +797,13 @@ cv.addEventListener("wheel", e => {
 }, {passive: false});
 function zoomAt(px, py, size) {
   viewAnim = null;
-  const ns = Math.max(24, Math.min(160, size)), f = ns / view.s;
+  const ns = Math.max(12, Math.min(160, size)), f = ns / view.s;
   view.ox = px - (px - view.ox)*f; view.oy = py - (py - view.oy)*f; view.s = ns; draw();
 }
 function zoomCenter(f) { const r = cv.getBoundingClientRect(); zoomAt(r.width/2, r.height/2, view.s * f); }
 $("btnZoomIn").onclick = () => zoomCenter(1.25);
 $("btnZoomOut").onclick = () => zoomCenter(1/1.25);
-$("btnFit").onclick = () => fitAll(true);
+$("btnFit").onclick = () => fitAll(true, null, true);
 $("btnAreas").onclick = () => setAreas(!showAreas);
 window.addEventListener("keydown", e => {
   if ($("dlg").open) return;
@@ -781,13 +815,17 @@ window.addEventListener("keydown", e => {
 });
 function startPending(p, piece = null) {
   pending = {x: p.x, y: p.y, v: p.v, pieces: p.pieces, piece}; selV = p.v; hoverPiece = null; inspect = null; cellInfo = null;
-  // スマホで盤が小さいときは、仮置きしたマスに寄って拡大する（ミープルの円を押しやすくする）
-  if (TOUCH && view.s < 72) {
-    const r = cv.getBoundingClientRect(), ns = 84;
-    viewAnim = {from: {...view}, to: {s: ns, ox: r.width/2 - (p.x + .5)*ns, oy: r.height/2 + (p.y - .5)*ns}, t0: performance.now()};
+  refresh();
+  // スマホで盤が小さいときは、仮置きしたマスに寄って拡大する（ミープルの円を押しやすくする）。
+  // スマホでは、タイルとその下の操作バーが下のミープル選び（#pieceDock）や画面の端に隠れるときも、見える所へ寄せる
+  const big = TOUCH && view.s < 72, a = safeArea(), ns = big ? 84 : view.s, barH = 60;
+  const L = cellLeft(p.x), T = cellTop(p.y);
+  const hidden = isMobile() && (L < 0 || L + ns > a.w || T < a.top || T + ns + barH > a.bottom);
+  if (big || hidden) {
+    const cy = (a.top + a.bottom - barH) / 2;
+    viewAnim = {from: {...view}, to: {s: ns, ox: a.w/2 - (p.x + .5)*ns, oy: cy + (p.y - .5)*ns}, t0: performance.now()};
     requestDraw();
   }
-  refresh();
 }
 function onClick(e) {
   if (!G) return;
@@ -795,14 +833,13 @@ function onClick(e) {
   const [cx, cy] = cellAt(px, py);
   const mine = myTurn() && G.current !== null;
   if (mine && pending) {
-    if (cx === pending.x && cy === pending.y) {
-      const pi = candidateNear(px, py);
-      if (pi !== null) {
-        if (pending.piece === pi) return confirmMove();  // 選んだ円をもう一度押すと確定
-        pending.piece = pi; return refresh();
-      }
-      return rotate();  // タイル自体を押すと向きを変える
+    // 円はタイルの端にもあるので、マスの外側（となりのマス）を押しても近い円を選ぶ
+    const pi = candidateNear(px, py);
+    if (pi !== null) {
+      if (pending.piece === pi) return confirmMove();  // 選んだ円をもう一度押すと確定
+      pending.piece = pi; return refresh();
     }
+    if (cx === pending.x && cy === pending.y) return rotate();  // タイル自体を押すと向きを変える
     if (cellPlacements(cx, cy).length) return startPending(preferred(cx, cy));
     return cancelPending();
   }
@@ -906,7 +943,8 @@ function animateDiff(prev, next, sent) {
     el.className = "pop"; el.style.color = PCOL[p]; el.textContent = `+${d}`;
     box.appendChild(el); setTimeout(() => el.remove(), 1500);
   }
-  ensureVisible(fresh.concat(next.placements || []));
+  // スマホで盤が広がったら、置かれたばかりのタイルに寄る（全体は「全体を表示」で見られる）
+  ensureVisible(fresh.concat(fresh.length && fitTarget(fresh).focused ? [] : next.placements || []), fresh);
 }
 
 // ---------- パネル ----------
@@ -969,7 +1007,9 @@ function refresh() {
   $("tbRot").disabled = $("btnRot").disabled;
   $("tbOk").title = pending ? (pending.piece !== null ? `確定（${pieceLabel(pending.piece, pending.pieces)}にミープル）` : "確定（ミープルなし）") : "確定";
   $("btnOk").firstChild.textContent = pending ? (pending.piece !== null ? `確定（${pieceLabel(pending.piece, pending.pieces)}にミープル）` : "確定（ミープルなし）") : "確定";
-  const pb = $("pieceBtns"); pb.innerHTML = "";
+  // ミープルの選択ボタン。PC は操作欄（#pieceBtns）、スマホは盤の下の端に重ねた1行（#pieceDock、横に送れる）に出す
+  // （スマホで操作欄の高さが変わると盤の高さも変わり、押そうとしたタイルが指の下から動いてしまうため）
+  const pb = $(isMobile() ? "pieceDock" : "pieceBtns"); $("pieceBtns").innerHTML = ""; $("pieceDock").innerHTML = "";
   if (mine && pending && pending.pieces.length) {
     for (const pi of [...pending.pieces, null]) {
       const b = document.createElement("button");
@@ -1079,7 +1119,9 @@ $("result").addEventListener("click", e => {
 // スマホ: 盤の高さを「画面 − 操作欄（得点・引いたタイル）」にする
 function layoutMobile() {
   const mob = matchMedia("(max-width: 760px)").matches;
-  const barh = mob ? $("scoreSec").offsetHeight + $("tileSec").offsetHeight + $("replayBar").offsetHeight + 30 : 0;
+  // 再生中は ◀ ▶・グラフ・説明文までを1画面に入れる（評価の切り替え・リンクのボタンは下へ送る）
+  const rb = $("replayBar"), rp = rb.hidden ? 0 : $("rpNote").getBoundingClientRect().bottom - rb.getBoundingClientRect().top + 8;
+  const barh = mob ? $("scoreSec").offsetHeight + $("tileSec").offsetHeight + rp + 30 : 0;
   const cur = document.documentElement.style.getPropertyValue("--barh");
   if (mob && cur !== barh + "px") {
     document.documentElement.style.setProperty("--barh", barh + "px");
@@ -1145,7 +1187,7 @@ let replayRec = null;  // 再生中の棋譜（再生リンク用）。play_loca
 async function replayOpen(record, ply) {
   const keep = G;
   busy = true; G = null; anims = []; pending = null; draw();
-  try { setState(await api("/api/replay", {record, ply})); replayRec = record; fitAll(false); setTimeout(replayAnalyze, 0); }
+  try { setState(await api("/api/replay", {record, ply})); replayRec = record; fitAll(false, G.replay.last && [G.replay.last]); setTimeout(replayAnalyze, 0); }
   catch (err) { alert("棋譜を開けませんでした: " + err.message); if (keep) setState(keep); }
   busy = false; refresh();
 }
@@ -1211,7 +1253,7 @@ async function replayGoto(ply) {
   ply = Math.max(0, Math.min(G.replay.total, ply));
   if (ply === G.replay.ply) return;
   setState(await api("/api/replay_goto", {ply}));
-  if (G.replay.last) addAnim({type: "ping", x: G.replay.last.x, y: G.replay.last.y, dur: 1200});
+  if (G.replay.last) { ensureVisible([G.replay.last], [G.replay.last]); addAnim({type: "ping", x: G.replay.last.x, y: G.replay.last.y, dur: 1200}); }
   if (!rpThinking) replayAnalyze();
 }
 $("rpFirst").onclick = () => replayGoto(0);
