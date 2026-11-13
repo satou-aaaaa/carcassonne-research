@@ -117,8 +117,8 @@
  "規約に同意して送る（アカウント不要）": "Agree to the terms and send (no account needed)",
  "規約に同意してGitHubで送る": "Agree to the terms and send via GitHub",
  "送るのは山札・指し手・得点・AIの強さだけで、名前は入りません。開いた画面で内容を確かめ、送信ボタンを押すと届きます。": "Only the tile order, moves, scores and AI level are sent; your name is not included. Check the content on the page that opens, then press its submit button.",
- "「規約に同意して送る」は Google フォームで、アカウントもメールアドレスも要りません。": "“Agree to the terms and send” uses a Google Form: no account or email address needed.",
- "GitHub で送ると、棋譜とアカウント名が公開されます。ファイルは送らずに手元に残せます。": "Sending via GitHub makes the game record and your account name public. Saving as a file keeps it on your device without sending anything.",
+ "「規約に同意して送る」は Google フォームで、アカウントもメールアドレスも要りません。": " “Agree to the terms and send” uses a Google Form: no account or email address needed.",
+ "GitHub で送ると、棋譜とアカウント名が公開されます。ファイルは送らずに手元に残せます。": " Sending via GitHub makes the game record and your account name public. Saving as a file keeps it on your device without sending anything.",
  "終わった対局や保存した棋譜を、一手ずつ再生する": "Replay a finished game or a saved record move by move",
  "棋譜を再生": "Replay a game",
  "最初へ": "To the start",
@@ -168,5 +168,7 @@
  "この手（${who}）: AIの見積もりでは最善より約${a.loss.toFixed(0)}点の損。${ai}。": "This move (${who}): about ${a.loss.toFixed(0)} points worse than the AI's best by its estimate; ${ai}.",
  "<small>AI<span class=\"think\" id=\"thinkAi\" role=\"status\">考え中</span></small><b id=\"scAi\">0</b><span class=\"pr\" id=\"prAi\"></span><span class=\"mp\" id=\"spAi\"></span>": "<small>AI<span class=\"think\" id=\"thinkAi\" role=\"status\">thinking</span></small><b id=\"scAi\">0</b><span class=\"pr\" id=\"prAi\"></span><span class=\"mp\" id=\"spAi\"></span>",
  "AIが終局まで読み切っています…": "The AI is calculating the endgame exactly…",
- "${head}（${sec}秒）": "${head} (${sec}s)"
+ "${head}（${sec}秒）": "${head} (${sec}s)",
+ "緑のマスを押して仮置き。画面の外にもあります（緑の矢印を押すと移動）": "Tap a green square to place the tile. More are off screen: tap a green arrow",
+ "置ける緑のマスは画面の外です。緑の矢印を押すと移動します": "The squares where the tile fits are off screen. Tap a green arrow to go there"
 }

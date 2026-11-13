@@ -174,6 +174,7 @@
       // コーチの解析（置く前の局面）とAIの返し手を同時に計算し始める
       const coachJob = this.coach ? compute({ kind: "analyze", deck: this.deck, history: this.history, seed: this.seed * 1000 + this.history.length }) : null;
       this.play(cell, g, p);
+      saveLive(this);  // AIが考えている間に閉じられても、自分の手は残す
       const aiJob = this.startAiJob();
       if (coachJob) {
         if (root.onInterimState) root.onInterimState(this.view()); // 解析を待たずに自分の手を見せる
@@ -374,6 +375,42 @@
     }
   }
 
+  // ---- 途中の対局をこのブラウザに残す ----------------------------------------
+  // スマホでは別のアプリに切り替えただけでタブが読み込み直されることがあり、残さないと対局が最初から消える。
+  // 山札は seed で決まるので、設定と着手列だけを残し、開き直したら同じ手を順に置いて作り直す（待ったも続けて使える）。
+  const LIVE_KEY = "cc_live_game";
+  function saveLive(g) {
+    try {
+      if (!g || g instanceof ReplayGame) return;
+      root.localStorage.setItem(LIVE_KEY, JSON.stringify({
+        v: 1, seed: g.seed, human_seat: g.human_seat, level: g.level, name: g.name, coach: g.coach,
+        hints: g.hints, undos: g.undos, moves: g.history,
+      }));
+    } catch (err) { /* 保存できなくても対局は続ける */ }
+  }
+  function restoreLive() {
+    let s;
+    try { s = JSON.parse(root.localStorage.getItem(LIVE_KEY) || "null"); } catch (err) { return null; }
+    if (!s || s.v !== 1 || !Array.isArray(s.moves) || !DATA.levels[s.level]) return null;
+    try {
+      const g = new LocalGame(Number(s.seed), s.human_seat === 1 ? 1 : 0, s.level, String(s.name || "").slice(0, 40), !!s.coach);
+      for (const m of s.moves) {
+        const [cell, gi, piece] = m.map(Number), S = g.S, who = S.sc[C.SC_PL];
+        if (S.sc[C.SC_OVER] || !eng.legalMoves(S).some(q => q[0] === cell && q[1] === gi && q[2] === piece)) throw new Error("bad move");
+        if (who === g.human_seat) g.snaps.push({ n: g.history.length, meeples: g.meeples.slice(), events: g.events.slice(), last_ai: g.last_ai, last_coach: null, mid: g.mid });
+        g.play(cell, gi, piece);
+        const [x, y] = C.xyOf(cell);
+        g.last_ai = who !== g.human_seat ? { x, y } : null;
+      }
+      g.hints = s.hints | 0; g.undos = s.undos | 0;
+      return g;
+    } catch (err) {
+      // ルールや山札の作り方が変わって作り直せない記録は捨てる
+      try { root.localStorage.removeItem(LIVE_KEY); } catch (e) { /* 何もしない */ }
+      return null;
+    }
+  }
+
   // ---- web/play.html からの問い合わせ（scripts/play_human.py の API と同じ形） ----
   let game = null, live = null;  // live: 再生を開く前の対局（再生を終えたら戻す）
   root.LOCAL_API = async function (path, body) {
@@ -382,17 +419,26 @@
       for (const [k, v] of Object.entries(DATA.levels)) levels[k] = v.label;
       return { tiles: LIB, levels };
     }
-    if (path === "/api/state") return game ? game.view() : null;
+    if (path === "/api/state") {
+      if (!game) {
+        game = restoreLive();
+        if (game && !game.S.sc[C.SC_OVER] && game.S.sc[C.SC_PL] !== game.human_seat) { await game.advanceAi(); saveLive(game); }  // AIの手番で閉じられていた
+      }
+      return game ? game.view() : null;
+    }
     if (path === "/api/new") {
       if (!DATA.levels[body.level]) throw new Error("Unknown strength");
       game = new LocalGame(Number(body.seed), Number(body.human_seat), body.level, String(body.name || "").slice(0, 40), !!body.coach);
       await game.advanceAi();
+      saveLive(game);
       return game.view();
     }
     if (path === "/api/move") {
       if (!game) throw new Error("No game in progress");
-      await game.humanMove(Number(body.x), Number(body.y), Number(body.variant), body.piece === null || body.piece === undefined ? null : Number(body.piece));
-      return game.view();
+      const g = game;
+      try { await g.humanMove(Number(body.x), Number(body.y), Number(body.variant), body.piece === null || body.piece === undefined ? null : Number(body.piece)); }
+      finally { saveLive(g); }
+      return g.view();
     }
     if (path === "/api/replay") {
       const rg = new ReplayGame(body.record);
@@ -420,6 +466,7 @@
       if (!game) throw new Error("No game in progress");
       if (path === "/api/undo") game.undo();
       else await game.requestHint();
+      saveLive(game);
       return game.view();
     }
     throw new Error("not found");
