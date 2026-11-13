@@ -749,8 +749,8 @@
      3,
      null
     ],
-    "visits": 0.8684,
-    "diff": 19.2,
+    "visits": 0.8427,
+    "diff": 19.93,
     "facts": {
      "gain_me": 20,
      "gain_opp": 0,
@@ -766,8 +766,8 @@
      1,
      null
     ],
-    "visits": 0.0108,
-    "diff": 10.91,
+    "visits": 0.0132,
+    "diff": 12.29,
     "facts": {
      "gain_me": 4,
      "gain_opp": 0,
@@ -783,8 +783,8 @@
      3,
      null
     ],
-    "visits": 0.0118,
-    "diff": 11.25,
+    "visits": 0.0151,
+    "diff": 12.78,
     "facts": {
      "gain_me": 4,
      "gain_opp": 0,
@@ -800,8 +800,8 @@
      2,
      null
     ],
-    "visits": 0.011,
-    "diff": 11.0,
+    "visits": 0.014,
+    "diff": 12.49,
     "facts": {
      "gain_me": 4,
      "gain_opp": 0,
@@ -827,8 +827,8 @@
   ],
   "level": "入門",
   "checked_by": {
-   "name": "gen1167",
-   "date": "2026-11-12"
+   "name": "gen1198",
+   "date": "2026-11-13"
   },
   "en": {
    "title": "Close the city or the road?",
@@ -1126,8 +1126,8 @@
      1,
      0
     ],
-    "visits": 0.7078,
-    "diff": 8.99,
+    "visits": 0.6206,
+    "diff": 8.25,
     "facts": {
      "gain_me": 4,
      "gain_opp": 0,
@@ -1147,8 +1147,8 @@
      1,
      2
     ],
-    "visits": 0.0223,
-    "diff": 4.61,
+    "visits": 0.0271,
+    "diff": 4.62,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -1170,8 +1170,8 @@
      3,
      0
     ],
-    "visits": 0.0066,
-    "diff": 4.84,
+    "visits": 0.0112,
+    "diff": 5.48,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -1193,8 +1193,8 @@
      3,
      null
     ],
-    "visits": 0.0048,
-    "diff": 3.54,
+    "visits": 0.0065,
+    "diff": 3.6,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -1220,8 +1220,8 @@
   ],
   "level": "入門",
   "checked_by": {
-   "name": "gen1167",
-   "date": "2026-11-12"
+   "name": "gen1198",
+   "date": "2026-11-13"
   },
   "en": {
    "title": "A city nobody owns",
@@ -1461,8 +1461,8 @@
      0,
      1
     ],
-    "visits": 0.1912,
-    "diff": 7.23,
+    "visits": 0.3099,
+    "diff": 8.63,
     "facts": {
      "gain_me": 4,
      "gain_opp": 0,
@@ -1484,8 +1484,8 @@
      0,
      null
     ],
-    "visits": 0.055,
-    "diff": 5.53,
+    "visits": 0.0652,
+    "diff": 5.93,
     "facts": {
      "gain_me": 4,
      "gain_opp": 0,
@@ -1501,8 +1501,8 @@
      3,
      0
     ],
-    "visits": 0.2582,
-    "diff": 8.02,
+    "visits": 0.1225,
+    "diff": 7.44,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -1524,8 +1524,8 @@
      2,
      0
     ],
-    "visits": 0.0338,
-    "diff": 5.89,
+    "visits": 0.0343,
+    "diff": 6.05,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -1556,8 +1556,8 @@
    "誰もいない都市に入って3枚に伸ばす。完成はまだ先。"
   ],
   "checked_by": {
-   "name": "gen1167",
-   "date": "2026-11-12"
+   "name": "gen1198",
+   "date": "2026-11-13"
   },
   "en": {
    "title": "After closing the city, one more trick",
@@ -1574,8 +1574,7 @@
     "Joins an unclaimed city and grows it to 3 tiles. Completion is still a way off.",
     "Joins an unclaimed city and grows it to 3 tiles. Completion is still a way off."
    ]
-  },
-  "disputed": "gen1167: 選択肢3の点差が最大"
+  }
  },
  {
   "id": "s0t58",
@@ -2457,8 +2456,8 @@
      2,
      2
     ],
-    "visits": 0.2926,
-    "diff": 16.75,
+    "visits": 0.3149,
+    "diff": 16.71,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -2478,8 +2477,8 @@
      2,
      null
     ],
-    "visits": 0.0299,
-    "diff": 13.14,
+    "visits": 0.0259,
+    "diff": 12.49,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -2495,8 +2494,8 @@
      0,
      2
     ],
-    "visits": 0.0092,
-    "diff": 12.19,
+    "visits": 0.009,
+    "diff": 11.8,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -2524,8 +2523,8 @@
    "周りが4マスしか埋まっていない場所。今は5点の見込み。"
   ],
   "checked_by": {
-   "name": "gen1167",
-   "date": "2026-11-12"
+   "name": "gen1198",
+   "date": "2026-11-13"
   },
   "en": {
    "title": "Where to build the monastery?",
@@ -3041,8 +3040,8 @@
      0,
      null
     ],
-    "visits": 0.2304,
-    "diff": 4.14,
+    "visits": 0.1812,
+    "diff": 3.08,
     "facts": {
      "gain_me": 12,
      "gain_opp": 0,
@@ -3058,8 +3057,8 @@
      1,
      0
     ],
-    "visits": 0.0142,
-    "diff": 1.13,
+    "visits": 0.0125,
+    "diff": 0.23,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -3081,8 +3080,8 @@
      2,
      0
     ],
-    "visits": 0.0097,
-    "diff": 0.14,
+    "visits": 0.0088,
+    "diff": -0.65,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -3104,8 +3103,8 @@
      1,
      0
     ],
-    "visits": 0.009,
-    "diff": -0.07,
+    "visits": 0.0082,
+    "diff": -0.85,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -3136,8 +3135,8 @@
    "最後のミープルで新しい都市を始める。今は1点の見込み。"
   ],
   "checked_by": {
-   "name": "gen1167",
-   "date": "2026-11-12"
+   "name": "gen1198",
+   "date": "2026-11-13"
   },
   "en": {
    "title": "One meeple left",
@@ -3829,8 +3828,8 @@
      3,
      2
     ],
-    "visits": 0.504,
-    "diff": 5.89,
+    "visits": 0.4129,
+    "diff": 5.92,
     "facts": {
      "gain_me": 8,
      "gain_opp": 0,
@@ -3850,8 +3849,8 @@
      3,
      null
     ],
-    "visits": 0.0265,
-    "diff": 1.2,
+    "visits": 0.0231,
+    "diff": 0.42,
     "facts": {
      "gain_me": 8,
      "gain_opp": 0,
@@ -3867,8 +3866,8 @@
      2,
      2
     ],
-    "visits": 0.0429,
-    "diff": 2.49,
+    "visits": 0.0759,
+    "diff": 2.08,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -3896,8 +3895,8 @@
    "修道院は8点の見込みだが、道は未完成のまま。"
   ],
   "checked_by": {
-   "name": "gen1167",
-   "date": "2026-11-12"
+   "name": "gen1198",
+   "date": "2026-11-13"
   },
   "en": {
    "title": "Using a monastery with a road",
@@ -4724,8 +4723,8 @@
      0,
      1
     ],
-    "visits": 0.2033,
-    "diff": 1.25,
+    "visits": 0.1748,
+    "diff": 0.6,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -4747,8 +4746,8 @@
      0,
      0
     ],
-    "visits": 0.0397,
-    "diff": -0.79,
+    "visits": 0.0324,
+    "diff": -1.66,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -4770,8 +4769,8 @@
      0,
      null
     ],
-    "visits": 0.0176,
-    "diff": -2.22,
+    "visits": 0.0161,
+    "diff": -3.05,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -4787,8 +4786,8 @@
      0,
      0
     ],
-    "visits": 0.0234,
-    "diff": -1.63,
+    "visits": 0.0232,
+    "diff": -2.22,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -4819,8 +4818,8 @@
    "別の場所の道にミープル。今は2点の見込み。"
   ],
   "checked_by": {
-   "name": "gen1167",
-   "date": "2026-11-12"
+   "name": "gen1198",
+   "date": "2026-11-13"
   },
   "en": {
    "title": "Where to put your last meeple",
@@ -5349,8 +5348,8 @@
      1,
      null
     ],
-    "visits": 0.5397,
-    "diff": 14.86,
+    "visits": 0.531,
+    "diff": 15.21,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -5366,8 +5365,8 @@
      1,
      null
     ],
-    "visits": 0.0142,
-    "diff": 8.61,
+    "visits": 0.014,
+    "diff": 8.99,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -5383,8 +5382,8 @@
      2,
      null
     ],
-    "visits": 0.019,
-    "diff": 9.77,
+    "visits": 0.0154,
+    "diff": 9.26,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -5400,8 +5399,8 @@
      0,
      null
     ],
-    "visits": 0.0172,
-    "diff": 9.17,
+    "visits": 0.017,
+    "diff": 9.58,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -5426,8 +5425,8 @@
    "修道院の周りが1マス埋まるだけ。"
   ],
   "checked_by": {
-   "name": "gen1167",
-   "date": "2026-11-12"
+   "name": "gen1198",
+   "date": "2026-11-13"
   },
   "en": {
    "title": "What you can do without meeples",
@@ -6451,8 +6450,8 @@
    "修道院は8点の見込みだが、大草原は赤のまま。"
   ],
   "checked_by": {
-   "name": "gen1167",
-   "date": "2026-11-12"
+   "name": "gen1198",
+   "date": "2026-11-13"
   },
   "en": {
    "title": "Losing the big field",
@@ -7524,8 +7523,8 @@
    "タイルを置くだけ。点は動かない。"
   ],
   "checked_by": {
-   "name": "gen1167",
-   "date": "2026-11-12"
+   "name": "gen1198",
+   "date": "2026-11-13"
   },
   "en": {
    "title": "No meeples, late in the game",
@@ -8060,8 +8059,8 @@
      1,
      null
     ],
-    "visits": 0.2651,
-    "diff": 0.87,
+    "visits": 0.2477,
+    "diff": 1.69,
     "facts": {
      "gain_me": 10,
      "gain_opp": 0,
@@ -8077,8 +8076,8 @@
      3,
      null
     ],
-    "visits": 0.0309,
-    "diff": -1.96,
+    "visits": 0.0325,
+    "diff": -1.0,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -8094,8 +8093,8 @@
      3,
      null
     ],
-    "visits": 0.028,
-    "diff": -2.2,
+    "visits": 0.0287,
+    "diff": -1.27,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -8111,8 +8110,8 @@
      2,
      null
     ],
-    "visits": 0.028,
-    "diff": -2.15,
+    "visits": 0.0292,
+    "diff": -1.24,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -8138,8 +8137,8 @@
   ],
   "level": "入門",
   "checked_by": {
-   "name": "gen1167",
-   "date": "2026-11-12"
+   "name": "gen1198",
+   "date": "2026-11-13"
   },
   "en": {
    "title": "A city you can complete right now",
@@ -8712,8 +8711,8 @@
      3,
      null
     ],
-    "visits": 0.4612,
-    "diff": -0.29,
+    "visits": 0.5453,
+    "diff": 0.1,
     "facts": {
      "gain_me": 8,
      "gain_opp": 0,
@@ -8729,8 +8728,8 @@
      2,
      null
     ],
-    "visits": 0.0486,
-    "diff": -3.38,
+    "visits": 0.0361,
+    "diff": -3.31,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -8746,8 +8745,8 @@
      2,
      null
     ],
-    "visits": 0.014,
-    "diff": -6.14,
+    "visits": 0.011,
+    "diff": -6.54,
     "facts": {
      "gain_me": 0,
      "gain_opp": 3,
@@ -8763,8 +8762,8 @@
      3,
      null
     ],
-    "visits": 0.0226,
-    "diff": -4.84,
+    "visits": 0.0181,
+    "diff": -4.94,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -8790,8 +8789,8 @@
   ],
   "level": "入門",
   "checked_by": {
-   "name": "gen1167",
-   "date": "2026-11-12"
+   "name": "gen1198",
+   "date": "2026-11-13"
   },
   "en": {
    "title": "When you have no meeples",
@@ -9242,8 +9241,8 @@
      0,
      null
     ],
-    "visits": 0.7132,
-    "diff": 7.23,
+    "visits": 0.7372,
+    "diff": 5.05,
     "facts": {
      "gain_me": 9,
      "gain_opp": 0,
@@ -9259,8 +9258,8 @@
      2,
      null
     ],
-    "visits": 0.0331,
-    "diff": 3.96,
+    "visits": 0.0342,
+    "diff": 2.4,
     "facts": {
      "gain_me": 4,
      "gain_opp": 0,
@@ -9276,8 +9275,8 @@
      3,
      null
     ],
-    "visits": 0.0329,
-    "diff": 3.93,
+    "visits": 0.0306,
+    "diff": 2.23,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -9293,8 +9292,8 @@
      2,
      null
     ],
-    "visits": 0.0229,
-    "diff": 3.08,
+    "visits": 0.0186,
+    "diff": 0.44,
     "facts": {
      "gain_me": 0,
      "gain_opp": 0,
@@ -9320,8 +9319,8 @@
   ],
   "level": "入門",
   "checked_by": {
-   "name": "gen1167",
-   "date": "2026-11-12"
+   "name": "gen1198",
+   "date": "2026-11-13"
   },
   "en": {
    "title": "Complete the monastery or the city?",
