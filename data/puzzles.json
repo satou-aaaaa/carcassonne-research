@@ -9338,5 +9338,2768 @@
     "Only grows a road. 0 points this turn."
    ]
   }
+ },
+ {
+  "id": "s60t17",
+  "seed": 60,
+  "gap": 4.11,
+  "share": 0.722,
+  "history": [
+   [
+    -1,
+    0,
+    22,
+    0,
+    0
+   ],
+   [
+    0,
+    1,
+    10,
+    2,
+    0
+   ],
+   [
+    0,
+    2,
+    9,
+    3,
+    0
+   ],
+   [
+    0,
+    -1,
+    10,
+    1,
+    0
+   ],
+   [
+    -1,
+    2,
+    18,
+    1,
+    null
+   ],
+   [
+    0,
+    -2,
+    7,
+    0,
+    1
+   ],
+   [
+    1,
+    0,
+    2,
+    3,
+    2
+   ],
+   [
+    1,
+    -2,
+    16,
+    2,
+    0
+   ],
+   [
+    -2,
+    0,
+    17,
+    3,
+    0
+   ],
+   [
+    -2,
+    2,
+    6,
+    2,
+    0
+   ],
+   [
+    -2,
+    -1,
+    22,
+    1,
+    1
+   ],
+   [
+    1,
+    -1,
+    11,
+    1,
+    0
+   ],
+   [
+    -2,
+    -2,
+    19,
+    3,
+    0
+   ],
+   [
+    2,
+    -1,
+    18,
+    3,
+    2
+   ],
+   [
+    -1,
+    -1,
+    1,
+    0,
+    1
+   ],
+   [
+    1,
+    -3,
+    15,
+    0,
+    null
+   ]
+  ],
+  "board": [
+   {
+    "x": 0,
+    "y": 0,
+    "t": 19,
+    "v": 0
+   },
+   {
+    "x": -1,
+    "y": 0,
+    "t": 22,
+    "v": 0
+   },
+   {
+    "x": 0,
+    "y": 1,
+    "t": 10,
+    "v": 2
+   },
+   {
+    "x": 0,
+    "y": 2,
+    "t": 9,
+    "v": 3
+   },
+   {
+    "x": 0,
+    "y": -1,
+    "t": 10,
+    "v": 1
+   },
+   {
+    "x": -1,
+    "y": 2,
+    "t": 18,
+    "v": 1
+   },
+   {
+    "x": 0,
+    "y": -2,
+    "t": 7,
+    "v": 0
+   },
+   {
+    "x": 1,
+    "y": 0,
+    "t": 2,
+    "v": 3
+   },
+   {
+    "x": 1,
+    "y": -2,
+    "t": 16,
+    "v": 2
+   },
+   {
+    "x": -2,
+    "y": 0,
+    "t": 17,
+    "v": 3
+   },
+   {
+    "x": -2,
+    "y": 2,
+    "t": 6,
+    "v": 2
+   },
+   {
+    "x": -2,
+    "y": -1,
+    "t": 22,
+    "v": 1
+   },
+   {
+    "x": 1,
+    "y": -1,
+    "t": 11,
+    "v": 1
+   },
+   {
+    "x": -2,
+    "y": -2,
+    "t": 19,
+    "v": 3
+   },
+   {
+    "x": 2,
+    "y": -1,
+    "t": 18,
+    "v": 3
+   },
+   {
+    "x": -1,
+    "y": -1,
+    "t": 1,
+    "v": 0
+   },
+   {
+    "x": 1,
+    "y": -3,
+    "t": 15,
+    "v": 0
+   }
+  ],
+  "meeples": [
+   {
+    "x": -1,
+    "y": 0,
+    "piece": 0,
+    "player": 0
+   },
+   {
+    "x": 0,
+    "y": 1,
+    "piece": 0,
+    "player": 1
+   },
+   {
+    "x": 0,
+    "y": 2,
+    "piece": 0,
+    "player": 0
+   },
+   {
+    "x": 0,
+    "y": -2,
+    "piece": 1,
+    "player": 1
+   },
+   {
+    "x": 1,
+    "y": 0,
+    "piece": 2,
+    "player": 0
+   },
+   {
+    "x": -2,
+    "y": 0,
+    "piece": 0,
+    "player": 0
+   },
+   {
+    "x": -2,
+    "y": 2,
+    "piece": 0,
+    "player": 1
+   },
+   {
+    "x": -2,
+    "y": -1,
+    "piece": 1,
+    "player": 0
+   },
+   {
+    "x": -2,
+    "y": -2,
+    "piece": 0,
+    "player": 0
+   },
+   {
+    "x": 2,
+    "y": -1,
+    "piece": 2,
+    "player": 1
+   },
+   {
+    "x": -1,
+    "y": -1,
+    "piece": 1,
+    "player": 0
+   }
+  ],
+  "scores": [
+   0,
+   18
+  ],
+  "projected": [
+   33,
+   27
+  ],
+  "supply": [
+   0,
+   3
+  ],
+  "player": 0,
+  "current": 3,
+  "remaining": [
+   9,
+   3,
+   1,
+   2,
+   1,
+   1,
+   1,
+   2,
+   2,
+   2,
+   0,
+   2,
+   1,
+   2,
+   5,
+   2,
+   1,
+   2,
+   1,
+   2,
+   1,
+   1,
+   6,
+   4
+  ],
+  "deck_left": 54,
+  "turn": 17,
+  "options": [
+   {
+    "move": [
+     -2,
+     1,
+     3,
+     null
+    ],
+    "visits": 0.7223,
+    "diff": 10.3,
+    "facts": {
+     "gain_me": 0,
+     "gain_opp": 0,
+     "proj_me": 0,
+     "proj_opp": 1,
+     "meeple": null
+    }
+   },
+   {
+    "move": [
+     -3,
+     0,
+     3,
+     null
+    ],
+    "visits": 0.0237,
+    "diff": 6.19,
+    "facts": {
+     "gain_me": 0,
+     "gain_opp": 0,
+     "proj_me": 1,
+     "proj_opp": 0,
+     "meeple": null
+    }
+   },
+   {
+    "move": [
+     -3,
+     -2,
+     1,
+     null
+    ],
+    "visits": 0.0208,
+    "diff": 5.83,
+    "facts": {
+     "gain_me": 0,
+     "gain_opp": 0,
+     "proj_me": 1,
+     "proj_opp": 0,
+     "meeple": null
+    }
+   },
+   {
+    "move": [
+     -3,
+     0,
+     1,
+     null
+    ],
+    "visits": 0.0199,
+    "diff": 5.66,
+    "facts": {
+     "gain_me": 0,
+     "gain_opp": 0,
+     "proj_me": 1,
+     "proj_opp": 0,
+     "meeple": null
+    }
+   }
+  ],
+  "title": "相手の都市を「完成できない形」に",
+  "prompt": "あなたは赤で、手持ちのミープルは0人。盤の上のほうに、青のミープルがいる都市が2つあります。右の都市（2枚・盾1つ）は、あと1枚で完成します。",
+  "explain": [
+   "正解は、左上にある青の都市の真下に置き、都市を右どなりの空きマスへのばす手です。その空きマスは「上が道・右が都市・下が草原・左が都市」という形になり、この形に合うタイルは山札に1枚も残っていません。",
+   "その空きマスは、右にある青の都市の最後の口でした。置く前は合うタイルが山札に2枚あり、引かれれば青は都市を完成させて、点とミープルを取り戻せました。この手で、右の都市も、のばした左上の都市も、もう完成しません。青のミープル2人は最後まで盤に残ります。",
+   "左上の都市は1枚大きくなりますが、未完成の都市は終局時に1枚1点なので、青の見込みは1点増えるだけです。ほかの選択肢は、赤の小さな都市を1枚のばすだけ。ミープルが0人で自分の点を伸ばしにくいときは、相手の都市とミープルを止める置き方が効きます。"
+  ],
+  "lesson": "相手の都市の口を、合うタイルが残っていない形の空きマスにすると、その都市は完成しない。相手のミープルも最後まで戻らない。",
+  "notes": [
+   "青の都市が2つとも完成できなくなる。青のミープル2人は戻らない。",
+   "赤の都市を1枚のばす（開いた辺は2つ）。青の都市はあと1枚で完成のまま。",
+   "赤の都市を1枚のばす（開いた辺は2つ）。青の都市はあと1枚で完成のまま。",
+   "赤の都市を1枚のばす（開いた辺は2つ）。青の都市はあと1枚で完成のまま。"
+  ],
+  "en": {
+   "title": "Make the opponent's city impossible to finish",
+   "prompt": "You are Red, with no meeples in hand. Near the top of the board, Blue has meeples in two cities. The one on the right (2 tiles, 1 shield) needs just one more tile to be completed.",
+   "explain": [
+    "The answer is to place the tile just below Blue's city in the upper left, extending that city into the empty square to its right. That square then needs a tile with a road on top, city on the right, field on the bottom and city on the left, and no tile of that shape is left in the deck.",
+    "That square was the last opening of Blue's city on the right. Before your move, 2 tiles in the deck could fill it, and drawing one would let Blue complete the city and get the points and the meeple back. After this move, neither the city on the right nor the extended city in the upper left can ever be completed. Blue's 2 meeples stay on the board until the end.",
+    "The upper-left city grows by one tile, but an unfinished city is worth 1 point per tile at the end, so Blue's projection only goes up by 1. The other choices just extend one of Red's small cities by a tile. When you have no meeples and few ways to score, a placement that stops the opponent's cities and meeples works well."
+   ],
+   "lesson": "Turn the opening of an opponent's city into a square that no remaining tile can fill, and that city will never be completed. Its meeples never come back either.",
+   "notes": [
+    "Neither of Blue's cities can be completed now. Blue's 2 meeples never come back.",
+    "Extends a Red city by one tile (2 open edges). Blue's city is still one tile from completion.",
+    "Extends a Red city by one tile (2 open edges). Blue's city is still one tile from completion.",
+    "Extends a Red city by one tile (2 open edges). Blue's city is still one tile from completion."
+   ]
+  },
+  "checked_by": {
+   "name": "gen1198",
+   "date": "2026-11-13"
+  }
+ },
+ {
+  "id": "s93t44",
+  "seed": 93,
+  "gap": 4.0,
+  "share": 0.495,
+  "history": [
+   [
+    0,
+    1,
+    18,
+    2,
+    0
+   ],
+   [
+    0,
+    -1,
+    3,
+    1,
+    0
+   ],
+   [
+    1,
+    1,
+    9,
+    0,
+    0
+   ],
+   [
+    1,
+    -1,
+    3,
+    1,
+    null
+   ],
+   [
+    -1,
+    1,
+    22,
+    0,
+    0
+   ],
+   [
+    1,
+    2,
+    3,
+    1,
+    null
+   ],
+   [
+    -2,
+    1,
+    0,
+    2,
+    null
+   ],
+   [
+    -1,
+    2,
+    0,
+    1,
+    0
+   ],
+   [
+    -2,
+    2,
+    18,
+    0,
+    0
+   ],
+   [
+    -1,
+    3,
+    19,
+    3,
+    0
+   ],
+   [
+    -1,
+    4,
+    22,
+    1,
+    1
+   ],
+   [
+    0,
+    3,
+    0,
+    2,
+    null
+   ],
+   [
+    -1,
+    5,
+    23,
+    3,
+    0
+   ],
+   [
+    -1,
+    -1,
+    13,
+    1,
+    null
+   ],
+   [
+    -1,
+    6,
+    22,
+    1,
+    null
+   ],
+   [
+    -2,
+    6,
+    10,
+    3,
+    0
+   ],
+   [
+    -2,
+    0,
+    11,
+    1,
+    1
+   ],
+   [
+    -2,
+    5,
+    1,
+    0,
+    1
+   ],
+   [
+    -1,
+    7,
+    6,
+    3,
+    0
+   ],
+   [
+    -3,
+    6,
+    15,
+    1,
+    1
+   ],
+   [
+    -3,
+    0,
+    18,
+    1,
+    null
+   ],
+   [
+    -3,
+    5,
+    0,
+    1,
+    0
+   ],
+   [
+    -3,
+    -1,
+    0,
+    2,
+    null
+   ],
+   [
+    -2,
+    4,
+    1,
+    0,
+    null
+   ],
+   [
+    -2,
+    3,
+    9,
+    1,
+    null
+   ],
+   [
+    -4,
+    5,
+    8,
+    3,
+    0
+   ],
+   [
+    -2,
+    7,
+    21,
+    0,
+    null
+   ],
+   [
+    -5,
+    5,
+    11,
+    1,
+    null
+   ],
+   [
+    -6,
+    5,
+    7,
+    1,
+    0
+   ],
+   [
+    -3,
+    4,
+    9,
+    2,
+    null
+   ],
+   [
+    -4,
+    6,
+    5,
+    2,
+    1
+   ],
+   [
+    -5,
+    6,
+    14,
+    1,
+    null
+   ],
+   [
+    -3,
+    1,
+    0,
+    1,
+    null
+   ],
+   [
+    -4,
+    7,
+    11,
+    0,
+    0
+   ],
+   [
+    -6,
+    4,
+    17,
+    0,
+    null
+   ],
+   [
+    -4,
+    4,
+    19,
+    1,
+    0
+   ],
+   [
+    -5,
+    7,
+    16,
+    3,
+    2
+   ],
+   [
+    -4,
+    8,
+    6,
+    1,
+    null
+   ],
+   [
+    -6,
+    7,
+    14,
+    1,
+    0
+   ],
+   [
+    -3,
+    3,
+    14,
+    0,
+    null
+   ],
+   [
+    -4,
+    9,
+    22,
+    1,
+    0
+   ],
+   [
+    -4,
+    3,
+    22,
+    1,
+    1
+   ],
+   [
+    -4,
+    2,
+    22,
+    1,
+    null
+   ]
+  ],
+  "board": [
+   {
+    "x": 0,
+    "y": 0,
+    "t": 19,
+    "v": 0
+   },
+   {
+    "x": 0,
+    "y": 1,
+    "t": 18,
+    "v": 2
+   },
+   {
+    "x": 0,
+    "y": -1,
+    "t": 3,
+    "v": 1
+   },
+   {
+    "x": 1,
+    "y": 1,
+    "t": 9,
+    "v": 0
+   },
+   {
+    "x": 1,
+    "y": -1,
+    "t": 3,
+    "v": 1
+   },
+   {
+    "x": -1,
+    "y": 1,
+    "t": 22,
+    "v": 0
+   },
+   {
+    "x": 1,
+    "y": 2,
+    "t": 3,
+    "v": 1
+   },
+   {
+    "x": -2,
+    "y": 1,
+    "t": 0,
+    "v": 2
+   },
+   {
+    "x": -1,
+    "y": 2,
+    "t": 0,
+    "v": 1
+   },
+   {
+    "x": -2,
+    "y": 2,
+    "t": 18,
+    "v": 0
+   },
+   {
+    "x": -1,
+    "y": 3,
+    "t": 19,
+    "v": 3
+   },
+   {
+    "x": -1,
+    "y": 4,
+    "t": 22,
+    "v": 1
+   },
+   {
+    "x": 0,
+    "y": 3,
+    "t": 0,
+    "v": 2
+   },
+   {
+    "x": -1,
+    "y": 5,
+    "t": 23,
+    "v": 3
+   },
+   {
+    "x": -1,
+    "y": -1,
+    "t": 13,
+    "v": 1
+   },
+   {
+    "x": -1,
+    "y": 6,
+    "t": 22,
+    "v": 1
+   },
+   {
+    "x": -2,
+    "y": 6,
+    "t": 10,
+    "v": 3
+   },
+   {
+    "x": -2,
+    "y": 0,
+    "t": 11,
+    "v": 1
+   },
+   {
+    "x": -2,
+    "y": 5,
+    "t": 1,
+    "v": 0
+   },
+   {
+    "x": -1,
+    "y": 7,
+    "t": 6,
+    "v": 3
+   },
+   {
+    "x": -3,
+    "y": 6,
+    "t": 15,
+    "v": 1
+   },
+   {
+    "x": -3,
+    "y": 0,
+    "t": 18,
+    "v": 1
+   },
+   {
+    "x": -3,
+    "y": 5,
+    "t": 0,
+    "v": 1
+   },
+   {
+    "x": -3,
+    "y": -1,
+    "t": 0,
+    "v": 2
+   },
+   {
+    "x": -2,
+    "y": 4,
+    "t": 1,
+    "v": 0
+   },
+   {
+    "x": -2,
+    "y": 3,
+    "t": 9,
+    "v": 1
+   },
+   {
+    "x": -4,
+    "y": 5,
+    "t": 8,
+    "v": 3
+   },
+   {
+    "x": -2,
+    "y": 7,
+    "t": 21,
+    "v": 0
+   },
+   {
+    "x": -5,
+    "y": 5,
+    "t": 11,
+    "v": 1
+   },
+   {
+    "x": -6,
+    "y": 5,
+    "t": 7,
+    "v": 1
+   },
+   {
+    "x": -3,
+    "y": 4,
+    "t": 9,
+    "v": 2
+   },
+   {
+    "x": -4,
+    "y": 6,
+    "t": 5,
+    "v": 2
+   },
+   {
+    "x": -5,
+    "y": 6,
+    "t": 14,
+    "v": 1
+   },
+   {
+    "x": -3,
+    "y": 1,
+    "t": 0,
+    "v": 1
+   },
+   {
+    "x": -4,
+    "y": 7,
+    "t": 11,
+    "v": 0
+   },
+   {
+    "x": -6,
+    "y": 4,
+    "t": 17,
+    "v": 0
+   },
+   {
+    "x": -4,
+    "y": 4,
+    "t": 19,
+    "v": 1
+   },
+   {
+    "x": -5,
+    "y": 7,
+    "t": 16,
+    "v": 3
+   },
+   {
+    "x": -4,
+    "y": 8,
+    "t": 6,
+    "v": 1
+   },
+   {
+    "x": -6,
+    "y": 7,
+    "t": 14,
+    "v": 1
+   },
+   {
+    "x": -3,
+    "y": 3,
+    "t": 14,
+    "v": 0
+   },
+   {
+    "x": -4,
+    "y": 9,
+    "t": 22,
+    "v": 1
+   },
+   {
+    "x": -4,
+    "y": 3,
+    "t": 22,
+    "v": 1
+   },
+   {
+    "x": -4,
+    "y": 2,
+    "t": 22,
+    "v": 1
+   }
+  ],
+  "meeples": [
+   {
+    "x": 0,
+    "y": -1,
+    "piece": 0,
+    "player": 1
+   },
+   {
+    "x": 1,
+    "y": 1,
+    "piece": 0,
+    "player": 0
+   },
+   {
+    "x": -1,
+    "y": 1,
+    "piece": 0,
+    "player": 0
+   },
+   {
+    "x": -1,
+    "y": 2,
+    "piece": 0,
+    "player": 1
+   },
+   {
+    "x": -1,
+    "y": 4,
+    "piece": 1,
+    "player": 0
+   },
+   {
+    "x": -2,
+    "y": 6,
+    "piece": 0,
+    "player": 1
+   },
+   {
+    "x": -1,
+    "y": 7,
+    "piece": 0,
+    "player": 0
+   },
+   {
+    "x": -3,
+    "y": 6,
+    "piece": 1,
+    "player": 1
+   },
+   {
+    "x": -3,
+    "y": 5,
+    "piece": 0,
+    "player": 1
+   },
+   {
+    "x": -4,
+    "y": 7,
+    "piece": 0,
+    "player": 1
+   },
+   {
+    "x": -5,
+    "y": 7,
+    "piece": 2,
+    "player": 0
+   },
+   {
+    "x": -4,
+    "y": 9,
+    "piece": 0,
+    "player": 0
+   },
+   {
+    "x": -4,
+    "y": 3,
+    "piece": 1,
+    "player": 1
+   }
+  ],
+  "scores": [
+   29,
+   33
+  ],
+  "projected": [
+   69,
+   65
+  ],
+  "supply": [
+   1,
+   0
+  ],
+  "player": 1,
+  "current": 10,
+  "remaining": [
+   3,
+   2,
+   2,
+   0,
+   1,
+   0,
+   0,
+   2,
+   1,
+   0,
+   0,
+   0,
+   1,
+   1,
+   2,
+   2,
+   1,
+   2,
+   0,
+   1,
+   1,
+   0,
+   2,
+   3
+  ],
+  "deck_left": 27,
+  "turn": 44,
+  "options": [
+   {
+    "move": [
+     -5,
+     8,
+     1,
+     null
+    ],
+    "visits": 0.4952,
+    "diff": 5.51,
+    "facts": {
+     "gain_me": 0,
+     "gain_opp": 0,
+     "proj_me": 3,
+     "proj_opp": 0,
+     "meeple": null
+    }
+   },
+   {
+    "move": [
+     2,
+     -1,
+     2,
+     null
+    ],
+    "visits": 0.0227,
+    "diff": 1.51,
+    "facts": {
+     "gain_me": 0,
+     "gain_opp": 0,
+     "proj_me": 2,
+     "proj_opp": 0,
+     "meeple": null
+    }
+   },
+   {
+    "move": [
+     1,
+     -2,
+     0,
+     null
+    ],
+    "visits": 0.0219,
+    "diff": 1.43,
+    "facts": {
+     "gain_me": 0,
+     "gain_opp": 0,
+     "proj_me": 2,
+     "proj_opp": 0,
+     "meeple": null
+    }
+   },
+   {
+    "move": [
+     2,
+     -1,
+     3,
+     null
+    ],
+    "visits": 0.0216,
+    "diff": 1.38,
+    "facts": {
+     "gain_me": 0,
+     "gain_opp": 0,
+     "proj_me": 2,
+     "proj_opp": 0,
+     "meeple": null
+    }
+   }
+  ],
+  "title": "都市をのばすなら、口を減らす",
+  "prompt": "あなたは青で、手持ちのミープルは0人。引いたのは盾つきの斜めの都市タイルです。青のミープルがいる都市は、左上（2枚・盾1つ）と下（3枚・盾1つ）の2つ。",
+  "explain": [
+   "正解は、左上の都市の左どなりに置く手です。この空きマスは2辺に都市の条件がつく穴で、合うタイルは山札に5枚しかありませんでした。今引いたのがそのうちの1枚です。",
+   "置くと左上の都市は4枚・盾2つになり、下にある誰のものでもない都市の切れ端も取り込んで、開いた辺は2つから1つに減ります。残った口に合うタイルは山札に13枚あり、完成が近づきます。",
+   "下の都市に置いても4枚・盾2つになりますが、開いた辺は4つのままで、完成はまだ遠いままです。ミープルが0人の今は、早く完成させてミープルを取り戻せる都市を育てるほうが得です。"
+  ],
+  "lesson": "同じタイルで都市をのばせる場所がいくつかあるなら、開いた辺が減るほう（合うタイルの少ない穴を埋めるほう）へ。完成が近づき、点もミープルも早く戻る。",
+  "notes": [
+   "左上の都市が4枚・盾2つに。開いた辺は1つだけ（合うタイルは13枚）。",
+   "下の都市が4枚・盾2つに。開いた辺は4つのまま。",
+   "下の都市が4枚・盾2つに。開いた辺は4つのまま。",
+   "下の都市が4枚・盾2つに。開いた辺は4つのまま。"
+  ],
+  "en": {
+   "title": "Grow a city by closing its openings",
+   "prompt": "You are Blue, with no meeples in hand. You drew a diagonal city tile with a shield. Blue has meeples in two cities: one in the upper left (2 tiles, 1 shield) and one at the bottom (3 tiles, 1 shield).",
+   "explain": [
+    "The answer is to place the tile just left of the upper-left city. That square had city edges on two sides, and only 5 tiles in the deck could fit it. The tile you drew is one of them.",
+    "The upper-left city becomes 4 tiles with 2 shields. It also takes in an unclaimed scrap of city below, and its open edges drop from 2 to 1. The deck holds 13 tiles that fit the last opening, so completion is getting close.",
+    "Placing the tile on the bottom city also makes it 4 tiles with 2 shields, but it keeps 4 open edges and stays far from completion. With no meeples in hand, it pays to grow the city you can finish soon and get your meeple back."
+   ],
+   "lesson": "When the same tile can extend a city in several places, choose the one that reduces open edges (filling the awkward hole few tiles fit). The city gets closer to completion, and the points and meeple come back sooner.",
+   "notes": [
+    "The upper-left city becomes 4 tiles, 2 shields, with just 1 open edge (13 tiles fit).",
+    "The bottom city becomes 4 tiles, 2 shields, still with 4 open edges.",
+    "The bottom city becomes 4 tiles, 2 shields, still with 4 open edges.",
+    "The bottom city becomes 4 tiles, 2 shields, still with 4 open edges."
+   ]
+  },
+  "checked_by": {
+   "name": "gen1198",
+   "date": "2026-11-13"
+  }
+ },
+ {
+  "id": "s81t29",
+  "seed": 81,
+  "gap": 5.29,
+  "share": 0.421,
+  "history": [
+   [
+    0,
+    -1,
+    1,
+    0,
+    1
+   ],
+   [
+    0,
+    1,
+    3,
+    2,
+    0
+   ],
+   [
+    -1,
+    0,
+    8,
+    3,
+    0
+   ],
+   [
+    1,
+    0,
+    22,
+    0,
+    0
+   ],
+   [
+    -2,
+    0,
+    3,
+    3,
+    null
+   ],
+   [
+    2,
+    0,
+    20,
+    0,
+    1
+   ],
+   [
+    -3,
+    0,
+    17,
+    1,
+    1
+   ],
+   [
+    3,
+    0,
+    0,
+    1,
+    null
+   ],
+   [
+    -2,
+    1,
+    16,
+    1,
+    0
+   ],
+   [
+    3,
+    1,
+    22,
+    1,
+    null
+   ],
+   [
+    -4,
+    0,
+    15,
+    3,
+    0
+   ],
+   [
+    1,
+    1,
+    1,
+    0,
+    1
+   ],
+   [
+    -5,
+    0,
+    10,
+    1,
+    null
+   ],
+   [
+    3,
+    2,
+    19,
+    1,
+    0
+   ],
+   [
+    -5,
+    -1,
+    14,
+    0,
+    null
+   ],
+   [
+    3,
+    3,
+    0,
+    3,
+    null
+   ],
+   [
+    2,
+    2,
+    14,
+    2,
+    null
+   ],
+   [
+    0,
+    2,
+    8,
+    2,
+    null
+   ],
+   [
+    -2,
+    2,
+    10,
+    3,
+    0
+   ],
+   [
+    -1,
+    2,
+    19,
+    1,
+    null
+   ],
+   [
+    -2,
+    3,
+    11,
+    0,
+    0
+   ],
+   [
+    4,
+    3,
+    0,
+    1,
+    null
+   ],
+   [
+    -3,
+    1,
+    0,
+    0,
+    1
+   ],
+   [
+    4,
+    2,
+    11,
+    1,
+    0
+   ],
+   [
+    -3,
+    2,
+    9,
+    0,
+    null
+   ],
+   [
+    5,
+    2,
+    19,
+    3,
+    null
+   ],
+   [
+    -4,
+    1,
+    23,
+    0,
+    null
+   ],
+   [
+    4,
+    4,
+    15,
+    1,
+    5
+   ]
+  ],
+  "board": [
+   {
+    "x": 0,
+    "y": 0,
+    "t": 19,
+    "v": 0
+   },
+   {
+    "x": 0,
+    "y": -1,
+    "t": 1,
+    "v": 0
+   },
+   {
+    "x": 0,
+    "y": 1,
+    "t": 3,
+    "v": 2
+   },
+   {
+    "x": -1,
+    "y": 0,
+    "t": 8,
+    "v": 3
+   },
+   {
+    "x": 1,
+    "y": 0,
+    "t": 22,
+    "v": 0
+   },
+   {
+    "x": -2,
+    "y": 0,
+    "t": 3,
+    "v": 3
+   },
+   {
+    "x": 2,
+    "y": 0,
+    "t": 20,
+    "v": 0
+   },
+   {
+    "x": -3,
+    "y": 0,
+    "t": 17,
+    "v": 1
+   },
+   {
+    "x": 3,
+    "y": 0,
+    "t": 0,
+    "v": 1
+   },
+   {
+    "x": -2,
+    "y": 1,
+    "t": 16,
+    "v": 1
+   },
+   {
+    "x": 3,
+    "y": 1,
+    "t": 22,
+    "v": 1
+   },
+   {
+    "x": -4,
+    "y": 0,
+    "t": 15,
+    "v": 3
+   },
+   {
+    "x": 1,
+    "y": 1,
+    "t": 1,
+    "v": 0
+   },
+   {
+    "x": -5,
+    "y": 0,
+    "t": 10,
+    "v": 1
+   },
+   {
+    "x": 3,
+    "y": 2,
+    "t": 19,
+    "v": 1
+   },
+   {
+    "x": -5,
+    "y": -1,
+    "t": 14,
+    "v": 0
+   },
+   {
+    "x": 3,
+    "y": 3,
+    "t": 0,
+    "v": 3
+   },
+   {
+    "x": 2,
+    "y": 2,
+    "t": 14,
+    "v": 2
+   },
+   {
+    "x": 0,
+    "y": 2,
+    "t": 8,
+    "v": 2
+   },
+   {
+    "x": -2,
+    "y": 2,
+    "t": 10,
+    "v": 3
+   },
+   {
+    "x": -1,
+    "y": 2,
+    "t": 19,
+    "v": 1
+   },
+   {
+    "x": -2,
+    "y": 3,
+    "t": 11,
+    "v": 0
+   },
+   {
+    "x": 4,
+    "y": 3,
+    "t": 0,
+    "v": 1
+   },
+   {
+    "x": -3,
+    "y": 1,
+    "t": 0,
+    "v": 0
+   },
+   {
+    "x": 4,
+    "y": 2,
+    "t": 11,
+    "v": 1
+   },
+   {
+    "x": -3,
+    "y": 2,
+    "t": 9,
+    "v": 0
+   },
+   {
+    "x": 5,
+    "y": 2,
+    "t": 19,
+    "v": 3
+   },
+   {
+    "x": -4,
+    "y": 1,
+    "t": 23,
+    "v": 0
+   },
+   {
+    "x": 4,
+    "y": 4,
+    "t": 15,
+    "v": 1
+   }
+  ],
+  "meeples": [
+   {
+    "x": 0,
+    "y": -1,
+    "piece": 1,
+    "player": 0
+   },
+   {
+    "x": 0,
+    "y": 1,
+    "piece": 0,
+    "player": 1
+   },
+   {
+    "x": -1,
+    "y": 0,
+    "piece": 0,
+    "player": 0
+   },
+   {
+    "x": 1,
+    "y": 0,
+    "piece": 0,
+    "player": 1
+   },
+   {
+    "x": -2,
+    "y": 1,
+    "piece": 0,
+    "player": 0
+   },
+   {
+    "x": 1,
+    "y": 1,
+    "piece": 1,
+    "player": 1
+   },
+   {
+    "x": -2,
+    "y": 2,
+    "piece": 0,
+    "player": 0
+   },
+   {
+    "x": -2,
+    "y": 3,
+    "piece": 0,
+    "player": 0
+   },
+   {
+    "x": -3,
+    "y": 1,
+    "piece": 1,
+    "player": 0
+   },
+   {
+    "x": 4,
+    "y": 4,
+    "piece": 5,
+    "player": 1
+   }
+  ],
+  "scores": [
+   12,
+   15
+  ],
+  "projected": [
+   27,
+   37
+  ],
+  "supply": [
+   1,
+   3
+  ],
+  "player": 0,
+  "current": 7,
+  "remaining": [
+   5,
+   2,
+   2,
+   1,
+   1,
+   1,
+   2,
+   2,
+   0,
+   2,
+   0,
+   1,
+   1,
+   2,
+   3,
+   1,
+   1,
+   2,
+   3,
+   0,
+   0,
+   1,
+   6,
+   3
+  ],
+  "deck_left": 42,
+  "turn": 29,
+  "options": [
+   {
+    "move": [
+     5,
+     4,
+     3,
+     0
+    ],
+    "visits": 0.4213,
+    "diff": 7.41,
+    "facts": {
+     "gain_me": 0,
+     "gain_opp": 0,
+     "proj_me": 2,
+     "proj_opp": 0,
+     "meeple": {
+      "kind": "C",
+      "kind_ja": "都市",
+      "returned": false,
+      "tiles": 2,
+      "shared": false
+     }
+    }
+   },
+   {
+    "move": [
+     5,
+     4,
+     3,
+     null
+    ],
+    "visits": 0.0258,
+    "diff": 2.12,
+    "facts": {
+     "gain_me": 0,
+     "gain_opp": 0,
+     "proj_me": 0,
+     "proj_opp": 0,
+     "meeple": null
+    }
+   },
+   {
+    "move": [
+     -2,
+     4,
+     2,
+     null
+    ],
+    "visits": 0.0183,
+    "diff": 2.69,
+    "facts": {
+     "gain_me": 0,
+     "gain_opp": 0,
+     "proj_me": 1,
+     "proj_opp": 0,
+     "meeple": null
+    }
+   },
+   {
+    "move": [
+     5,
+     4,
+     2,
+     0
+    ],
+    "visits": 0.0167,
+    "diff": 3.28,
+    "facts": {
+     "gain_me": 0,
+     "gain_opp": 0,
+     "proj_me": 2,
+     "proj_opp": 0,
+     "meeple": {
+      "kind": "C",
+      "kind_ja": "都市",
+      "returned": false,
+      "tiles": 2,
+      "shared": false
+     }
+    }
+   }
+  ],
+  "title": "同じマス、どの向きで置く？",
+  "prompt": "あなたは赤で、手持ちのミープルは残り1人。引いたのは、角に都市があり道が曲がるタイルです。右上には、誰のものでもない1枚の都市の切れ端があります。",
+  "explain": [
+   "正解は、右上の都市の切れ端につなげて2枚の都市にし、その都市にミープルを置く手です。向きは、都市の口がまわりにタイルのない上の空きマスに向くようにします。",
+   "上の空きマスは条件が都市の辺1つだけなので、合うタイルが山札に23枚あります。同じマスでも、向きを変えて口を下に向けると、下の空きマスは上・下・左の3辺に条件がつき、合うタイルは3枚しかありません。完成しにくい都市にミープルを置くと、ミープルが長く戻りません。",
+   "同じ置き方でミープルを置かない手や、左上の赤の都市を1枚のばす手もありますが、最後のミープルで新しい都市を持つ機会を逃します。"
+  ],
+  "lesson": "同じマスでも、向きで完成しやすさが変わる。都市の口は、まわりにタイルの少ない開けた側へ向けると、合うタイルが多くて閉じやすい。",
+  "notes": [
+   "2枚の都市にミープル。口は上の開けた空きマスへ（合うタイルは23枚）。",
+   "同じ置き方でミープルを置かない。都市は誰のものでもないまま。",
+   "左上の赤の都市を2枚にのばす。ミープルは置かない。",
+   "2枚の都市にミープル。口は下の空きマスへ（合うタイルは3枚だけ）。"
+  ],
+  "en": {
+   "title": "Same square, which way to turn it?",
+   "prompt": "You are Red, with one meeple left in hand. You drew a tile with a city in one corner and a curving road. In the upper right is a one-tile scrap of city that nobody has claimed.",
+   "explain": [
+    "The answer is to attach the tile to the city scrap in the upper right, making a 2-tile city, and put your meeple in that city. Turn the tile so the city's opening faces the empty square above, where there are no other tiles around.",
+    "The square above has only one condition, a city edge, so 23 tiles in the deck fit it. Turn the same tile so the opening faces down instead, and the square below has conditions on three sides (top, bottom and left), so only 3 tiles fit. A meeple in a city that is hard to finish stays out of your hand for a long time.",
+    "You could place the tile the same way without a meeple, or extend Red's city in the upper left by one tile, but either way you miss the chance to claim a new city with your last meeple."
+   ],
+   "lesson": "On the same square, the rotation changes how easy a city is to finish. Point the city's opening toward open space with few tiles around it: more tiles will fit, so it closes more easily.",
+   "notes": [
+    "Meeple in a 2-tile city, opening toward the open square above (23 tiles fit).",
+    "Same placement without a meeple. The city stays unclaimed.",
+    "Extends Red's upper-left city to 2 tiles. No meeple.",
+    "Meeple in a 2-tile city, opening toward the square below (only 3 tiles fit)."
+   ]
+  },
+  "checked_by": {
+   "name": "gen1198",
+   "date": "2026-11-13"
+  }
+ },
+ {
+  "id": "s97t53",
+  "seed": 97,
+  "gap": 11.42,
+  "share": 0.601,
+  "history": [
+   [
+    0,
+    1,
+    14,
+    2,
+    0
+   ],
+   [
+    1,
+    0,
+    22,
+    0,
+    0
+   ],
+   [
+    2,
+    0,
+    15,
+    1,
+    0
+   ],
+   [
+    1,
+    -1,
+    10,
+    2,
+    0
+   ],
+   [
+    3,
+    0,
+    6,
+    3,
+    1
+   ],
+   [
+    -1,
+    0,
+    23,
+    0,
+    2
+   ],
+   [
+    -1,
+    1,
+    1,
+    0,
+    1
+   ],
+   [
+    2,
+    1,
+    20,
+    0,
+    2
+   ],
+   [
+    4,
+    0,
+    13,
+    1,
+    null
+   ],
+   [
+    4,
+    1,
+    1,
+    0,
+    1
+   ],
+   [
+    3,
+    -1,
+    2,
+    0,
+    2
+   ],
+   [
+    0,
+    -1,
+    11,
+    1,
+    1
+   ],
+   [
+    3,
+    1,
+    18,
+    2,
+    1
+   ],
+   [
+    -1,
+    -1,
+    7,
+    1,
+    1
+   ],
+   [
+    5,
+    0,
+    18,
+    3,
+    null
+   ],
+   [
+    5,
+    1,
+    22,
+    1,
+    0
+   ],
+   [
+    1,
+    -2,
+    21,
+    0,
+    null
+   ],
+   [
+    2,
+    -2,
+    9,
+    2,
+    null
+   ],
+   [
+    3,
+    2,
+    23,
+    1,
+    null
+   ],
+   [
+    0,
+    -2,
+    9,
+    1,
+    null
+   ],
+   [
+    3,
+    3,
+    15,
+    1,
+    2
+   ],
+   [
+    -1,
+    -2,
+    14,
+    0,
+    1
+   ],
+   [
+    4,
+    3,
+    17,
+    3,
+    0
+   ],
+   [
+    5,
+    -1,
+    12,
+    1,
+    1
+   ],
+   [
+    -1,
+    -3,
+    4,
+    1,
+    0
+   ],
+   [
+    5,
+    2,
+    0,
+    3,
+    null
+   ],
+   [
+    -2,
+    -3,
+    11,
+    1,
+    1
+   ],
+   [
+    1,
+    -3,
+    19,
+    0,
+    null
+   ],
+   [
+    0,
+    -3,
+    8,
+    3,
+    null
+   ],
+   [
+    6,
+    2,
+    22,
+    0,
+    null
+   ],
+   [
+    2,
+    -1,
+    2,
+    0,
+    2
+   ],
+   [
+    -2,
+    -1,
+    0,
+    2,
+    null
+   ],
+   [
+    -2,
+    1,
+    22,
+    1,
+    null
+   ],
+   [
+    -3,
+    -1,
+    3,
+    2,
+    null
+   ],
+   [
+    5,
+    3,
+    22,
+    0,
+    null
+   ],
+   [
+    -3,
+    1,
+    14,
+    2,
+    null
+   ],
+   [
+    -3,
+    -3,
+    19,
+    1,
+    null
+   ],
+   [
+    -2,
+    -2,
+    14,
+    3,
+    null
+   ],
+   [
+    6,
+    3,
+    22,
+    0,
+    null
+   ],
+   [
+    7,
+    2,
+    0,
+    0,
+    null
+   ],
+   [
+    3,
+    -2,
+    16,
+    1,
+    null
+   ],
+   [
+    -2,
+    -4,
+    13,
+    1,
+    null
+   ],
+   [
+    3,
+    4,
+    23,
+    0,
+    1
+   ],
+   [
+    -2,
+    0,
+    23,
+    3,
+    null
+   ],
+   [
+    -3,
+    -4,
+    17,
+    1,
+    0
+   ],
+   [
+    6,
+    1,
+    1,
+    0,
+    1
+   ],
+   [
+    -2,
+    2,
+    22,
+    1,
+    0
+   ],
+   [
+    3,
+    -3,
+    8,
+    0,
+    0
+   ],
+   [
+    -2,
+    3,
+    17,
+    0,
+    2
+   ],
+   [
+    -1,
+    3,
+    3,
+    0,
+    null
+   ],
+   [
+    -3,
+    2,
+    1,
+    0,
+    1
+   ],
+   [
+    0,
+    -4,
+    5,
+    1,
+    null
+   ]
+  ],
+  "board": [
+   {
+    "x": 0,
+    "y": 0,
+    "t": 19,
+    "v": 0
+   },
+   {
+    "x": 0,
+    "y": 1,
+    "t": 14,
+    "v": 2
+   },
+   {
+    "x": 1,
+    "y": 0,
+    "t": 22,
+    "v": 0
+   },
+   {
+    "x": 2,
+    "y": 0,
+    "t": 15,
+    "v": 1
+   },
+   {
+    "x": 1,
+    "y": -1,
+    "t": 10,
+    "v": 2
+   },
+   {
+    "x": 3,
+    "y": 0,
+    "t": 6,
+    "v": 3
+   },
+   {
+    "x": -1,
+    "y": 0,
+    "t": 23,
+    "v": 0
+   },
+   {
+    "x": -1,
+    "y": 1,
+    "t": 1,
+    "v": 0
+   },
+   {
+    "x": 2,
+    "y": 1,
+    "t": 20,
+    "v": 0
+   },
+   {
+    "x": 4,
+    "y": 0,
+    "t": 13,
+    "v": 1
+   },
+   {
+    "x": 4,
+    "y": 1,
+    "t": 1,
+    "v": 0
+   },
+   {
+    "x": 3,
+    "y": -1,
+    "t": 2,
+    "v": 0
+   },
+   {
+    "x": 0,
+    "y": -1,
+    "t": 11,
+    "v": 1
+   },
+   {
+    "x": 3,
+    "y": 1,
+    "t": 18,
+    "v": 2
+   },
+   {
+    "x": -1,
+    "y": -1,
+    "t": 7,
+    "v": 1
+   },
+   {
+    "x": 5,
+    "y": 0,
+    "t": 18,
+    "v": 3
+   },
+   {
+    "x": 5,
+    "y": 1,
+    "t": 22,
+    "v": 1
+   },
+   {
+    "x": 1,
+    "y": -2,
+    "t": 21,
+    "v": 0
+   },
+   {
+    "x": 2,
+    "y": -2,
+    "t": 9,
+    "v": 2
+   },
+   {
+    "x": 3,
+    "y": 2,
+    "t": 23,
+    "v": 1
+   },
+   {
+    "x": 0,
+    "y": -2,
+    "t": 9,
+    "v": 1
+   },
+   {
+    "x": 3,
+    "y": 3,
+    "t": 15,
+    "v": 1
+   },
+   {
+    "x": -1,
+    "y": -2,
+    "t": 14,
+    "v": 0
+   },
+   {
+    "x": 4,
+    "y": 3,
+    "t": 17,
+    "v": 3
+   },
+   {
+    "x": 5,
+    "y": -1,
+    "t": 12,
+    "v": 1
+   },
+   {
+    "x": -1,
+    "y": -3,
+    "t": 4,
+    "v": 1
+   },
+   {
+    "x": 5,
+    "y": 2,
+    "t": 0,
+    "v": 3
+   },
+   {
+    "x": -2,
+    "y": -3,
+    "t": 11,
+    "v": 1
+   },
+   {
+    "x": 1,
+    "y": -3,
+    "t": 19,
+    "v": 0
+   },
+   {
+    "x": 0,
+    "y": -3,
+    "t": 8,
+    "v": 3
+   },
+   {
+    "x": 6,
+    "y": 2,
+    "t": 22,
+    "v": 0
+   },
+   {
+    "x": 2,
+    "y": -1,
+    "t": 2,
+    "v": 0
+   },
+   {
+    "x": -2,
+    "y": -1,
+    "t": 0,
+    "v": 2
+   },
+   {
+    "x": -2,
+    "y": 1,
+    "t": 22,
+    "v": 1
+   },
+   {
+    "x": -3,
+    "y": -1,
+    "t": 3,
+    "v": 2
+   },
+   {
+    "x": 5,
+    "y": 3,
+    "t": 22,
+    "v": 0
+   },
+   {
+    "x": -3,
+    "y": 1,
+    "t": 14,
+    "v": 2
+   },
+   {
+    "x": -3,
+    "y": -3,
+    "t": 19,
+    "v": 1
+   },
+   {
+    "x": -2,
+    "y": -2,
+    "t": 14,
+    "v": 3
+   },
+   {
+    "x": 6,
+    "y": 3,
+    "t": 22,
+    "v": 0
+   },
+   {
+    "x": 7,
+    "y": 2,
+    "t": 0,
+    "v": 0
+   },
+   {
+    "x": 3,
+    "y": -2,
+    "t": 16,
+    "v": 1
+   },
+   {
+    "x": -2,
+    "y": -4,
+    "t": 13,
+    "v": 1
+   },
+   {
+    "x": 3,
+    "y": 4,
+    "t": 23,
+    "v": 0
+   },
+   {
+    "x": -2,
+    "y": 0,
+    "t": 23,
+    "v": 3
+   },
+   {
+    "x": -3,
+    "y": -4,
+    "t": 17,
+    "v": 1
+   },
+   {
+    "x": 6,
+    "y": 1,
+    "t": 1,
+    "v": 0
+   },
+   {
+    "x": -2,
+    "y": 2,
+    "t": 22,
+    "v": 1
+   },
+   {
+    "x": 3,
+    "y": -3,
+    "t": 8,
+    "v": 0
+   },
+   {
+    "x": -2,
+    "y": 3,
+    "t": 17,
+    "v": 0
+   },
+   {
+    "x": -1,
+    "y": 3,
+    "t": 3,
+    "v": 0
+   },
+   {
+    "x": -3,
+    "y": 2,
+    "t": 1,
+    "v": 0
+   },
+   {
+    "x": 0,
+    "y": -4,
+    "t": 5,
+    "v": 1
+   }
+  ],
+  "meeples": [
+   {
+    "x": 1,
+    "y": -1,
+    "piece": 0,
+    "player": 1
+   },
+   {
+    "x": -1,
+    "y": 1,
+    "piece": 1,
+    "player": 0
+   },
+   {
+    "x": 4,
+    "y": 1,
+    "piece": 1,
+    "player": 1
+   },
+   {
+    "x": 3,
+    "y": -1,
+    "piece": 2,
+    "player": 0
+   },
+   {
+    "x": 5,
+    "y": 1,
+    "piece": 0,
+    "player": 1
+   },
+   {
+    "x": -1,
+    "y": -2,
+    "piece": 1,
+    "player": 1
+   },
+   {
+    "x": 5,
+    "y": -1,
+    "piece": 1,
+    "player": 1
+   },
+   {
+    "x": -1,
+    "y": -3,
+    "piece": 0,
+    "player": 0
+   },
+   {
+    "x": -3,
+    "y": -4,
+    "piece": 0,
+    "player": 0
+   },
+   {
+    "x": 6,
+    "y": 1,
+    "piece": 1,
+    "player": 1
+   },
+   {
+    "x": -2,
+    "y": 2,
+    "piece": 0,
+    "player": 0
+   },
+   {
+    "x": 3,
+    "y": -3,
+    "piece": 0,
+    "player": 1
+   },
+   {
+    "x": -2,
+    "y": 3,
+    "piece": 2,
+    "player": 0
+   },
+   {
+    "x": -3,
+    "y": 2,
+    "piece": 1,
+    "player": 0
+   }
+  ],
+  "scores": [
+   44,
+   18
+  ],
+  "projected": [
+   86,
+   65
+  ],
+  "supply": [
+   0,
+   0
+  ],
+  "player": 0,
+  "current": 3,
+  "remaining": [
+   6,
+   0,
+   0,
+   0,
+   0,
+   0,
+   1,
+   2,
+   0,
+   1,
+   1,
+   1,
+   0,
+   0,
+   1,
+   1,
+   1,
+   0,
+   1,
+   1,
+   0,
+   0,
+   1,
+   0
+  ],
+  "deck_left": 18,
+  "turn": 53,
+  "options": [
+   {
+    "move": [
+     -1,
+     -4,
+     3,
+     null
+    ],
+    "visits": 0.6008,
+    "diff": 35.65,
+    "facts": {
+     "gain_me": 0,
+     "gain_opp": 0,
+     "proj_me": 2,
+     "proj_opp": -13,
+     "meeple": null
+    }
+   },
+   {
+    "move": [
+     4,
+     -2,
+     3,
+     null
+    ],
+    "visits": 0.0175,
+    "diff": 24.23,
+    "facts": {
+     "gain_me": 0,
+     "gain_opp": 0,
+     "proj_me": 1,
+     "proj_opp": 0,
+     "meeple": null
+    }
+   },
+   {
+    "move": [
+     4,
+     -2,
+     2,
+     null
+    ],
+    "visits": 0.0152,
+    "diff": 23.49,
+    "facts": {
+     "gain_me": 0,
+     "gain_opp": 0,
+     "proj_me": 1,
+     "proj_opp": 0,
+     "meeple": null
+    }
+   },
+   {
+    "move": [
+     4,
+     -2,
+     1,
+     null
+    ],
+    "visits": 0.0144,
+    "diff": 23.21,
+    "facts": {
+     "gain_me": 0,
+     "gain_opp": 0,
+     "proj_me": 1,
+     "proj_opp": 0,
+     "meeple": null
+    }
+   }
+  ],
+  "title": "相乗りの大都市を自分のものに",
+  "prompt": "あなたは赤で、手持ちのミープルは0人。下の大きな都市（9枚・盾4つ）には、赤と青のミープルが1人ずつ。そのすぐ下に、赤のミープルがいる小さな都市（2枚・盾1つ）があります。",
+  "explain": [
+   "正解は、大きな都市と赤の小さな都市の間に置いて、2つをつなぐ手です。右どなりにある誰のものでもない1枚の都市もいっしょにつながり、13枚・盾5つの都市になります。",
+   "つながった都市のミープルは赤2人・青1人。都市の点は人数の多い側だけがもらうので、この都市は赤だけのものになります。今のまま終局しても、未完成の都市は1枚1点・盾1つ1点なので18点が赤だけに入り、青はこの都市から1点ももらえません。置く前は、9枚・盾4つの13点が赤と青の両方に入る見込みでした。",
+   "ほかの選択肢は、右のほうで誰のものでもない小さな都市を1枚のばすだけです。"
+  ],
+  "lesson": "相乗りの都市は、自分のミープルがいる別の都市をつなげば多数派になれる。同数（両方が満点）から、相手の取り分を0にできる。",
+  "notes": [
+   "13枚・盾5つの都市になり、赤2人・青1人で赤だけのものに。青の見込みは13点減る。",
+   "誰のものでもない都市を2枚にのばすだけ。",
+   "誰のものでもない都市を2枚にのばすだけ。",
+   "誰のものでもない都市を2枚にのばすだけ。"
+  ],
+  "en": {
+   "title": "Take over the shared big city",
+   "prompt": "You are Red, with no meeples in hand. The big city at the bottom (9 tiles, 4 shields) has one Red and one Blue meeple. Just below it is a small city (2 tiles, 1 shield) with a Red meeple.",
+   "explain": [
+    "The answer is to place the tile between the big city and Red's small city, joining the two. The unclaimed one-tile city next door joins as well, making a 13-tile city with 5 shields.",
+    "The joined city has 2 Red meeples and 1 Blue. Only the side with more meeples scores a city, so it now belongs to Red alone. Even if the game ended now, an unfinished city scores 1 per tile and 1 per shield, so Red alone gets 18 points and Blue gets nothing from it. Before the move, both Red and Blue were set to get 13 points from the 9-tile, 4-shield city.",
+    "The other choices just extend a small, unclaimed city off to the right by one tile."
+   ],
+   "lesson": "In a shared city, connect another city that holds your meeple to take the majority. From a tie (both score in full), you can cut the opponent's share to zero.",
+   "notes": [
+    "Makes a 13-tile city with 5 shields, 2 Red to 1 Blue, so only Red scores it. Blue's projection drops by 13.",
+    "Just extends an unclaimed city to 2 tiles.",
+    "Just extends an unclaimed city to 2 tiles.",
+    "Just extends an unclaimed city to 2 tiles."
+   ]
+  },
+  "checked_by": {
+   "name": "gen1198",
+   "date": "2026-11-13"
+  }
  }
 ]
