@@ -11,9 +11,9 @@
 //   - コンソールのエラー・読み込み失敗がない
 //   - 横方向にはみ出さない（ページ全体が横にスクロールしない）
 //   - ボタン・入力欄・ナビのリンクは 24×24px 以上（WCAG 2.2 達成基準 2.5.8）。
-//     スマホ幅では高さ 44px 未満を「注意」として数える（Apple HIG の目安）
+//     スマホ幅では高さ 44px 未満を ✗ にする（Apple HIG の目安。全ページ）
 //   - ボタン・入力欄・画像に名前（文字・aria-label・alt・label）がある
-//   - 本文の文字が 12px 未満でない、viewport の指定がある
+//   - 本文の文字が 12px 未満でない、viewport の指定がある（12px 未満は ✗）
 //   - 対戦ページは「新しい対局」から1手置くところまで動かす
 //   - みんなの対局は、棋譜が5000局あっても一覧を分けて並べ、番号で開いた局を再生できる（スマホでも ◀ ▶ が1画面に見える）
 //   - 英語ページ（docs/en/）も点検する。日本語ページは ja-JP、英語ページは en-US のブラウザで開く
@@ -528,12 +528,14 @@ async function main() {
         for (const e of end) console.log(`    ✗ ${e}`);
         failed += end.length ? 1 : 0;
       }
-      // 対戦ページは指で何度も押すので、スマホで高さ 44px 未満の部品は ✗ にする（2026-11 の点検で、新しい対局・
-      // 棋譜を再生・設定の選択欄などが 31〜35px だった。ほかのページは △ のまま目で見て判断する）
-      if (file.endsWith("play.html") && vp.isMobile)
-        for (const w of res.warns.filter((w) => w.includes("高さ 44px 未満"))) problems.push(`対戦ページ: ${w}`);
+      // スマホで高さ 44px 未満の部品は全ページ ✗ にする（2026-11 の点検で、対戦ページの新しい対局・設定の選択欄が
+      // 31〜35px、クイズの問題番号が 30px、コツ集の目次が 39px だった。△ のままだと残り続けたので ✗ で止める）
+      if (vp.isMobile)
+        for (const w of res.warns.filter((w) => w.includes("高さ 44px 未満"))) problems.push(w);
+      // 12px 未満の文字も同じ理由で ✗ にする（残りタイルの ×N・難しさのラベルが 11px のまま残っていた）
+      for (const w of res.warns.filter((w) => w.startsWith("12px 未満"))) problems.push(w);
       const errs = [...new Set([...problems, ...res.errors])];
-      const warns = [...new Set(res.warns)];
+      const warns = [...new Set(res.warns.filter((w) => !problems.includes(w)))];
       const mark = errs.length ? "✗" : "✓";
       console.log(`${mark} ${file} [${vp.name} ${vp.width}px]`);
       for (const e of errs) console.log(`    ✗ ${e}`);

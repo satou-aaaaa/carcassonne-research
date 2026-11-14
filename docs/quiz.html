@@ -34,6 +34,12 @@ h1 { font-family: var(--display); font-weight: 400; font-size: clamp(22px, 3.4vw
 .progress button.cur { border-color: var(--ink); color: var(--ink); }
 .progress button.ok { background: var(--good); border-color: var(--good); color: var(--surface); }
 .progress button.ng { background: var(--bad); border-color: var(--bad); color: var(--surface); }
+/* スマホでは指で押すので問題番号も 44px にする（Apple HIG の目安） */
+@media (pointer: coarse), (max-width: 760px) {
+  .progress button { width: 44px; height: 44px; font-size: 14px; }
+  .btn, .zoom { min-height: 44px; }
+  details summary { padding-block: 13px; }
+}
 main { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 18px; align-items: start; }
 @media (max-width: 860px) {
   /* スマホでは盤面を上に貼り付け、選択肢を押したときに置いた形が見えるようにする。
@@ -86,7 +92,7 @@ h2 { font-family: var(--display); font-weight: 400; font-size: 21px; margin: 0; 
 details { font-size: 13px; color: var(--muted); }
 details summary { cursor: pointer; }
 #remain { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
-#remain div { text-align: center; font-size: 11px; width: 36px; font-variant-numeric: tabular-nums; }
+#remain div { text-align: center; font-size: 12px; width: 36px; font-variant-numeric: tabular-nums; }
 #remain div.zero { opacity: .3; }
 #remain canvas { width: 32px; height: 32px; display: block; }
 .hintbox { border: 1px dashed var(--gold); border-radius: 10px; padding: 8px 12px; font-size: 13.5px; }
@@ -98,7 +104,7 @@ kbd { font: 600 11px var(--body); border: 1px solid var(--line); border-radius: 
 .final .big { font-family: var(--display); font-size: 44px; }
 footer { margin-top: 22px; font-size: 12.5px; color: var(--muted); max-width: 70ch; }
 @media (prefers-reduced-motion: no-preference) { .opt { transition: border-color .15s; } }
-.lvl { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .08em; padding: 0 7px; border-radius: 3px; margin-right: 6px; background: var(--line); color: var(--ink); }
+.lvl { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .08em; padding: 0 7px; border-radius: 3px; margin-right: 6px; background: var(--line); color: var(--ink); }
 .lvl.easy { background: var(--accent); color: var(--accent-ink); }
 .progress button.easy { border-style: dashed; }
 nav.site { --paper: var(--surface); --field: var(--accent); }
