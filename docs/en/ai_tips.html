@@ -58,6 +58,7 @@ nav.toc { border-block: 1px solid var(--line); padding-block: 14px; margin-block
 nav.toc ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 0 20px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); font-size: 15px; }
 nav.toc a { color: var(--ink); text-decoration: none; border-bottom: 1px solid transparent; display: inline-block; padding-block: 5px; }
 nav.toc a:hover, nav.toc a:focus-visible { border-bottom-color: var(--field); outline: none; }
+@media (pointer: coarse), (max-width: 760px) { nav.toc a { padding-block: 10px; } }
 nav.toc .grp { font-size: 12px; letter-spacing: .1em; color: var(--muted); font-weight: 700; }
 
 section.group { padding-block: 40px 8px; }
@@ -125,7 +126,7 @@ aside.note code { font-family: var(--font-num); font-size: 13px; }
 .summary ol { margin: 0; padding-left: 1.4em; display: grid; gap: 6px; }
 a { color: var(--field); }
 :focus-visible { outline: 2px solid var(--field); outline-offset: 2px; }
-.adv { font-size: 11px; letter-spacing: .08em; color: var(--paper); background: var(--muted); padding: 1px 7px; border-radius: 3px; vertical-align: 3px; margin-left: 6px; font-weight: 700; }
+.adv { font-size: 12px; letter-spacing: .08em; color: var(--paper); background: var(--muted); padding: 1px 7px; border-radius: 3px; vertical-align: 3px; margin-left: 6px; font-weight: 700; }
 
 nav.site { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
 nav.site .home { font-weight: 700; margin-right: 8px; color: var(--ink); text-decoration: none; }
