@@ -170,5 +170,14 @@
  "AIが終局まで読み切っています…": "The AI is calculating the endgame exactly…",
  "${head}（${sec}秒）": "${head} (${sec}s)",
  "緑のマスを押して仮置き。画面の外にもあります（緑の矢印を押すと移動）": "Tap a green square to place the tile. More are off screen: tap a green arrow",
- "置ける緑のマスは画面の外です。緑の矢印を押すと移動します": "The squares where the tile fits are off screen. Tap a green arrow to go there"
+ "置ける緑のマスは画面の外です。緑の矢印を押すと移動します": "The squares where the tile fits are off screen. Tap a green arrow to go there",
+ "もっと学ぶ: <a href=\"ai_tips.html\">強いAIのコツ</a> ・ <a href=\"quiz.html\">次の一手クイズ</a> ・ <a href=\"strategy.html\">戦略ガイド</a>": "Learn more: <a href=\"ai_tips.html\">Strong AI tips</a> · <a href=\"quiz.html\">Next-move quiz</a> · <a href=\"strategy.html\">Strategy guide</a>",
+ "<b>振り返り</b><br>この対局は「この対局を再生」で1手ずつAIに採点してもらえます。初心者モードで対局すると、ここに損の大きかった手が並びます。${more}": "<b>Review</b><br>Use “Replay this game” to have the AI grade each move. Play with beginner mode on and your costliest moves will be listed here.${more}",
+ "<b>振り返り</b><br>採点できた手がありませんでした。${more}": "<b>Review</b><br>No moves could be graded.${more}",
+ "${r.ply}手目を見る": "View move ${r.ply}",
+ "約${r.loss.toFixed(0)}点の損。AIなら${put(r.best)}。": "Lost about ${r.loss.toFixed(0)} points. The AI: ${put(r.best)}.",
+ "<br>損の大きかった手では、AIの答えは「${tk}」が多め（${tn}手）。": "<br>On your costly moves, the AI most often chose “${tk}” (${tn} moves).",
+ "<b>振り返り</b>（AIの見積もり）<br>採点した ${scored.length} 手のうち、AIの最善手とほぼ同じいい手は ${good} 手。損は合計で約 ${total} 点。${trend}": "<b>Review</b> (AI estimate)<br>Of the ${scored.length} moves graded, ${good} were about as good as the AI’s best. Total loss: about ${total} points.${trend}",
+ "<div class=\"sub\">損の大きかった手（押すと、その手を置いた盤から再生）</div>": "<div class=\"sub\">Costliest moves (tap to replay from the board right after that move)</div>",
+ "<br>大きな損はありませんでした。": "<br>No big losses."
 }

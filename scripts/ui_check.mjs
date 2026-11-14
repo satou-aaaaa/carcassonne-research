@@ -292,6 +292,49 @@ async function exerciseMidGame(browser, base, file) {
   return problems;
 }
 
+// 終局の「振り返り」（初心者モードの採点から、損の大きかった手を並べる）を、スマホ幅で終局まで指して確かめる。
+// 2026-11 の点検で見つかった問題の再発防止:
+//   - 終局後に学びが残らない（振り返りの欄・損の大きかった手のボタン・学習ページへの案内が無い）
+//   - 結果の欄（ページの下の方）から再生を始めても画面が下のままで、盤が見えない
+async function exerciseEndGame(browser, base, file) {
+  const problems = [];
+  const ctx = await browser.newContext({
+    viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1,
+    locale: file.startsWith("en/") ? "en-US" : "ja-JP",
+  });
+  const page = await ctx.newPage();
+  page.on("pageerror", (e) => problems.push(`スクリプトエラー: ${String(e).slice(0, 160)}`));
+  await page.goto(base + file, { waitUntil: "load" });
+  await page.waitForSelector("#dlg[open]");
+  await page.evaluate(() => { $("fSeed").value = "2"; $("fLevel").value = "greedy"; $("fCoach").checked = true; });
+  await page.locator("#dlg button.primary").click();
+  for (let k = 0; ; k++) {
+    await page.waitForFunction(() => G && G.board && (G.over || myTurn()), null, { timeout: 60000 });
+    if (await page.evaluate(() => G.over)) break;
+    await page.evaluate((k) => { const ps = G.placements, p = ps[(k * 7) % ps.length]; sendMove(p.x, p.y, p.v, null); }, k);
+  }
+  await page.waitForTimeout(500);
+  const go = page.locator("#result .review .rvGo");
+  if (!(await page.locator("#result .review").count())) problems.push("終局の欄に振り返りが無い");
+  else if (!(await go.count())) problems.push("振り返りに損の大きかった手のボタンが無い");
+  else if (!(await page.locator('#result .review a[href="ai_tips.html"]').count())) problems.push("振り返りに学習ページへの案内が無い");
+  else {
+    const ply = Number(await go.first().getAttribute("data-ply"));
+    await go.first().scrollIntoViewIfNeeded();
+    await go.first().click();
+    await page.waitForFunction(() => G && G.replay, null, { timeout: 30000 });
+    await page.waitForTimeout(1200); // スクロールの動きが終わるまで
+    const r = await page.evaluate(() => ({ ply: G.replay.ply, y: Math.round(scrollY), top: Math.round(cv.getBoundingClientRect().top) }));
+    if (r.ply !== ply) problems.push(`振り返りの手を押しても、その手から再生しない（${ply}手目 → ${r.ply}手目）`);
+    if (r.y > 5 || r.top < 0) problems.push(`振り返りから再生しても盤が画面の上に見えない（scrollY ${r.y}px、盤の上端 ${r.top}px）`);
+    await page.click("#rpClose");
+    await page.waitForFunction(() => G && G.over && !G.replay, null, { timeout: 30000 });
+    if (!(await page.locator("#result .review .rvGo").count())) problems.push("再生を終えると振り返りが消える");
+  }
+  await ctx.close();
+  return problems;
+}
+
 // 英語のページで、文と文の間の空白が抜けていないか（日本語の文をつないだ所を訳すと抜けやすい）
 function englishJoins(text) {
   const bad = [];
@@ -452,7 +495,12 @@ async function main() {
         const text = await page.evaluate(() => document.body.innerText + "\n" +
           (() => {
             if (typeof shareHtml !== "function") return "";
-            const d = Object.assign(document.createElement("div"), { innerHTML: shareHtml() });
+            // 振り返りの文（終局まで出ない）は、にせものの採点で組み立てる
+            const keep = G, best = { x: 0, y: 1, v: 0, piece: 0, kind: "City" };
+            G = { review: [{ ply: 3, loss: 4.2, best }, { ply: 5, loss: 0.3, best }, { ply: 7, loss: 2.5, best: { ...best, piece: null, kind: null } }, { ply: 9, loss: 2.1, best }] };
+            const rv = reviewHtml();
+            G = keep;
+            const d = Object.assign(document.createElement("div"), { innerHTML: rv + shareHtml() });
             d.style.cssText = "position:absolute;left:-9999px;width:600px";
             document.body.appendChild(d);
             const t = d.innerText;
@@ -466,6 +514,10 @@ async function main() {
         console.log(`${mid.length ? "✗" : "✓"} ${file} 対局の途中 ${MID_TURNS}手 [iPhone SE 320px]`);
         for (const e of mid) console.log(`    ✗ ${e}`);
         failed += mid.length ? 1 : 0;
+        const end = await exerciseEndGame(browser, base, file);
+        console.log(`${end.length ? "✗" : "✓"} ${file} 終局の振り返り [スマホ 390px]`);
+        for (const e of end) console.log(`    ✗ ${e}`);
+        failed += end.length ? 1 : 0;
       }
       const errs = [...new Set([...problems, ...res.errors])];
       const warns = [...new Set(res.warns)];

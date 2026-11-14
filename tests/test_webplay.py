@@ -78,11 +78,21 @@ def test_coach_reports_loss_and_marks_record(tmp_path):
         assert {"x", "y", "v", "piece", "kind"} <= c["best"].keys()
         assert coach_text(c).startswith("ヒント")
     assert any(e["text"].startswith("ヒント") for e in g.events)
+    assert g.view()["review"] is None  # 振り返りは終局後だけ
+    # 待ったで取り消した手の採点は振り返りから消える
+    assert len(g.reviews) == 3
+    g.undo()
+    assert len(g.reviews) == 2 and all(r["ply"] <= len(g.st.history) for r in g.reviews)
     while not g.st.over:
         p = rng.choice(g.view()["placements"])
         g.human_move(p["x"], p["y"], p["v"], None)
     rec = json.loads((tmp_path / "g.jsonl").read_text(encoding="utf-8"))
     assert rec["coach"] is True
+    # 終局の振り返り: 自分の手ごとの採点（手数は棋譜の手数、1始まり）
+    review = g.view()["review"]
+    plies = [r["ply"] for r in review]
+    assert plies == sorted(set(plies)) and len(review) == sum(1 for m in g.moves if m[0] == 0)
+    assert all(g.moves[r["ply"] - 1][0] == 0 for r in review)
 
 
 def test_undo_restores_position_and_marks_record(tmp_path):
