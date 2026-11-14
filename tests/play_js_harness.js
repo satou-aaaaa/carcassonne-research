@@ -11,6 +11,7 @@
 // endgame: ランダムに残り bag 枚まで進めた局面で、終盤の厳密解（endgameBest）の手と値・かかった時間
 // move:   山札と着手列 [x, y, 種別, 向き, 断片] の局面で、ブラウザ版のAIが選ぶ手
 // copy:   局面の写し（copyInto。盤は置いたマスだけ書き直す）が、深い局面・浅い局面のどちらからでも元と同じになるか
+// review: 初心者モードで対局（ランダムに指し、途中で待ったを1回）して終局まで進め、終局の振り返り（view.review）と各手の手番
 // egcap:  時間の上限つきの終盤読み切り（endgameBest の budgetMs）が、時間切れでも合法な手を返すか
 "use strict";
 const path = require("path");
@@ -94,6 +95,29 @@ if (args.cmd === "games") {
     }
     const closed = await LOCAL_API("/api/replay_close", {});
     console.log(JSON.stringify({ out, closed }));
+  })();
+} else if (args.cmd === "review") {
+  const vm = require("vm"), fs = require("fs");
+  const box = { Carcassonne: C, PLAY_DATA: DATA, document: {}, console, setTimeout };
+  box.self = box;
+  vm.runInNewContext(fs.readFileSync(path.join(DOCS, "play_local.js"), "utf8"), box);
+  const LOCAL_API = box.LOCAL_API;
+  (async () => {
+    let v = await LOCAL_API("/api/new", { seed: args.seed, human_seat: args.seat, level: "greedy", name: "", coach: true });
+    let k = 0;
+    while (!v.over) {
+      const p = v.placements[(k * 7) % v.placements.length];
+      v = await LOCAL_API("/api/move", { x: p.x, y: p.y, variant: p.v, piece: null });
+      k++;
+      if (k === args.undoAt) v = await LOCAL_API("/api/undo", {});
+    }
+    const S = eng.newGame(v.record.deck), who = [];
+    for (const [x, y, v2, p] of v.record.moves) {
+      who.push(S.sc[C.SC_PL]);
+      const cell = C.cellOf(x, y), g = eng.vbase[S.sc[C.SC_CUR]] + v2;
+      eng.applyMove(S, cell, g, p === null ? -1 : p);
+    }
+    console.log(JSON.stringify({ review: v.review, who, human_seat: v.human_seat }));
   })();
 } else if (args.cmd === "ntv") {
   const out = [];

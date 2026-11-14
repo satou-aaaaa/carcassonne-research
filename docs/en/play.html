@@ -98,6 +98,12 @@
   #recDlg .note { font-size:13px; color:var(--muted); margin:0 0 8px; }
   #rpPos { font-size:14px; font-weight:600; text-align:center; flex:1; }
   #rpRange { width:100%; }
+  #result .review { margin-top:8px; padding-top:8px; border-top:1px solid var(--line); font-size:13.5px; line-height:1.55; }
+  #result .review .sub { margin-top:6px; font-size:12.5px; color:var(--muted); }
+  #result .review ol { margin:4px 0 0; padding-left:0; list-style:none; }
+  #result .review li { display:flex; align-items:center; gap:8px; margin:4px 0; }
+  #result .review li button { flex:none; min-height:36px; }
+  #result .review .learn { margin-top:8px; font-size:12.5px; color:var(--muted); }
   #result .share { margin-top:8px; padding-top:8px; border-top:1px solid var(--line); font-size:12.5px; color:var(--muted); line-height:1.5; }
   #result .share b { color:var(--ink); }
   #result .share .pubnote { margin:6px 0 0; padding:6px 8px; border-left:4px solid var(--accent); background:var(--bg); color:var(--ink); font-size:13.5px; }
@@ -1151,7 +1157,29 @@ function resultHtml() {
     `<table><tr><th></th><th style="color:${PCOL[h]}">${G.replay ? "Human" : "You"}</th><th style="color:${PCOL[a]}">AI</th></tr>` +
     rows.map(([l, f]) => tr(l, f)).join("") + tr("Total", p => G.scores[p], "sum") + "</table>" +
     (G.saved === false ? "" : `<div style="font-size:12px;color:var(--muted);margin-top:4px">Record saved.</div>`) +
-    (G.record ? shareHtml() : "");
+    (G.record ? reviewHtml() + shareHtml() : "");
+}
+// 終局の振り返り: 初心者モードの採点（G.review）から、いい手の数・損のTotal・損の大きかった手を出す。
+// 手を押すと、その手を置いた直後の盤から再生する（再生欄にAIの最善手が紫の点線で出る）
+const REVIEW_TOP = 3;
+function reviewHtml() {
+  const more = `<div class="learn">Learn more: <a href="ai_tips.html">Strong AI tips</a> · <a href="quiz.html">Next-move quiz</a> · <a href="strategy.html">Strategy guide</a></div>`;
+  const rv = G.review;
+  if (!rv) return `<div class="review"><b>Review</b><br>Use “Replay this game” to have the AI grade each move. Play with beginner mode on and your costliest moves will be listed here.${more}</div>`;
+  const scored = rv.filter(r => r.loss !== null);
+  if (!scored.length) return `<div class="review"><b>Review</b><br>No moves could be graded.${more}</div>`;
+  const good = scored.filter(r => r.loss < 1).length;
+  const total = Math.round(scored.reduce((t, r) => t + r.loss, 0));
+  const top = scored.filter(r => r.loss >= 1).sort((a, b) => b.loss - a.loss || a.ply - b.ply).slice(0, REVIEW_TOP);
+  const put = b => b.kind ? `meeple on the ${b.kind}` : "no meeple";
+  const items = top.map(r => `<li><button type="button" class="rvGo" data-ply="${r.ply}">View move ${r.ply}</button>Lost about ${r.loss.toFixed(0)} points. The AI: ${put(r.best)}.</li>`).join("");
+  // 損の大きかった手で、AIが勧めた置き方の傾向（2手以上そろったときだけ）
+  const kinds = {};
+  for (const r of scored.filter(r => r.loss >= 2)) { const k = put(r.best); kinds[k] = (kinds[k] || 0) + 1; }
+  const [tk, tn] = Object.entries(kinds).sort((a, b) => b[1] - a[1])[0] || ["", 0];
+  const trend = tn >= 2 ? `<br>On your costly moves, the AI most often chose “${tk}” (${tn} moves).` : "";
+  return `<div class="review"><b>Review</b> (AI estimate)<br>Of the ${scored.length} moves graded, ${good} were about as good as the AI’s best. Total loss: about ${total} points.${trend}` +
+    (items ? `<div class="sub">Costliest moves (tap to replay from the board right after that move)</div><ol>${items}</ol>` : `<br>No big losses.`) + more + `</div>`;
 }
 // 終局後の「棋譜を送る」欄。Google フォーム（アカウント不要）は設定があるときだけ出す（data/human_games_form.json）
 function shareHtml() {
@@ -1179,7 +1207,10 @@ $("result").addEventListener("click", e => {
   if (!G || !G.record) return;
   if (e.target.id === "btnFormRec") window.open(recordFormUrl(), "_blank", "noopener");
   if (e.target.id === "btnSendRec") window.open(recordIssueUrl(), "_blank", "noopener");
-  if (e.target.id === "btnReplayThis") replayOpen(G.record, 0);
+  // 再生は盤の上で見るので、スマホ（盤がページの上にある）では上まで戻す
+  const toBoard = () => window.scrollTo({ top: 0, behavior: "smooth" });
+  if (e.target.id === "btnReplayThis") { replayOpen(G.record, 0); toBoard(); }
+  if (e.target.classList.contains("rvGo")) { replayOpen(G.record, +e.target.dataset.ply); toBoard(); }
   if (e.target.id === "btnLinkThis") copyReplayLink(G.record, e.target);
   if (e.target.id === "btnSaveRec") {
     const url = URL.createObjectURL(new Blob([recordJson() + "\n"], {type: "application/json"}));

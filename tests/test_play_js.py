@@ -192,3 +192,14 @@ def test_screen_features_match_python(tmp_path):
         for pl in (0, 1):
             assert sum(r["kinds"][pl].values()) == r["total"][pl]
     assert sum(sum(e) for e in expect) > 200  # ミープルのいる局面を十分に確かめている
+
+
+def test_end_review_grades_each_own_move_once():
+    """初心者モードの終局の振り返り（docs/play.html の「振り返り」欄の元）: 自分の手を1手ずつ、待ったで
+    取り消した手は除いて採点し、手数は棋譜の手数（押すとその手から再生する）と一致する。"""
+    got = run_js({"cmd": "review", "seed": 5, "seat": 1, "undoAt": 3})
+    review, who, h = got["review"], got["who"], got["human_seat"]
+    plies = [r["ply"] for r in review]
+    assert plies == [i + 1 for i, p in enumerate(who) if p == h]
+    assert all(r["loss"] is None or r["loss"] >= 0 for r in review)
+    assert all({"x", "y", "v", "piece", "kind"} <= r["best"].keys() for r in review)

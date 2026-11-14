@@ -178,6 +178,8 @@ class HumanGame:
         self.last_ai: dict | None = None
         self.coach = coach
         self.last_coach: dict | None = None
+        # 初心者モードの採点の記録（終局の振り返り用）: {"ply": その手の手数（1始まり）, "loss", "best"}
+        self.reviews: list[dict] = []
         self.saved = False
         self.end_meeples: list[dict] = []  # 終局直前に盤上にいたミープル（終局の得点内訳用）
         self.advisor = advisor  # 置く前のヒント（make_advisor）
@@ -216,6 +218,9 @@ class HumanGame:
         self._play(move)
         if self.last_coach is not None:
             b = self.last_coach["best"]
+            self.reviews.append(
+                {"ply": len(self.st.history), "loss": self.last_coach["loss"], "best": b}
+            )
             self.events.append(
                 {
                     "player": self.human_seat,
@@ -235,6 +240,7 @@ class HumanGame:
         st, meeples, events, moves, last_ai, last_coach, mid = self._snaps.pop()
         self.st, self.meeples, self.events, self.moves = st, meeples, events, moves
         self.last_ai, self.last_coach, self._mid = last_ai, last_coach, mid
+        self.reviews = [r for r in self.reviews if r["ply"] <= len(st.history)]
         self.hint = None
         self.undos += 1
         self.events.append({"player": self.human_seat, "text": "待った: 1手戻しました"})
@@ -352,6 +358,7 @@ class HumanGame:
             "last_ai": self.last_ai,
             "coach": self.coach is not None,
             "last_coach": self.last_coach,
+            "review": self.reviews if st.over and self.coach is not None else None,
             "hint": self.hint,
             "can_undo": bool(self._snaps) and not st.over,
             "events": self.events[-40:],

@@ -152,6 +152,7 @@
       this.events = [];
       this.last_ai = null;
       this.last_coach = null;
+      this.reviews = [];  // 初心者モードの採点の記録（終局の振り返り用）: { ply: その手の手数（1始まり）, loss, best }
       this.end_meeples = [];  // 終局直前に盤上にいたミープル（終局の得点内訳用）
       this.hint = null;  // 置く前のヒント
       this.hints = 0;
@@ -185,6 +186,7 @@
           this.last_coach = { best: bestDict((g, p) => this.pieceKind(g, p), best), loss: null };
           const mine = opts.find(o => o.cell === cell && o.g === g && o.piece === p);
           if (mine) this.last_coach.loss = Math.round(Math.max(0, best.diff - mine.diff) * 10) / 10;
+          this.reviews.push({ ply: this.history.length, loss: this.last_coach.loss, best: this.last_coach.best });
           this.events.push({ player: this.human_seat, text: coachText(this.last_coach), x: this.last_coach.best.x, y: this.last_coach.best.y });
         }
       }
@@ -209,6 +211,7 @@
       this.S = eng.newGame(this.deck);
       for (const [cell, g, piece] of this.history) eng.applyMove(this.S, cell, g, piece);
       this.meeples = sn.meeples; this.events = sn.events; this.last_ai = sn.last_ai; this.last_coach = sn.last_coach; this.mid = sn.mid;
+      this.reviews = this.reviews.filter(r => r.ply <= sn.n);
       this.hint = null;
       this.undos++;
       this.events.push({ player: this.human_seat, text: "待った: 1手戻しました" });
@@ -297,6 +300,7 @@
         last_ai: this.last_ai,
         coach: this.coach,
         last_coach: this.last_coach,
+        review: over && this.coach ? this.reviews : null,
         hint: this.hint,
         can_undo: this.snaps.length > 0 && !over,
         events: this.events.slice(-40),
@@ -384,7 +388,7 @@
       if (!g || g instanceof ReplayGame) return;
       root.localStorage.setItem(LIVE_KEY, JSON.stringify({
         v: 1, seed: g.seed, human_seat: g.human_seat, level: g.level, name: g.name, coach: g.coach,
-        hints: g.hints, undos: g.undos, moves: g.history,
+        hints: g.hints, undos: g.undos, moves: g.history, reviews: g.reviews,
       }));
     } catch (err) { /* 保存できなくても対局は続ける */ }
   }
@@ -403,6 +407,8 @@
         g.last_ai = who !== g.human_seat ? { x, y } : null;
       }
       g.hints = s.hints | 0; g.undos = s.undos | 0;
+      // 振り返り用の採点（古い記録には無い）。今の盤より先の手の採点は捨てる
+      if (Array.isArray(s.reviews)) g.reviews = s.reviews.filter(r => r && r.ply >= 1 && r.ply <= g.history.length && r.best && (r.loss === null || typeof r.loss === "number"));
       return g;
     } catch (err) {
       // ルールや山札の作り方が変わって作り直せない記録は捨てる
