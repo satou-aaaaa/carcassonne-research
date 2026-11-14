@@ -365,6 +365,17 @@ def test_human_games_x_draft_opens_issue_once(tmp_path: Path) -> None:
     assert log.count("gh issue create --title X投稿の下書き: 人との対局 10局") == 1, log
 
 
+def test_human_games_x_draft_closes_older_draft(tmp_path: Path) -> None:
+    """新しい区切りの下書きができたら、投稿されずに開いたままの前の下書き（#7）を閉じる（たまらないように）。"""
+    _x_draft_stub(tmp_path, "X投稿の下書き: 人との対局 20局\n")
+    r, log = rehearse(
+        tmp_path, "human-games.yml", "10局たまったら X 投稿の下書きを Issue で届ける", FAKE_OPEN="7"
+    )
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert log.count("gh issue create") == 1, log
+    assert "gh issue close 7" in log, log
+
+
 @pytest.mark.parametrize(
     "title, seen", [("", ""), ("X投稿の下書き: 人との対局 10局\n", "人との対局 10局")]
 )
