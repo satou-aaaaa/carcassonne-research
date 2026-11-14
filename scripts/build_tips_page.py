@@ -285,8 +285,10 @@ def failed_claims(s: dict, g: dict, lead: dict) -> list[str]:
          "#keep: 強いAIは置けるのに置かない手が多い"),
         (s["supply_curve"]["48"] > g["supply_curve"]["48"],
          "#keep: 残り48枚で強いAIの手持ちが多い"),
-        (1.0 <= s["supply_curve"]["48"] <= 2.5, "#keep, #recap: 序盤の終わりに1〜2個残る"),
-        (s["supply_curve"]["24"] < 1.0, "#keep: 中盤以降は強いAIもほぼ使い切る"),
+        # 手持ちの数は世代で変わる（ミープル温存の判定を入れた gen1144 以降は多め。gen1198 で 48枚 2.6・24枚 1.0、
+        # 2026-11-14）。「1〜2個」「ほぼ使い切る」では止まったので、過去の全世代（48枚 1.4〜2.6、24枚 0.3〜1.0）が入る幅にする。
+        (1.3 <= s["supply_curve"]["48"] <= 2.8, "#keep, #recap: 序盤の終わりに2個前後残る"),
+        (s["supply_curve"]["24"] <= 1.3, "#keep: 中盤以降は強いAIも手持ちが1個前後まで減る"),
         (1 - s["road_meeple_new"] >= 0.6, "#road: 道ミープルのほとんどは既存の道に乗せる"),
         (s["meeple_life"]["R"]["turns"] < g["meeple_life"]["R"]["turns"],
          "#road: 道のミープルが早く戻る"),

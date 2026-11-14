@@ -145,7 +145,11 @@ jobs:
           seen=$(ghr gh api "repos/$GITHUB_REPOSITORY/issues?state=all&per_page=100" --paginate \
             --jq "[.[] | select(.title == \"$title\")] | length" | awk '{s += $1} END {print s + 0}')
           [ "$seen" -gt 0 ] && exit 0
-          gh_issue_create_once "$title" xdraft.md > /dev/null
+          url=$(gh_issue_create_once "$title" xdraft.md)
+          # 前の区切りの下書きは新しい数字に置き換わったので閉じる（投稿されないまま開いた Issue がたまらないように、2026-11-14）
+          ghr gh api "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100" --paginate \
+            --jq ".[] | select(.pull_request == null) | select(.title | startswith(\"X投稿の下書き:\")) | select(.title != \"$title\") | .number" |
+            while read -r n; do ghr gh issue close "$n" --reason "not planned" --comment "新しい下書きができたので閉じます（投稿するなら新しいほうを）: $url"; done
       - name: 取り込みが止まっていなかったか
         run: |
           # 送ってから 36 時間より長く取り込まれなかった棋譜があれば、朝の回も予備の回も動かなかった日がある。
