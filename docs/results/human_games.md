@@ -2,15 +2,17 @@
 
 対戦ページから送ってもらった棋譜（data/human_games.jsonl）の集計。`python scripts/human_games.py report` で作り直す。
 
-受け取った対局: 10局
+受け取った対局: 12局
 
 | AIの強さ | 局数 | 人の勝ち | 引き分け | 人から見た平均得点差 | うちヒント等あり |
 |---|---:|---:|---:|---:|---:|
 | strong | 6 | 2 | 0 | -5.8 | 6 |
-| standard | 4 | 3 | 1 | +3.8 | 4 |
+| standard | 6 | 4 | 1 | +2.2 | 6 |
 
 ## 対局の一覧（押すと一手ずつ再生）
 
+- [12局目](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=12): 人（先手）126 − AI 101（standard、71手）
+- [11局目](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=11): 人（先手）78 − AI 105（standard、71手）
 - [10局目](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=10): 人（先手）97 − AI 71（strong、71手）
 - [9局目](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=9): 人（先手）114 − AI 124（strong、71手）
 - [8局目](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=8): 人（先手）98 − AI 98（standard、71手）
@@ -30,13 +32,13 @@ AI視点の評価（最新チャンピオンの線形評価、単位は得点差
 
 | 対局 | 手数 | 置いた場所 (x, y) | 下がり幅 |
 |---:|---:|---|---:|
-| [5](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=5&ply=66) | 67 | (2, -6) | +12.2 |
-| [10](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=10&ply=60) | 61 | (0, 4) | +11.9 |
-| [9](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=9&ply=58) | 59 | (3, 3) | +10.8 |
+| [12](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=12&ply=52) | 53 | (4, 2) | +20.8 |
+| [5](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=5&ply=66) | 67 | (2, -6) | +12.3 |
+| [12](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=12&ply=70) | 71 | (-7, -2) | +11.8 |
+| [10](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=10&ply=60) | 61 | (0, 4) | +11.7 |
+| [9](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=9&ply=58) | 59 | (3, 3) | +10.5 |
 | [10](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=10&ply=62) | 63 | (-2, 3) | +10.5 |
-| [1](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=1&ply=44) | 45 | (3, -1) | +9.7 |
-| [3](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=3&ply=48) | 49 | (7, -2) | +9.2 |
-| [5](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=5&ply=62) | 63 | (4, -7) | +9.1 |
-| [8](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=8&ply=28) | 29 | (-1, -2) | +8.3 |
-| [9](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=9&ply=20) | 21 | (-2, -1) | +8.1 |
-| [7](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=7&ply=60) | 61 | (3, -1) | +7.6 |
+| [1](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=1&ply=44) | 45 | (3, -1) | +9.4 |
+| [5](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=5&ply=62) | 63 | (4, -7) | +9.0 |
+| [3](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=3&ply=48) | 49 | (7, -2) | +8.8 |
+| [12](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=12&ply=34) | 35 | (-2, -2) | +8.8 |

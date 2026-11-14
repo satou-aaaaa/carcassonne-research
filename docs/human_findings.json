@@ -1,34 +1,66 @@
 {
- "games": 10,
- "human_moves": 359,
- "human_wins": 5,
- "mean_loss": 1.1,
- "loss_bad_per_game": 17.1,
- "loss_small_per_game": 20.9,
- "bad_moves": 40,
+ "games": 12,
+ "human_moves": 431,
+ "human_wins": 6,
+ "mean_loss": 1.2,
+ "loss_bad_per_game": 23.2,
+ "loss_small_per_game": 20.1,
+ "bad_moves": 48,
  "bad_per_game": 4.0,
  "by_cat": {
-  "no_meeple": 17,
+  "no_meeple": 21,
   "extra_meeple": 4,
-  "other_feature": 12,
-  "placement": 7,
+  "other_feature": 13,
+  "placement": 10,
   "unexplored": 0
  },
  "by_phase": {
   "early": {
    "bad": 3,
-   "moves": 120
+   "moves": 144
   },
   "middle": {
-   "bad": 14,
-   "moves": 120
+   "bad": 15,
+   "moves": 144
   },
   "late": {
-   "bad": 23,
-   "moves": 119
+   "bad": 30,
+   "moves": 143
   }
  },
  "worst": [
+  {
+   "game": 11,
+   "ply": 69,
+   "loss": 32.0,
+   "cat": "no_meeple",
+   "mine": null,
+   "best": "R"
+  },
+  {
+   "game": 11,
+   "ply": 67,
+   "loss": 31.4,
+   "cat": "no_meeple",
+   "mine": null,
+   "best": "R"
+  },
+  {
+   "game": 11,
+   "ply": 65,
+   "loss": 18.0,
+   "cat": "no_meeple",
+   "mine": null,
+   "best": "C"
+  },
+  {
+   "game": 12,
+   "ply": 51,
+   "loss": 10.0,
+   "cat": "placement",
+   "mine": null,
+   "best": null
+  },
   {
    "game": 9,
    "ply": 37,
@@ -36,62 +68,31 @@
    "cat": "placement",
    "mine": null,
    "best": null
-  },
-  {
-   "game": 10,
-   "ply": 43,
-   "loss": 6.6,
-   "cat": "no_meeple",
-   "mine": null,
-   "best": "C"
-  },
-  {
-   "game": 3,
-   "ply": 53,
-   "loss": 6.2,
-   "cat": "no_meeple",
-   "mine": null,
-   "best": "F"
-  },
-  {
-   "game": 4,
-   "ply": 65,
-   "loss": 6.0,
-   "cat": "other_feature",
-   "mine": "R",
-   "best": "C"
-  },
-  {
-   "game": 10,
-   "ply": 65,
-   "loss": 6.0,
-   "cat": "other_feature",
-   "mine": "F",
-   "best": "R"
   }
  ],
  "ai_misreads": [
   {
+   "game": 12,
+   "ply": 53,
+   "drop": 20.8
+  },
+  {
    "game": 5,
    "ply": 67,
-   "drop": 12.2
+   "drop": 12.3
   },
   {
-   "game": 10,
-   "ply": 61,
-   "drop": 11.9
-  },
-  {
-   "game": 9,
-   "ply": 59,
-   "drop": 10.8
+   "game": 12,
+   "ply": 71,
+   "drop": 11.8
   }
  ],
  "trend": true,
  "pending": 0,
  "ai": [
   "gen1144",
-  "gen1167"
+  "gen1167",
+  "gen1198"
  ],
- "updated": "2026-11-13"
+ "updated": "2026-11-14"
 }
