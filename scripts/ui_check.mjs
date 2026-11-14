@@ -296,6 +296,8 @@ async function exerciseMidGame(browser, base, file) {
 // 2026-11 の点検で見つかった問題の再発防止:
 //   - 終局後に学びが残らない（振り返りの欄・損の大きかった手のボタン・学習ページへの案内が無い）
 //   - 結果の欄（ページの下の方）から再生を始めても画面が下のままで、盤が見えない
+//   - 1手目の盤の欄が空白ばかり（タイルが小さい。MAX_TOUCH_TILE）
+//   - 終局後も「山札に残るタイル」が全部 ×0 のまま場所を取る
 async function exerciseEndGame(browser, base, file) {
   const problems = [];
   const ctx = await browser.newContext({
@@ -311,9 +313,15 @@ async function exerciseEndGame(browser, base, file) {
   for (let k = 0; ; k++) {
     await page.waitForFunction(() => G && G.board && (G.over || myTurn()), null, { timeout: 60000 });
     if (await page.evaluate(() => G.over)) break;
+    if (k === 0) {
+      await page.waitForTimeout(400);
+      const s0 = await page.evaluate(() => Math.round(view.s));
+      if (s0 < 96) problems.push(`1手目の盤のタイルが小さく、盤の欄が空白ばかり（${s0}px、96px 以上にしたい）`);
+    }
     await page.evaluate((k) => { const ps = G.placements, p = ps[(k * 7) % ps.length]; sendMove(p.x, p.y, p.v, null); }, k);
   }
   await page.waitForTimeout(500);
+  if (await page.locator("#remainSec").isVisible()) problems.push("終局後も「山札に残るタイル」（全部 ×0）が出たまま");
   const go = page.locator("#result .review .rvGo");
   if (!(await page.locator("#result .review").count())) problems.push("終局の欄に振り返りが無い");
   else if (!(await go.count())) problems.push("振り返りに損の大きかった手のボタンが無い");
@@ -327,6 +335,7 @@ async function exerciseEndGame(browser, base, file) {
     const r = await page.evaluate(() => ({ ply: G.replay.ply, y: Math.round(scrollY), top: Math.round(cv.getBoundingClientRect().top) }));
     if (r.ply !== ply) problems.push(`振り返りの手を押しても、その手から再生しない（${ply}手目 → ${r.ply}手目）`);
     if (r.y > 5 || r.top < 0) problems.push(`振り返りから再生しても盤が画面の上に見えない（scrollY ${r.y}px、盤の上端 ${r.top}px）`);
+    if (!(await page.locator("#remainSec").isVisible())) problems.push("棋譜の再生中に「山札に残るタイル」が出ない");
     await page.click("#rpClose");
     await page.waitForFunction(() => G && G.over && !G.replay, null, { timeout: 30000 });
     if (!(await page.locator("#result .review .rvGo").count())) problems.push("再生を終えると振り返りが消える");

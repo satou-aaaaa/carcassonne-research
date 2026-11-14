@@ -231,7 +231,7 @@
     <h2>棋譜ログ（行を押すと盤上の場所を示します）</h2>
     <div id="log"></div>
   </div>
-  <div>
+  <div id="remainSec">
     <h2>山札に残るタイル（公開情報）</h2>
     <div id="remain"></div>
   </div>
@@ -720,6 +720,8 @@ function safeArea() {
 const isMobile = () => matchMedia("(max-width: 760px)").matches;
 // スマホで自動で合わせるときの、タイル1枚の最小の大きさ（px）。これより小さいと絵もミープルも見分けられない
 const MIN_AUTO_TILE = 36;
+// スマホで自動で合わせるときのタイルの最大の大きさ。序盤（盤が数枚）に盤の欄が空白ばかりにならないよう、絵が見やすい大きさまで広げる
+const MAX_TOUCH_TILE = 112;
 // 盤と置けるマスが全部見えるように拡大率と位置を決める。
 // スマホで全部入れるとタイルが小さくなりすぎるときは、focus（直前に置かれたマス）を中心に MIN_AUTO_TILE で見せる
 // （盤の端より外に余白が出ないように寄せる）。all なら小さくなっても全部入れる（「全体を表示」ボタン）
@@ -728,7 +730,7 @@ function fitTarget(focus, all) {
   const b = bounds(cells), w = b.x1 - b.x0 + 1, h = b.y1 - b.y0 + 1, H = a.bottom - a.top;
   const fit = Math.min(a.w / (w + .8), H / (h + .8));
   const minS = all ? 12 : isMobile() && focus && focus.length ? MIN_AUTO_TILE : 24;
-  const s = Math.max(minS, Math.min(TOUCH ? 84 : 96, fit));
+  const s = Math.max(minS, Math.min(TOUCH ? MAX_TOUCH_TILE : 96, fit));
   if (fit >= minS || minS !== MIN_AUTO_TILE) return {s, ox: a.w/2 - (b.x0 + w/2) * s, oy: a.top + H/2 + (b.y0 + h/2 - 1) * s};
   const f = bounds(focus), m = s * .4;
   const clamp = (v, lo, hi) => lo > hi ? (lo + hi) / 2 : Math.max(lo, Math.min(hi, v));
@@ -1094,6 +1096,8 @@ function refresh() {
     }
   }
   // 残りタイル
+  // 終局後は全部 ×0 で役に立たないので隠す（棋譜の再生中は途中の山札なので出す）
+  $("remainSec").hidden = !!(G.over && !G.replay);
   const rem = $("remain"); rem.innerHTML = "";
   LIB.forEach((t, i) => {
     const d = document.createElement("div"); if (!G.remaining[i]) d.className = "zero";
