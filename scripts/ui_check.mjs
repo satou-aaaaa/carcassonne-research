@@ -528,6 +528,10 @@ async function main() {
         for (const e of end) console.log(`    ✗ ${e}`);
         failed += end.length ? 1 : 0;
       }
+      // 対戦ページは指で何度も押すので、スマホで高さ 44px 未満の部品は ✗ にする（2026-11 の点検で、新しい対局・
+      // 棋譜を再生・設定の選択欄などが 31〜35px だった。ほかのページは △ のまま目で見て判断する）
+      if (file.endsWith("play.html") && vp.isMobile)
+        for (const w of res.warns.filter((w) => w.includes("高さ 44px 未満"))) problems.push(`対戦ページ: ${w}`);
       const errs = [...new Set([...problems, ...res.errors])];
       const warns = [...new Set(res.warns)];
       const mark = errs.length ? "✗" : "✓";

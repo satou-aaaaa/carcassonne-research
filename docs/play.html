@@ -119,6 +119,14 @@
     #tileBar button { min-width:48px; min-height:44px; font-size:17px; }
     #tileCtl button, #viewBtns button { min-height:44px; }
   }
+  /* 指で押す端末とスマホ幅では、押す部品の高さを 44px 以上にそろえる（Apple HIG の目安。scripts/ui_check.mjs が対戦ページで確かめる） */
+  @media (pointer: coarse), (max-width: 760px) {
+    button, select, input:not([type=checkbox]):not([type=range]) { min-height:44px; }
+    summary { padding-block:13px; } /* display を変えると開閉の三角が消えるので、余白で高さを取る */
+    label.chk { min-height:44px; }
+    label.chk input { width:20px; height:20px; }
+    #home a { min-height:44px; }
+  }
   @media (max-width: 760px) {
     body { flex-direction:column; height:auto; }
     /* 盤と操作欄（得点・引いたタイル）で1画面に収める。高さは操作欄に合わせて画面側で決める */
