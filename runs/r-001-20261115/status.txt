@@ -1,0 +1,5 @@
+finished: 2026-11-15T07:52Z
+exit_code: 0
+commit: fb889c603ec61bc829725539dad5e3d9774f8bb0
+run: https://github.com/satou-aaaaa/carcassonne-research/actions/runs/43685048786
+command: bash scripts/sweeps/r001_endgame_teacher.sh
