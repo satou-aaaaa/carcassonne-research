@@ -246,7 +246,7 @@ def run_tree(
             if expand:  # 展開
                 cnt = ocnt[node]
                 o = ostart[node]
-                if t == 0 and not ranked[node] and 0 < prior_visits <= vis[node] and eval_mode >= 1:
+                if t == 0 and not ranked[node] and 0 < prior_visits <= vis[node] and eval_mode != 0:
                     # 残りの配置を、ミープルなしで置いた直後の評価値（手番側視点）で採点する
                     me = wsc[SC_PL]
                     for j in range(cnt):
@@ -317,7 +317,7 @@ def run_tree(
         if rshuf == 1 and chance == 0:
             shuffle_rest(W)
         v0 = 0.0
-        use_eval = eval_mode >= 1 and (wsc[SC_END] - wsc[SC_DRAW]) > late
+        use_eval = eval_mode != 0 and (wsc[SC_END] - wsc[SC_DRAW]) > late
         if use_eval and wsc[SC_OVER] == 0:
             # 学習型評価関数: depth手のロールアウトで進めた後の局面を線形モデルで評価する
             if depth > 0:
@@ -338,7 +338,7 @@ def run_tree(
                 s1 = wsc[SC_S1]
             else:
                 # 評価関数を使わない葉（終盤の late 枚以下、または評価関数なし）は終局までロールアウト
-                rd = -1 if eval_mode >= 1 else depth
+                rd = -1 if eval_mode != 0 else depth
                 s0, s1 = rollout(
                     W, T, P, meeple_prob, rd, stamp, stamp_box, out_cell, out_g, free, rec, farm
                 )

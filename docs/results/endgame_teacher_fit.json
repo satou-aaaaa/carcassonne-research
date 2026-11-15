@@ -1,0 +1,152 @@
+{
+ "positions_rows": 3310,
+ "games": 400,
+ "val_games": 80,
+ "by_bag_rows": {
+  "0": 800,
+  "1": 800,
+  "2": 800,
+  "3": 800,
+  "4": 110
+ },
+ "val": {
+  "learned": {
+   "logloss": 0.1114,
+   "excess_logloss": 0.0927,
+   "brier": 0.022,
+   "sign_acc": 0.9745
+  },
+  "champion": {
+   "logloss": 0.3286,
+   "excess_logloss": 0.3099,
+   "brier": 0.0812,
+   "sign_acc": 0.9565
+  }
+ },
+ "val_by_bag": {
+  "0": {
+   "learned": {
+    "logloss": 0.0777,
+    "excess_logloss": 0.0777,
+    "brier": 0.0175,
+    "sign_acc": 0.9875
+   },
+   "champion": {
+    "logloss": 0.3211,
+    "excess_logloss": 0.3211,
+    "brier": 0.0843,
+    "sign_acc": 0.9625
+   }
+  },
+  "1": {
+   "learned": {
+    "logloss": 0.1137,
+    "excess_logloss": 0.1137,
+    "brier": 0.0323,
+    "sign_acc": 0.9625
+   },
+   "champion": {
+    "logloss": 0.3263,
+    "excess_logloss": 0.3263,
+    "brier": 0.0874,
+    "sign_acc": 0.9437
+   }
+  },
+  "2": {
+   "learned": {
+    "logloss": 0.1256,
+    "excess_logloss": 0.0909,
+    "brier": 0.0202,
+    "sign_acc": 0.9688
+   },
+   "champion": {
+    "logloss": 0.3334,
+    "excess_logloss": 0.2987,
+    "brier": 0.0772,
+    "sign_acc": 0.95
+   }
+  },
+  "3": {
+   "learned": {
+    "logloss": 0.1388,
+    "excess_logloss": 0.0957,
+    "brier": 0.0206,
+    "sign_acc": 0.975
+   },
+   "champion": {
+    "logloss": 0.3333,
+    "excess_logloss": 0.2902,
+    "brier": 0.0756,
+    "sign_acc": 0.9625
+   }
+  },
+  "4": {
+   "learned": {
+    "logloss": 0.0493,
+    "excess_logloss": 0.0493,
+    "brier": 0.0058,
+    "sign_acc": 1.0
+   },
+   "champion": {
+    "logloss": 0.3307,
+    "excess_logloss": 0.3307,
+    "brier": 0.0842,
+    "sign_acc": 1.0
+   }
+  }
+ },
+ "train": {
+  "learned": {
+   "logloss": 0.1934,
+   "excess_logloss": 0.146,
+   "brier": 0.0381,
+   "sign_acc": 0.9395
+  },
+  "champion": {
+   "logloss": 0.3697,
+   "excess_logloss": 0.3222,
+   "brier": 0.0906,
+   "sign_acc": 0.9236
+  }
+ },
+ "weights_logit": {
+  "score_diff": 0.10298,
+  "proj_diff": 0.17633,
+  "proj_city": 0.05802,
+  "proj_road": 0.14743,
+  "proj_field": 0.0692,
+  "proj_monastery": 0.06765,
+  "meeples_city": -0.06394,
+  "meeples_road": -0.40776,
+  "meeples_field": 0.1034,
+  "meeples_monastery": 0.19358,
+  "supply_diff": 0.10783,
+  "remaining": -0.00513,
+  "proj_x_remaining": 0.22404,
+  "bias": -0.00309,
+  "open_city_mine": -0.0078,
+  "open_city_theirs": 0.00785,
+  "open_road_mine": 0.12921,
+  "open_road_theirs": -0.12913,
+  "n_features_mine": -0.05934,
+  "n_features_theirs": 0.05963,
+  "remaining_sq": 0.13618,
+  "supply_mine": 0.02333,
+  "city_bonus": 0.16627,
+  "supply_x_remaining": 12.9209,
+  "stuck_mine": -0.16448,
+  "stuck_theirs": 0.16466,
+  "proj_field_x_remaining": -0.25752,
+  "proj_city_x_remaining": 0.45817,
+  "monastery_room_x_remaining": -1.52493,
+  "dead_mine": 0.07348,
+  "dead_theirs": -0.07346,
+  "dead_city_bonus": -0.12338,
+  "hard_city_bonus": -0.01803,
+  "dead_x_remaining": 0.23841,
+  "field_open_cities": 0.04977,
+  "field_open_cities_x_remaining": -0.20743,
+  "meeple_short": -0.16181,
+  "meeple_short_x_remaining": -14.36478
+ }
+}

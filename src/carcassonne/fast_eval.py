@@ -307,6 +307,13 @@ def eval_value(p, mode, f):
         for q in range(NF):
             v += p[q] * f[q]
         return v
+    if mode == -1:
+        # 切り替え型: 山札の残り（f[11]=残り/71）が閾値以下なら後半の重み（`split_eval_params`）
+        o = NF if f[11] <= p[2 * NF] else 0
+        v = 0.0
+        for q in range(NF):
+            v += p[o + q] * f[q]
+        return v
     H = mode
     off = 2 * NF
     v = p[off + NF * H + 2 * H]
@@ -319,9 +326,21 @@ def eval_value(p, mode, f):
     return v
 
 
+SPLIT_TAG = -12345.0  # 切り替え型の目印（末尾）
+SPLIT_LEN = 2 * NF + 2
+
+
+def split_eval_params(main_w: np.ndarray, late_w: np.ndarray, late_bag: int) -> np.ndarray:
+    """線形の評価関数2つを、山札の残りが late_bag 枚以下で後者に切り替える1つの評価関数（mode=-1）にする。"""
+    thr = (late_bag + 0.5) / 71.0
+    return np.concatenate([main_w[:NF], late_w[:NF], [thr, SPLIT_TAG]]).astype(np.float64)
+
+
 def load_eval(path: str) -> tuple[np.ndarray, int]:
     """重みファイルを読み、(パラメータ, mode) を返す。長さ<=NFなら線形（不足分は0埋め）、それ以外はMLP。"""
     w = np.load(path).astype(np.float64)
+    if len(w) == SPLIT_LEN and w[-1] == SPLIT_TAG:
+        return w, -1
     if len(w) <= NF:
         return np.concatenate([w, np.zeros(NF - len(w))]), 1
     for nf in (NF, NF_V9, NF_V7, NF_V6):
