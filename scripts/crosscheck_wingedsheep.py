@@ -16,7 +16,7 @@
 - as_is: 別実装そのまま（今の numpy で動くようにだけ直す）。
 - official_ties: 同数のミープルで引き分けた特徴に誰も点を入れない所を、公式ルール（同数なら全員が満点）に。
 - official_farms: さらに、草原の点で同じ都市を何度も数える所を、公式ルール（完成した都市1つにつき3点）に。
-- official: さらに、草原が都市の辺をまたいでつながるタイルの定義（1種）を直す。
+- official: さらに、草原が都市の辺をまたいでつながるタイルの定義（1種）と、草原を上のタイルへたどる向き（1か所）を直す。
 差し替えは別実装のコードを書き換えず、このスクリプトの中で関数を入れ替えて行う。
 """
 
@@ -59,13 +59,14 @@ def load_ref(ref: Path):
     from wingedsheep.carcassonne.utils.action_util import ActionUtil
     from wingedsheep.carcassonne.utils.city_util import CityUtil
     from wingedsheep.carcassonne.utils.points_collector import PointsCollector
+    from wingedsheep.carcassonne.utils.side_modification_util import SideModificationUtil
     from wingedsheep.carcassonne.utils.state_updater import StateUpdater
 
     return {
         "State": CarcassonneGameState, "MeepleAction": MeepleAction, "PassAction": PassAction,
         "TileAction": TileAction, "Coordinate": Coordinate, "MeepleType": MeepleType,
         "base_tiles": base_tiles, "base_tile_counts": base_tile_counts, "Rule": SupplementaryRule,
-        "TileSet": TileSet, "ActionUtil": ActionUtil, "CityUtil": CityUtil, "Points": PointsCollector, "Updater": StateUpdater,
+        "TileSet": TileSet, "ActionUtil": ActionUtil, "CityUtil": CityUtil, "SideUtil": SideModificationUtil, "Points": PointsCollector, "Updater": StateUpdater,
     }  # fmt: skip
 
 
@@ -186,6 +187,24 @@ def patch_tile_data(R) -> None:
             )
             for f in t.farms
         ]
+
+
+def patch_farm_neighbor(R) -> None:
+    """別実装で草原を隣のタイルへたどる所のうち、上の辺の右半分（trt）の向かいを直す。
+
+    上の辺の右半分の向かいは、上のタイルの下の辺の右半分（brb）。別実装は右の辺の下半分（brr）を返すので、
+    上へたどるときに草原がつながらなかったり、別の草原につながったりする（utils/side_modification_util.py）。
+    ほかの7つの向かいは正しい。
+    """
+    SU = R["SideUtil"]
+    orig = SU.opposite_farmer_side.__func__
+
+    def opposite(cls, farmer_side):
+        if str(farmer_side) == "trt":
+            return type(farmer_side).BRB
+        return orig(cls, farmer_side)
+
+    SU.opposite_farmer_side = classmethod(opposite)
 
 
 class Tied(int):
@@ -547,6 +566,7 @@ def main() -> None:
     patch_farm_cities_once(R)
     res["official_farms"] = compare(R, ts, tmap, games)
     patch_tile_data(R)
+    patch_farm_neighbor(R)
     res["official"] = compare(R, ts, tmap, games)
     summarize(res)
     if a.out:
