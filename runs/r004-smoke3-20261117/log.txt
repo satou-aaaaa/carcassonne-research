@@ -1,0 +1,21 @@
+Traceback (most recent call last):
+  File "/home/runner/work/carcassonne-research/carcassonne-research/scripts/crosscheck_wingedsheep.py", line 369, in <module>
+    main()
+  File "/home/runner/work/carcassonne-research/carcassonne-research/scripts/crosscheck_wingedsheep.py", line 350, in main
+    res["as_is"] = compare(R, ts, tmap, games)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/carcassonne-research/carcassonne-research/scripts/crosscheck_wingedsheep.py", line 301, in compare
+    r = replay(R, ts, tmap, g)
+        ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/carcassonne-research/carcassonne-research/scripts/crosscheck_wingedsheep.py", line 285, in replay
+    st = R["Updater"].apply_action(st, m)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tmp.GT5QeGir24/wingedsheep/carcassonne/utils/state_updater.py", line 95, in apply_action
+    PointsCollector.count_final_scores(game_state=new_game_state)
+  File "/tmp/tmp.GT5QeGir24/wingedsheep/carcassonne/utils/points_collector.py", line 191, in count_final_scores
+    winning_player = cls.get_winning_player(meeple_counts_per_player)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tmp.GT5QeGir24/wingedsheep/carcassonne/utils/points_collector.py", line 94, in get_winning_player
+    return int(winners[0])
+           ^^^^^^^^^^^^^^^
+TypeError: only 0-dimensional arrays can be converted to Python scalars
