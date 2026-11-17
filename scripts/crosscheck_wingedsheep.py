@@ -15,7 +15,8 @@
 比べ方は3通り（結果の JSON の as_is / official_ties / official）:
 - as_is: 別実装そのまま（今の numpy で動くようにだけ直す）。
 - official_ties: 同数のミープルで引き分けた特徴に誰も点を入れない所を、公式ルール（同数なら全員が満点）に。
-- official: さらに、草原の点で同じ都市を何度も数える所を、公式ルール（完成した都市1つにつき3点）に。
+- official_farms: さらに、草原の点で同じ都市を何度も数える所を、公式ルール（完成した都市1つにつき3点）に。
+- official: さらに、草原が都市の辺をまたいでつながるタイルの定義（1種）を直す。
 差し替えは別実装のコードを書き換えず、このスクリプトの中で関数を入れ替えて行う。
 """
 
@@ -165,6 +166,26 @@ def patch_farm_cities_once(R) -> None:
         return 3 * sum(1 for done in seen.values() if done)
 
     R["impl"]["F"] = farm_points
+
+
+def patch_tile_data(R) -> None:
+    """別実装のタイルの定義のうち、草原が都市の辺の上の半辺まで含む所を外す（草原は都市で区切られる）。
+
+    基本セットでは「都市1辺＋まっすぐな道」（city_top_straight_road）の、道と都市の間の草原だけがこうなっている
+    （tile_sets/base_deck.py。scan は R-004 の docs/EXPERIMENTS.md）。都市の辺どうしで2枚がつながると、
+    都市の向こう側の草原までつながってしまう。
+    """
+    FC = type(next(f for t in R["base_tiles"].values() for f in t.farms))
+    for t in R["base_tiles"].values():
+        cities = {str(s) for c in t.city for s in c}
+        t.farms = [
+            FC(
+                farmer_positions=f.farmer_positions,
+                tile_connections=[h for h in f.tile_connections if str(h.get_side()) not in cities],
+                city_sides=f.city_sides,
+            )
+            for f in t.farms
+        ]
 
 
 class Tied(int):
@@ -449,7 +470,7 @@ def compare(R, ts, tmap, games) -> dict:
 
 def summarize(res: dict) -> None:
     """各比べ方の食い違いを数え、結果の JSON に書き足して表示する。"""
-    for key in ("as_is", "official_ties", "official"):
+    for key in ("as_is", "official_ties", "official_farms", "official"):
         r = res[key]
         r["match"] = sum(1 for x in r["rows"] if x["first_diff"] is None and x["stop"] is None)
         r["games"] = len(r["rows"])
@@ -474,9 +495,15 @@ def merge(paths: list[str], out: str | None) -> None:
     for p in paths:
         d = json.loads(Path(p).read_text(encoding="utf-8"))
         if not res:
-            res = {k: v for k, v in d.items() if k not in ("as_is", "official_ties", "official")}
-            res.update({k: {"rows": []} for k in ("as_is", "official_ties", "official")})
-        for k in ("as_is", "official_ties", "official"):
+            res = {
+                k: v
+                for k, v in d.items()
+                if k not in ("as_is", "official_ties", "official_farms", "official")
+            }
+            res.update(
+                {k: {"rows": []} for k in ("as_is", "official_ties", "official_farms", "official")}
+            )
+        for k in ("as_is", "official_ties", "official_farms", "official"):
             res[k]["rows"] += d[k]["rows"]
     summarize(res)
     if out:
@@ -518,6 +545,8 @@ def main() -> None:
     patch_official_ties(R)
     res["official_ties"] = compare(R, ts, tmap, games)
     patch_farm_cities_once(R)
+    res["official_farms"] = compare(R, ts, tmap, games)
+    patch_tile_data(R)
     res["official"] = compare(R, ts, tmap, games)
     summarize(res)
     if a.out:
