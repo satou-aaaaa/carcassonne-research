@@ -116,7 +116,12 @@ def piece_sig(v):
         elif p.kind == ROAD:
             roads.append(tuple(sorted(SIDE_NAMES[s] for s in p.sides)))
         elif p.kind == FIELD:
-            adj = tuple(sorted(s for c in p.city_adj for s in v.pieces[c].sides))
+            # 接する都市は、その都市の辺の組（名前）で表す
+            adj = tuple(
+                sorted(
+                    {tuple(sorted(SIDE_NAMES[s] for s in v.pieces[c].sides)) for c in p.city_adj}
+                )
+            )
             fields.append((tuple(sorted(HALF_NAMES[h] for h in p.halves)), adj))
         elif p.kind == MONASTERY:
             mon = True
@@ -135,10 +140,11 @@ def ref_sig(t):
                 ends.setdefault(i, []).append(str(s))
     # 端が CENTER の道（行き止まり）は1辺だけの道。両端が辺の道は2辺の道
     roads = [tuple(sorted(e)) for e in ends.values()]
-    side_idx = {n: i for i, n in enumerate(SIDE_NAMES)}
+    city_of = {str(s): c[0] for c in cities for s in c[0]}
     fields = []
     for f in t.farms:
-        adj = tuple(sorted(side_idx[str(s)] for s in f.city_sides))
+        # 別実装は接する都市を辺で持つ（同じ都市の辺が1つだけのことも）。都市の辺の組にそろえる
+        adj = tuple(sorted({city_of[str(s)] for s in f.city_sides}))
         fields.append((tuple(sorted(str(h) for h in f.tile_connections)), adj))
     return (tuple(sorted(cities)), tuple(sorted(roads)), tuple(sorted(fields)), bool(t.chapel))
 
@@ -330,7 +336,11 @@ def main() -> None:
     from carcassonne.tiles import load_tileset
 
     ts = load_tileset()
-    if ref_counts_by_shape(R) != our_counts_by_shape(ts):
+    rc, oc = ref_counts_by_shape(R), our_counts_by_shape(ts)
+    if rc != oc:
+        for k in sorted(set(rc) | set(oc), key=str):
+            if rc[k] != oc[k]:
+                print(f"形 {k}: 別実装 {rc[k]} 枚 / こちら {oc[k]} 枚")
         raise SystemExit("タイルの形ごとの枚数が別実装と合わない")
     tmap = tile_map(R, ts)
     games = make_games(a.games, a.start, a.sims)
