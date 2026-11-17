@@ -16,7 +16,8 @@
 - as_is: 別実装そのまま（今の numpy で動くようにだけ直す）。
 - official_ties: 同数のミープルで引き分けた特徴に誰も点を入れない所を、公式ルール（同数なら全員が満点）に。
 - official_farms: さらに、草原の点で同じ都市を何度も数える所を、公式ルール（完成した都市1つにつき3点）に。
-- official: さらに、草原が都市の辺をまたいでつながるタイルの定義（1種）と、草原を上のタイルへたどる向き（1か所）を直す。
+- official: さらに、草原が都市の辺をまたいでつながるタイルの定義（1種）、草原を上のタイルへたどる向き（1か所）、
+  まわりの修道院の完成の調べ方（1か所）を直す。
 差し替えは別実装のコードを書き換えず、このスクリプトの中で関数を入れ替えて行う。
 """
 
@@ -52,12 +53,15 @@ def load_ref(ref: Path):
     from wingedsheep.carcassonne.objects.actions.pass_action import PassAction
     from wingedsheep.carcassonne.objects.actions.tile_action import TileAction
     from wingedsheep.carcassonne.objects.coordinate import Coordinate
+    from wingedsheep.carcassonne.objects.coordinate_with_side import CoordinateWithSide
     from wingedsheep.carcassonne.objects.meeple_type import MeepleType
+    from wingedsheep.carcassonne.objects.side import Side
     from wingedsheep.carcassonne.tile_sets.base_deck import base_tile_counts, base_tiles
     from wingedsheep.carcassonne.tile_sets.supplementary_rules import SupplementaryRule
     from wingedsheep.carcassonne.tile_sets.tile_sets import TileSet
     from wingedsheep.carcassonne.utils.action_util import ActionUtil
     from wingedsheep.carcassonne.utils.city_util import CityUtil
+    from wingedsheep.carcassonne.utils.meeple_util import MeepleUtil
     from wingedsheep.carcassonne.utils.points_collector import PointsCollector
     from wingedsheep.carcassonne.utils.side_modification_util import SideModificationUtil
     from wingedsheep.carcassonne.utils.state_updater import StateUpdater
@@ -66,7 +70,7 @@ def load_ref(ref: Path):
         "State": CarcassonneGameState, "MeepleAction": MeepleAction, "PassAction": PassAction,
         "TileAction": TileAction, "Coordinate": Coordinate, "MeepleType": MeepleType,
         "base_tiles": base_tiles, "base_tile_counts": base_tile_counts, "Rule": SupplementaryRule,
-        "TileSet": TileSet, "ActionUtil": ActionUtil, "CityUtil": CityUtil, "SideUtil": SideModificationUtil, "Points": PointsCollector, "Updater": StateUpdater,
+        "TileSet": TileSet, "ActionUtil": ActionUtil, "CityUtil": CityUtil, "MeepleUtil": MeepleUtil, "CWS": CoordinateWithSide, "Side": Side, "SideUtil": SideModificationUtil, "Points": PointsCollector, "Updater": StateUpdater,
     }  # fmt: skip
 
 
@@ -205,6 +209,38 @@ def patch_farm_neighbor(R) -> None:
         return orig(cls, farmer_side)
 
     SU.opposite_farmer_side = classmethod(opposite)
+
+
+def patch_monastery_scan(R) -> None:
+    """別実装で、置いたタイルのまわり3×3の修道院の完成を調べる所を直す。
+
+    別実装は3×3を回す途中でループの変数 coordinate を上書きするので、2行目からは調べる列がずれ、
+    置いたタイルの左の列の修道院の完成を見落とす（utils/points_collector.py の
+    remove_meeples_and_collect_points）。元の処理のあとに、同じ判定（ミープルがいて9点なら得点して戻す）を
+    正しい3×3でもう一度行う（元の処理で数えた修道院はミープルが戻っているので重ならない）。
+    """
+    P, MU, CWS, Side, Coord = R["Points"], R["MeepleUtil"], R["CWS"], R["Side"], R["Coordinate"]
+    orig = P.remove_meeples_and_collect_points.__func__
+
+    def collect(cls, game_state, coordinate):
+        orig(cls, game_state, coordinate)
+        r0, c0 = coordinate.row, coordinate.column
+        for row in range(r0 - 1, r0 + 2):
+            for col in range(c0 - 1, c0 + 2):
+                tile = game_state.get_tile(row, col)
+                if tile is None or not tile.chapel:
+                    continue
+                pos = CWS(coordinate=Coord(row, col), side=Side.CENTER)
+                who = MU.position_contains_meeple(game_state=game_state, coordinate_with_side=pos)
+                if who is None or P.chapel_or_flowers_points(game_state, Coord(row, col)) != 9:
+                    continue
+                game_state.scores[who] += 9
+                mine = [q for q in game_state.placed_meeples[who] if q.coordinate_with_side == pos]
+                MU.remove_meeples(
+                    game_state=game_state, meeples=[mine if p == who else [] for p in range(2)]
+                )
+
+    P.remove_meeples_and_collect_points = classmethod(collect)
 
 
 class Tied(int):
@@ -605,6 +641,7 @@ def main() -> None:
     res["official_farms"] = compare(R, ts, tmap, games)
     patch_tile_data(R)
     patch_farm_neighbor(R)
+    patch_monastery_scan(R)
     res["official"] = compare(R, ts, tmap, games)
     summarize(res)
     if a.out:
