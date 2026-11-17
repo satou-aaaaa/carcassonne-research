@@ -1,0 +1,5 @@
+finished: 2026-11-17T12:59Z
+exit_code: 1
+commit: 2cb89eadbbd861e3def0246900a5600aee1c33cf
+run: https://github.com/satou-aaaaa/carcassonne-research/actions/runs/44088297735
+command: GAMES=4 bash scripts/sweeps/r004_crosscheck.sh
