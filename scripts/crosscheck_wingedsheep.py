@@ -357,6 +357,7 @@ def make_games(n: int, start: int, mcts_sims: int) -> list[dict]:
             agents = [FastMCTSAgent(n_sims=mcts_sims), FastMCTSAgent(n_sims=mcts_sims)]
             kind = f"fmcts{mcts_sims}"
         trace = []
+        supply = []  # 各手を指す前の手持ちミープル（食い違いを調べる用）
         final = {k: [0, 0] for k in "CRFM"}
 
         def finish(st=st, final=final):
@@ -370,11 +371,13 @@ def make_games(n: int, start: int, mcts_sims: int) -> list[dict]:
 
         st._finish = finish
         while not st.over:
+            supply.append(list(st.supply))
             st.apply(agents[st.player].act(st, rng))
             trace.append(list(st.scores))
         games.append(
             {"seed": seed, "kind": kind, "history": [list(h) for h in st.history], "trace": trace,
-                 "scores": list(st.scores), "discarded": len(st.discarded), "final": final}
+                 "scores": list(st.scores), "discarded": len(st.discarded), "final": final,
+             "supply": supply}
         )  # fmt: skip
     return games
 
@@ -433,11 +436,20 @@ def replay(R, ts, tmap, g) -> dict:
                 None,
             )
             if m is None:
+                here = [
+                    f"{a.meeple_type.name} {a.coordinate_with_side.side}"
+                    for a in acts
+                    if isinstance(a, R["MeepleAction"])
+                    and a.coordinate_with_side.coordinate == coord
+                ]
                 return {
                     "trace": trace,
                     "stop": i,
                     "why": f"ミープル（{mt} {side}）が別実装の合法手に無い",
-                }
+                    # 調べる用: 手持ちの数（別実装・こちら）と、別実装がこのタイルで許す置き場所
+                    "debug": {"supply_theirs": list(st.meeples), "supply_ours": g["supply"][i],
+                              "allowed_here": here, "player": st.current_player},
+                }  # fmt: skip
         with contextlib.redirect_stdout(io.StringIO()):
             st = R["Updater"].apply_action(st, m)
         trace.append(list(st.scores))
@@ -471,7 +483,7 @@ def compare(R, ts, tmap, games) -> dict:
         row = {
             "seed": g["seed"], "kind": g["kind"], "ours": g["scores"],
             "theirs": r["trace"][-1] if r["trace"] else None, "stop": r["stop"], "why": r["why"],
-            "first_diff": first, "plies": len(hist),
+            "first_diff": first, "plies": len(hist), "debug": r.get("debug"),
         }  # fmt: skip
         if r.get("final") is not None:
             row["final_ours"] = g["final"]
