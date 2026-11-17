@@ -37,6 +37,7 @@ INT_KEYS = {
     "topk": "nn_topk",
     "rk": "reselect_k",
     "eg": "endgame",
+    "pply": "puct_ply",
 }
 BOOL_KEYS = {
     "fact": "factored",
@@ -54,6 +55,8 @@ FLOAT_KEYS = {
     "rsel": "reselect",
     "sd": "scale_decay",
     "smin": "scale_min",
+    "puct": "puct",
+    "ptau": "puct_tau",
 }
 
 

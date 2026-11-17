@@ -41,7 +41,7 @@ PINNED = "e80dbb429e0d74727d0df2038802a42188b6fc62"
 # こちらの半辺 side*2+h（辺の上を時計回り）→ 別実装の FarmerSide の名前
 HALF_NAMES = ["tlt", "trt", "trr", "brr", "brb", "blb", "bll", "tll"]
 SIDE_NAMES = ["top", "right", "bottom", "left"]
-OFF = 50  # 別実装の盤の中心（行・列）。こちらの (x, y) は (行 OFF-y, 列 OFF+x)
+OFF = 40  # 別実装の盤の中心（行・列）。こちらの (x, y) は (行 OFF-y, 列 OFF+x)。盤は 81×81（基本セットの72枚は収まる）
 
 
 def load_ref(ref: Path):
@@ -447,14 +447,58 @@ def compare(R, ts, tmap, games) -> dict:
     return {"games": len(rows), "match": match, "rows": rows}
 
 
+def summarize(res: dict) -> None:
+    """各比べ方の食い違いを数え、結果の JSON に書き足して表示する。"""
+    for key in ("as_is", "official_ties", "official"):
+        r = res[key]
+        r["match"] = sum(1 for x in r["rows"] if x["first_diff"] is None and x["stop"] is None)
+        r["games"] = len(r["rows"])
+        bad = [x for x in r["rows"] if x["first_diff"] is not None or x["stop"] is not None]
+        kinds = Counter(
+            "合法手の違い" if x["stop"] is not None else ("終局の数え" if x["final_only"] else
+            ("同数の引き分け" if x["tie"] else "途中の得点")) for x in bad
+        )  # fmt: skip
+        r["mismatch_kinds"] = dict(kinds)
+        r["final_diff_by_kind"] = dict(
+            Counter(k for x in r["rows"] for k in x.get("final_diff_kinds", []))
+        )
+        print(
+            f"{key}: {r['match']}/{r['games']} 局が全手一致 食い違い {dict(kinds)}"
+            f" 終局の数えが違った種類 {r['final_diff_by_kind']}"
+        )
+
+
+def merge(paths: list[str], out: str | None) -> None:
+    """分けて回した結果の JSON を1つにまとめる。"""
+    res: dict = {}
+    for p in paths:
+        d = json.loads(Path(p).read_text(encoding="utf-8"))
+        if not res:
+            res = {k: v for k, v in d.items() if k not in ("as_is", "official_ties", "official")}
+            res.update({k: {"rows": []} for k in ("as_is", "official_ties", "official")})
+        for k in ("as_is", "official_ties", "official"):
+            res[k]["rows"] += d[k]["rows"]
+    summarize(res)
+    if out:
+        Path(out).write_text(json.dumps(res, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--ref", required=True, help="wingedsheep/carcassonne を clone したフォルダ")
+    ap.add_argument("--ref", help="wingedsheep/carcassonne を clone したフォルダ")
+    ap.add_argument(
+        "--merge", nargs="+", help="分けて回した結果の JSON をまとめる（別実装は要らない）"
+    )
     ap.add_argument("--games", type=int, default=100)
     ap.add_argument("--start", type=int, default=40000)
     ap.add_argument("--sims", type=int, default=300, help="探索AIの対局の1手の探索回数")
     ap.add_argument("--out", help="結果の JSON")
     a = ap.parse_args()
+    if a.merge:
+        merge(a.merge, a.out)
+        return
+    if not a.ref:
+        ap.error("--ref が要る")
     R = load_ref(Path(a.ref))
     from carcassonne.tiles import load_tileset
 
@@ -475,21 +519,7 @@ def main() -> None:
     res["official_ties"] = compare(R, ts, tmap, games)
     patch_farm_cities_once(R)
     res["official"] = compare(R, ts, tmap, games)
-    for key in ("as_is", "official_ties", "official"):
-        r = res[key]
-        bad = [x for x in r["rows"] if x["first_diff"] is not None or x["stop"] is not None]
-        kinds = Counter(
-            "合法手の違い" if x["stop"] is not None else ("終局の数え" if x["final_only"] else
-            ("同数の引き分け" if x["tie"] else "途中の得点")) for x in bad
-        )  # fmt: skip
-        r["mismatch_kinds"] = dict(kinds)
-        r["final_diff_by_kind"] = dict(
-            Counter(k for x in r["rows"] for k in x.get("final_diff_kinds", []))
-        )
-        print(
-            f"{key}: {r['match']}/{r['games']} 局が全手一致 食い違い {dict(kinds)}"
-            f" 終局の数えが違った種類 {r['final_diff_by_kind']}"
-        )
+    summarize(res)
     if a.out:
         Path(a.out).write_text(
             json.dumps(res, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
