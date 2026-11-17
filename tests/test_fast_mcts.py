@@ -286,3 +286,26 @@ def test_reselect_can_override_the_most_visited_candidate(monkeypatch):
     assert agent.choose_reselect(agent.to_fast(st), 0) == (10, 1, -1)
     agent.reselect_k = 1
     assert agent.choose_reselect(agent.to_fast(st), 0) == (10, 1, -1)
+
+
+@pytest.mark.parametrize("ply", [1, 2])
+def test_puct_returns_legal_moves_through_a_game(ply):
+    # PUCT（R-003）: 根から ply 手番ぶんの配置を事前確率つきで選ぶ。終局まで合法手を返す
+    agent = FastMCTSAgent(
+        n_sims=150, eval_path="models/eval_champion.npy", puct=1.0, puct_ply=ply, puct_tau=8.0
+    )
+    assert "puct=1" in agent.name
+    st = State.new_game(31)
+    rng = random.Random(0)
+    while not st.over:
+        m = agent.act(st, rng)
+        assert m in st.legal_moves()
+        st.apply(m)
+
+
+def test_puct_is_off_without_eval():
+    # 事前確率は評価関数で作るので、評価関数がなければ PUCT は使わない（従来の探索と同じ手）
+    st = State.new_game(32)
+    a = FastMCTSAgent(n_sims=200, puct=1.0).act(st, random.Random(3))
+    b = FastMCTSAgent(n_sims=200).act(st, random.Random(3))
+    assert a == b

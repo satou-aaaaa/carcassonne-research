@@ -114,6 +114,9 @@ def run_tree(
     chance,
     farm=True,
     rshuf=0,
+    puct=0.0,
+    pply=1,
+    ptau=3.0,
 ):
     """1本の木を `sims` 回反復し、根の訪問数を agg1/agg2 に、報酬和を aggw1/aggw2 に加算する。
 
@@ -137,6 +140,12 @@ def run_tree(
 
     rshuf=1 なら、木の中（chance=0 の固定山札）はそのままに、葉から先のロールアウトの前に山札の未公開部分を
     引き直す。木ごとに1つの山札並びに合わせて手を選ぶ偏りを、木の統計を分散させずに減らす。
+
+    puct>0 なら、根から pply 手番ぶんの配置の節点で PUCT（Silver et al. 2017 の式）を使う。選択肢を
+    初めて作るときに各配置を「ミープルなしで置いた直後の評価値（手番側視点、点）」で採点し、softmax(値/ptau)
+    を事前確率 P にする。子の選択は Q + puct*P*sqrt(N)/(1+n)。未展開の手は事前確率の一番高いものを
+    「既存の子の平均報酬−max(fpu,0)」を見込み値として同じ式で比べ、勝てば展開する。評価関数があり
+    chance=0 のときだけ。それ以外の節点は従来の UCT のまま。
     """
     # 確率節点ありでは1反復で最大2節点（ミープル節点の子の確率節点＋その先の配置節点）増える
     N = 2 * sims + 4 if chance == 1 else sims + 2
@@ -158,6 +167,10 @@ def run_tree(
     opt_b = np.zeros(POOL, np.int16)
     opt_p = np.zeros(POOL, np.float64)
     ranked = np.zeros(N, np.bool_)
+    pnode = np.zeros(N, np.bool_)  # PUCT で選ぶ配置の節点
+    pdep = np.zeros(N, np.int32)  # 根からの経路上の深さ（配置・ミープルの節点を数える）
+    cpri = np.zeros(N, np.float64)  # PUCT の節点の子の事前確率
+    use_puct = puct > 0.0 and eval_mode != 0 and chance == 0
     X = copy_state(root)
     pool_used = 0
     n_nodes = 1
@@ -227,8 +240,53 @@ def run_tree(
                                 cnt += 1
                 pool_used += cnt
                 ocnt[node] = cnt
+                if use_puct and t == 0 and cnt > 0 and pdep[node] <= 2 * (pply - 1):
+                    # 事前確率: ミープルなしで置いた直後の評価値（手番側視点）の softmax
+                    me = wsc[SC_PL]
+                    o = ostart[node]
+                    vmax = -1e30
+                    for j in range(cnt):
+                        copy_into(X, W)
+                        apply_move(
+                            X, T, P, opt_a[o + j], opt_b[o + j], -1, stamp, stamp_box,
+                            out_cell, out_g,
+                        )  # fmt: skip
+                        features(X, T, P, me, fbuf)
+                        opt_p[o + j] = eval_value(eval_w, eval_mode, fbuf)
+                        vmax = max(vmax, opt_p[o + j])
+                    zs = 0.0
+                    for j in range(cnt):
+                        opt_p[o + j] = np.exp((opt_p[o + j] - vmax) / ptau)
+                        zs += opt_p[o + j]
+                    for j in range(cnt):
+                        opt_p[o + j] /= zs
+                    ranked[node] = True
+                    pnode[node] = True
             expand = ocnt[node] > 0
-            if expand and fpu >= 0.0 and fch[node] >= 0:
+            pbest = -1
+            if pnode[node]:
+                if fch[node] >= 0:
+                    sq = np.sqrt(vis[node] + 0.0)
+                    sw = 0.0
+                    sv = 0
+                    bv = -1e30
+                    ch = fch[node]
+                    while ch >= 0:
+                        sw += wsum[ch]
+                        sv += vis[ch]
+                        v = wsum[ch] / vis[ch] + puct * cpri[ch] * sq / (1.0 + vis[ch])
+                        if v > bv:
+                            bv = v
+                            pbest = ch
+                        ch = nxt[ch]
+                    if expand:
+                        o = ostart[node]
+                        pm = 0.0
+                        for j in range(ocnt[node]):
+                            pm = max(pm, opt_p[o + j])
+                        if bv >= sw / sv - max(fpu, 0.0) + puct * pm * sq:
+                            expand = False
+            elif expand and fpu >= 0.0 and fch[node] >= 0:
                 # 既存の子の最良 UCT 値と、未展開の子の見込み値を比べる
                 ln = np.log(vis[node] + 1.0)
                 sw = 0.0
@@ -267,6 +325,7 @@ def run_tree(
                     idx = np.random.randint(0, cnt)
                 a = opt_a[o + idx]
                 b = opt_b[o + idx]
+                pa = opt_p[o + idx]
                 opt_a[o + idx] = opt_a[o + cnt - 1]
                 opt_b[o + idx] = opt_b[o + cnt - 1]
                 opt_p[o + idx] = opt_p[o + cnt - 1]
@@ -277,6 +336,9 @@ def run_tree(
                 nxt[new] = fch[node]
                 fch[node] = new
                 mover[new] = wsc[SC_PL]
+                pdep[new] = pdep[node] + 1
+                if pnode[node]:
+                    cpri[new] = pa
                 if t == 0:
                     ntype[new] = 1
                     kcell[new] = a
@@ -293,17 +355,18 @@ def run_tree(
                 break
             if fch[node] < 0:  # 終端（選択肢なし）
                 break
-            # 選択（UCT）
-            best = -1
-            bv = -1e30
-            ln = np.log(vis[node] + 1.0)
-            ch = fch[node]
-            while ch >= 0:
-                v = wsum[ch] / vis[ch] + c * np.sqrt(ln / vis[ch])
-                if v > bv:
-                    bv = v
-                    best = ch
-                ch = nxt[ch]
+            # 選択（PUCT の節点は上で選んだ子、それ以外は UCT）
+            best = pbest
+            if best < 0:
+                bv = -1e30
+                ln = np.log(vis[node] + 1.0)
+                ch = fch[node]
+                while ch >= 0:
+                    v = wsum[ch] / vis[ch] + c * np.sqrt(ln / vis[ch])
+                    if v > bv:
+                        bv = v
+                        best = ch
+                    ch = nxt[ch]
             if t == 1:
                 apply_move(
                     W, T, P, kcell[node], kg[node], kpiece[best], stamp, stamp_box, out_cell, out_g
@@ -393,6 +456,9 @@ def search_stats(
     chance=0,
     farm=True,
     rshuf=0,
+    puct=0.0,
+    pply=1,
+    ptau=3.0,
 ):
     """根局面 S から決定化MCTSを行い、根の候補ごとの訪問数と報酬和を返す。
 
@@ -419,6 +485,7 @@ def search_stats(
             D, T, P, sims, c, scale, meeple_prob, depth, stamp, stamp_box,
             out_cell, out_g, free, rec, W, agg1, agg2, aggw1, aggw2, rp_cell, rp_g, k,
             eval_w, eval_mode, fbuf, late, fpu, prior_visits, root_allow, chance, farm, rshuf,
+            puct, pply, ptau,
         )  # fmt: skip
     return rp_cell, rp_g, agg1, aggw1, agg2, aggw2
 
@@ -450,12 +517,15 @@ def search(
     chance=0,
     farm=True,
     rshuf=0,
+    puct=0.0,
+    pply=1,
+    ptau=3.0,
 ):
     """根局面 S から決定化MCTSを行い、(マス, 向きID, 断片) を返す。"""
     rp_cell, rp_g, agg1, _, agg2, _ = search_stats(
         S, T, P, n_sims, n_det, c, scale, meeple_prob, depth, stamp, stamp_box,
         out_cell, out_g, free, rec, eval_w, eval_mode, fbuf, late, fpu, prior_visits,
-        root_allow, chance, farm, rshuf,
+        root_allow, chance, farm, rshuf, puct, pply, ptau,
     )  # fmt: skip
     top = agg1.max()
     cands = np.where(agg1 == top)[0]
@@ -612,6 +682,9 @@ class FastMCTSAgent:
         scale_decay: float = 0.0,
         scale_min: float = 5.0,
         endgame: int = 0,
+        puct: float = 0.0,
+        puct_ply: int = 1,
+        puct_tau: float = 3.0,
     ) -> None:
         """eval_path に線形評価関数の重み(.npy)を渡すと、葉をその評価関数で評価する。
 
@@ -637,6 +710,11 @@ class FastMCTSAgent:
         # 1以上なら、山札の残りがこの枚数以下の局面は終局まで読み切った勝率最大の手（GTO）で指す
         # （`endgame.best_move`。探索の手が最善なら、それをそのまま使う）
         self.endgame = int(endgame)
+        # 0より大きいと、根から puct_ply 手番ぶんの配置の節点を PUCT で選ぶ（`run_tree` の puct）。
+        # 事前確率は置いた直後の評価値の softmax（温度 puct_tau 点）。評価関数があるときだけ
+        self.puct = puct if eval_path else 0.0
+        self.puct_ply = max(1, int(puct_ply))
+        self.puct_tau = puct_tau
         self.n_sims = n_sims
         self.n_det = n_det
         self.c = c
@@ -674,6 +752,11 @@ class FastMCTSAgent:
             + (",rr=1" if self.reselect > 0 and reselect_reply else "")
             + (f",sd={scale_decay:g},smin={scale_min:g}" if scale_decay > 0 else "")
             + (f",eg={self.endgame}" if self.endgame > 0 else "")
+            + (
+                f",puct={self.puct:g},pply={self.puct_ply},ptau={puct_tau:g}"
+                if self.puct > 0
+                else ""
+            )
             + (
                 f",nn={nn_path.replace(chr(92), '/').split('/')[-1]},topk={nn_topk}"
                 if nn_path
@@ -741,6 +824,9 @@ class FastMCTSAgent:
             1 if self.chance else 0,
             bool(self.rollout_farm),
             1 if self.rollout_reshuffle else 0,
+            self.puct,
+            self.puct_ply,
+            self.puct_tau,
         )
         return int(cell), int(g), int(piece)
 
@@ -755,6 +841,7 @@ class FastMCTSAgent:
             sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g, sc.free, sc.rec, self.eval_w,
             self.eval_mode, self.fbuf, self.late, self.fpu, self.prior_visits, self.root_allow(S),
             1 if self.chance else 0, bool(self.rollout_farm), 1 if self.rollout_reshuffle else 0,
+            self.puct, self.puct_ply, self.puct_tau,
         )  # fmt: skip
         ks, qs = np.nonzero(a2)
         if len(ks) == 0:
