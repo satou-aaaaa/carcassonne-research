@@ -64,6 +64,20 @@ def load_ref(ref: Path):
     }  # fmt: skip
 
 
+def patch_numpy_compat(R) -> None:
+    """別実装は numpy 1.21 向けで、今の numpy では勝者を数にする所（int(1次元の配列)）が止まる。
+
+    中身（最多の人が1人ならその人、同数なら None）は変えずに、今の numpy で動く形にする。
+    """
+    import numpy as np
+
+    def winner(c):
+        w = np.argwhere(np.array(c) == np.amax(c)).ravel()
+        return int(w[0]) if len(w) == 1 else None
+
+    R["Points"].get_winning_player = staticmethod(winner)
+
+
 class Tied(int):
     """同数で引き分けた勝者たち（int としては先頭の1人）。"""
 
@@ -345,6 +359,7 @@ def main() -> None:
                 print(f"形 {k}: 別実装 {rc[k]} 枚 / こちら {oc[k]} 枚")
         raise SystemExit("タイルの形ごとの枚数が別実装と合わない")
     tmap = tile_map(R, ts)
+    patch_numpy_compat(R)
     games = make_games(a.games, a.start, a.sims)
     res = {"ref": f"wingedsheep/carcassonne@{PINNED[:12]}", "tiles_match": True}
     res["as_is"] = compare(R, ts, tmap, games)
