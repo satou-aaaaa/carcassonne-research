@@ -60,5 +60,12 @@
  "最初から解き直す": "Start over",
  "問題${i + 1}": "Problem ${i + 1}",
  "正解 ${a.filter(p =": "Correct ${a.filter(p =",
- "1〜${ne}問目は入門編（点線の番号）、そのあとは実戦編です。": " Problems 1–${ne} are for beginners (dotted numbers); the rest are advanced."
+ "1〜${ne}問目は入門編（点線の番号）、そのあとは実戦編です。": " Problems 1–${ne} are for beginners (dotted numbers); the rest are advanced.",
+ "終盤": "Endgame",
+ "勝つ確率がいちばん高い手はどれでしょう？": "Which move gives the best chance to win?",
+ "勝つ確率（終局まで読み切り）": "Chance to win (solved to the end)",
+ "（最善より ${Math.round(Math.abs(gap))}ポイント低い）": " (${Math.round(Math.abs(gap))} points lower than best)",
+ "正解は ${LETTERS[P.best]}": "The answer is ${LETTERS[P.best]}",
+ "最後の${nx}問は終盤編で、山札の残りがわずかな局面を終局まで読み切り、勝つ確率がいちばん高い手を答えにしています。": " The last ${nx} are endgame problems: with only a few tiles left, we solved each position to the end and the answer is the move with the best chance to win.",
+ "終盤編の勝つ確率はAIの予想ではなく、残りのタイルのすべての引き方と、両者のすべての手を終局まで読み切った値です（山札の順番は分からないので、残りのタイルはどれも同じ確率で出るとして計算）。": " The chances to win in the endgame problems are not AI estimates: we solved every way the remaining tiles can be drawn and every move by both players to the end of the game (the draw order is unknown, so each remaining tile is treated as equally likely)."
 }
