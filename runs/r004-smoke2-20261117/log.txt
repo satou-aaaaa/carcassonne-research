@@ -1,0 +1,3 @@
+タイルの形ごとの枚数が別実装と合わない
+形 (((('bottom',), False),), (('left', 'right'),), ((('blb', 'bll', 'brb', 'brr'), (('bottom',),)), (('tll', 'tlt', 'trr', 'trt'), ())), False): 別実装 4 枚 / こちら 0 枚
+形 (((('bottom',), False),), (('left', 'right'),), ((('bll', 'brr'), (('bottom',),)), (('tll', 'tlt', 'trr', 'trt'), ())), False): 別実装 0 枚 / こちら 4 枚
