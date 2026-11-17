@@ -108,6 +108,11 @@ footer { margin-top: 22px; font-size: 12.5px; color: var(--muted); max-width: 70
 .lvl.easy { background: var(--accent); color: var(--accent-ink); }
 .lvl.end { background: var(--gold); color: #1a1300; }
 .progress button.easy { border-style: dashed; }
+.daily { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 8px; padding: 8px 12px; border: 1.5px solid var(--gold); border-radius: 10px; font-size: 13.5px; }
+.daily b { color: var(--gold); }
+.daily .btn { padding: 6px 14px; font-size: 13px; }
+.daily .done { color: var(--good); font-weight: 700; }
+.daily .streak { color: var(--muted); font-variant-numeric: tabular-nums; }
 nav.site { --paper: var(--surface); --field: var(--accent); }
 
 nav.site { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
@@ -137,6 +142,7 @@ summary { padding-block: 6px; }
     <div>
       <h1>Carcassonne Next-Move Quiz</h1>
       <div class="sub">Practice problems: guess the move a strong AI chose. Base game, two players.<span id="levels"></span></div>
+      <div class="daily" id="daily" aria-live="polite"></div>
     </div>
     <nav class="progress" id="progress" aria-label="Problem list"></nav>
   </header>
@@ -571,7 +577,7 @@ function render() {
 }
 function decide() {
   const P = PUZ[idx]; if (!P || sel === null || answers[P.id] !== undefined) return;
-  answers[P.id] = sel; save(); sel = P.best; render();
+  answers[P.id] = sel; save(); if (idx === TI) markDaily(); sel = P.best; render();
   // 狭い画面では判定と解説が選択肢の下に出るので、そこまで送る
   if (narrow()) $("after").scrollIntoView({behavior: "smooth", block: "start"});
 }
@@ -584,6 +590,7 @@ function renderFinal() {
   ctx.clearRect(0, 0, cv.width, cv.height); $("legend").textContent = "";
 }
 function renderProgress() {
+  renderDaily();
   const nav = $("progress"); nav.innerHTML = "";
   PUZ.forEach((p, i) => {
     const b = document.createElement("button"); b.textContent = i + 1; b.type = "button";
@@ -621,11 +628,49 @@ document.addEventListener("keydown", ev => {
   } else return;
   ev.preventDefault();
 });
+// ---------- Today's problem（日付ごとに1問。URL の #today で直接開く） ----------
+// 見る人の地域の日付で、毎日1問を選ぶ。並びは問題の id から決まる固定の順（全問を一巡してから同じ問題に戻る）
+const dayKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const NOW = new Date(), TODAY = dayKey(NOW);
+const YDAY = dayKey(new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate() - 1));
+const idHash = s => { let h = 2166136261; for (const ch of s) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0; return h; };
+const TI = (() => {
+  const order = PUZ.map((p, i) => i).sort((a, b) => idHash(PUZ[a].id) - idHash(PUZ[b].id));
+  const days = Math.floor(Date.UTC(NOW.getFullYear(), NOW.getMonth(), NOW.getDate()) / 864e5);
+  return order[days % order.length];
+})();
+const daily = {last: "", streak: 0, best: 0};
+try { Object.assign(daily, JSON.parse(localStorage.getItem("cc_quiz_daily") || "{}")); } catch (e) {}
+function markDaily() {
+  if (daily.last === TODAY) return;
+  daily.streak = daily.last === YDAY ? daily.streak + 1 : 1;
+  daily.best = Math.max(daily.best || 0, daily.streak);
+  daily.last = TODAY;
+  try { localStorage.setItem("cc_quiz_daily", JSON.stringify(daily)); } catch (e) {}
+}
+function renderDaily() {
+  const box = $("daily"), P = PUZ[TI]; if (!P) { box.hidden = true; return; }
+  const doneToday = daily.last === TODAY, a = answers[P.id];
+  const streak = doneToday || daily.last === YDAY ? daily.streak : 0;
+  let h = `<b>Today's problem</b><span>No. ${TI + 1}: “${P.title}”</span>`;
+  if (doneToday && a !== undefined) h += `<span class="done">${a === P.best ? "Solved" : "Answered"}</span>`;
+  else if (idx !== TI) h += `<button class="btn" id="btnToday" type="button">${a !== undefined ? "Try again" : "Solve"}</button>`;
+  else if (a !== undefined) h += `<span class="streak">You solved this one before. Press “Try again” below to count it for today.</span>`;
+  const longest = daily.best !== streak ? ` (best: ${daily.best} days)` : "";
+  if (streak) h += `<span class="streak">${streak}-day streak${longest}</span>`;
+  else h += `<span class="streak">A new problem every day</span>`;
+  box.innerHTML = h;
+  const b = $("btnToday");
+  if (b) b.onclick = () => {
+    if (answers[P.id] !== undefined && !doneToday) { delete answers[P.id]; delete hinted[P.id]; save(); }
+    go(TI);
+  };
+}
 { const ne = PUZ.filter(p => p.level === "intro").length, nx = PUZ.filter(p => p.exact).length;
   let t = ne ? `  Problems 1–${ne} are for beginners (dotted numbers); the rest are advanced.` : "";
   if (nx) t += `  The last ${nx} are endgame problems: with only a few tiles left, we solved each position to the end and the answer is the move with the best chance to win.`;
   $("levels").textContent = t; }
-go(Math.max(0, PUZ.findIndex(p => answers[p.id] === undefined)));
+go(location.hash === "#today" ? TI : Math.max(0, PUZ.findIndex(p => answers[p.id] === undefined)));
 </script>
 </body>
 </html>

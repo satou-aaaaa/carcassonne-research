@@ -67,5 +67,14 @@
  "（最善より ${Math.round(Math.abs(gap))}ポイント低い）": " (${Math.round(Math.abs(gap))} points lower than best)",
  "正解は ${LETTERS[P.best]}": "The answer is ${LETTERS[P.best]}",
  "最後の${nx}問は終盤編で、山札の残りがわずかな局面を終局まで読み切り、勝つ確率がいちばん高い手を答えにしています。": " The last ${nx} are endgame problems: with only a few tiles left, we solved each position to the end and the answer is the move with the best chance to win.",
- "終盤編の勝つ確率はAIの予想ではなく、残りのタイルのすべての引き方と、両者のすべての手を終局まで読み切った値です（山札の順番は分からないので、残りのタイルはどれも同じ確率で出るとして計算）。": " The chances to win in the endgame problems are not AI estimates: we solved every way the remaining tiles can be drawn and every move by both players to the end of the game (the draw order is unknown, so each remaining tile is treated as equally likely)."
+ "終盤編の勝つ確率はAIの予想ではなく、残りのタイルのすべての引き方と、両者のすべての手を終局まで読み切った値です（山札の順番は分からないので、残りのタイルはどれも同じ確率で出るとして計算）。": " The chances to win in the endgame problems are not AI estimates: we solved every way the remaining tiles can be drawn and every move by both players to the end of the game (the draw order is unknown, so each remaining tile is treated as equally likely).",
+ "今日の1問": "Today's problem",
+ "${TI + 1}問目「${P.title}」": "No. ${TI + 1}: “${P.title}”",
+ "正解しました": "Solved",
+ "解きました": "Answered",
+ "解く": "Solve",
+ "前に解いた問題です。下の「解き直す」で今日の分になります": "You solved this one before. Press “Try again” below to count it for today.",
+ "${streak}日続けて解いています": "${streak}-day streak",
+ "（最長${daily.best}日）": " (best: ${daily.best} days)",
+ "毎日1問、日付で変わります": "A new problem every day"
 }
