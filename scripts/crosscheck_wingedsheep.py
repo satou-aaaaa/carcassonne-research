@@ -12,8 +12,11 @@
    都市・道・草原のつながりの形で、ミープルの位置は特徴（都市・道・草原・修道院）で対応づける。
 3. 1手ごとの得点と終局の得点を比べ、最初に食い違った手と、その手で何が起きたかを記録する。
 
-別実装には公式ルールと違う所がある（同数のミープルで引き分けた特徴に、誰にも点を入れない）。
-`--official-ties` を付けると、その所だけ公式ルール（同数なら全員が満点）に差し替えて比べる。
+比べ方は3通り（結果の JSON の as_is / official_ties / official）:
+- as_is: 別実装そのまま（今の numpy で動くようにだけ直す）。
+- official_ties: 同数のミープルで引き分けた特徴に誰も点を入れない所を、公式ルール（同数なら全員が満点）に。
+- official: さらに、草原の点で同じ都市を何度も数える所を、公式ルール（完成した都市1つにつき3点）に。
+差し替えは別実装のコードを書き換えず、このスクリプトの中で関数を入れ替えて行う。
 """
 
 from __future__ import annotations
@@ -53,6 +56,7 @@ def load_ref(ref: Path):
     from wingedsheep.carcassonne.tile_sets.supplementary_rules import SupplementaryRule
     from wingedsheep.carcassonne.tile_sets.tile_sets import TileSet
     from wingedsheep.carcassonne.utils.action_util import ActionUtil
+    from wingedsheep.carcassonne.utils.city_util import CityUtil
     from wingedsheep.carcassonne.utils.points_collector import PointsCollector
     from wingedsheep.carcassonne.utils.state_updater import StateUpdater
 
@@ -60,7 +64,7 @@ def load_ref(ref: Path):
         "State": CarcassonneGameState, "MeepleAction": MeepleAction, "PassAction": PassAction,
         "TileAction": TileAction, "Coordinate": Coordinate, "MeepleType": MeepleType,
         "base_tiles": base_tiles, "base_tile_counts": base_tile_counts, "Rule": SupplementaryRule,
-        "TileSet": TileSet, "ActionUtil": ActionUtil, "Points": PointsCollector, "Updater": StateUpdater,
+        "TileSet": TileSet, "ActionUtil": ActionUtil, "CityUtil": CityUtil, "Points": PointsCollector, "Updater": StateUpdater,
     }  # fmt: skip
 
 
@@ -109,9 +113,11 @@ def instrument_final(R) -> None:
         state["who"] = getattr(w, "players", None) or ([] if w is None else [int(w)])
         return w
 
+    R["impl"] = orig
+
     def wrap(kind, f):
         def g(*a, **kw):
-            pts = f(*a, **kw)
+            pts = R["impl"][kind](*a, **kw)
             if state["on"] and kind != "M":  # 修道院は人ごとの数えを最後に差し引きで出す
                 for p in state["who"] or []:
                     R["final"][kind][p] += pts
@@ -133,6 +139,32 @@ def instrument_final(R) -> None:
             }[k],
             wrap(k, f),
         )
+
+
+def patch_farm_cities_once(R) -> None:
+    """別実装の草原の点のうち「同じ都市を何度も数える」所だけを、公式ルール（完成した都市1つにつき3点を1回）にする。
+
+    別実装は草原が接する都市を集めるとき、都市を表すオブジェクトに同じかどうかの判定が無く、同じ都市が
+    草原のタイルごとに別のものとして数えられる。都市を「含むマスと辺の組」で1つにまとめて数え直す。
+    """
+    CityUtil = R["CityUtil"]
+
+    def farm_points(game_state, farm):
+        seen = {}
+        for fc in farm.farmer_connections_with_coordinate:
+            for city in CityUtil.find_cities(
+                game_state=game_state,
+                coordinate=fc.coordinate,
+                sides=fc.farmer_connection.city_sides,
+            ):
+                key = frozenset(
+                    (p.coordinate.row, p.coordinate.column, str(p.side))
+                    for p in city.city_positions
+                )
+                seen[key] = city.finished
+        return 3 * sum(1 for done in seen.values() if done)
+
+    R["impl"]["F"] = farm_points
 
 
 class Tied(int):
@@ -421,9 +453,6 @@ def main() -> None:
     ap.add_argument("--games", type=int, default=100)
     ap.add_argument("--start", type=int, default=40000)
     ap.add_argument("--sims", type=int, default=300, help="探索AIの対局の1手の探索回数")
-    ap.add_argument(
-        "--official-ties", action="store_true", help="別実装の同数の扱いを公式ルールに差し替える"
-    )
     ap.add_argument("--out", help="結果の JSON")
     a = ap.parse_args()
     R = load_ref(Path(a.ref))
@@ -444,7 +473,9 @@ def main() -> None:
     res["as_is"] = compare(R, ts, tmap, games)
     patch_official_ties(R)
     res["official_ties"] = compare(R, ts, tmap, games)
-    for key in ("as_is", "official_ties"):
+    patch_farm_cities_once(R)
+    res["official"] = compare(R, ts, tmap, games)
+    for key in ("as_is", "official_ties", "official"):
         r = res[key]
         bad = [x for x in r["rows"] if x["first_diff"] is not None or x["stop"] is not None]
         kinds = Counter(
