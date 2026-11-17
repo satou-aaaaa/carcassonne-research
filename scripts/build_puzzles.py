@@ -5,7 +5,8 @@
 
 data/puzzles.json は scripts/make_puzzles.py の候補から採用した局面に、題名・問題文・解説を
 書き足したもの。英語ページ（docs/en/quiz.html）の文は各問題の "en"（title・prompt・explain・lesson・notes）。
-"level": "入門" の問題は先頭にまとめて出す（無ければ実戦編）。選択肢の並びは問題ごとに固定の乱数で入れ替える（正解がいつもAにならないように）。
+"level": "入門" の問題は先頭にまとめて出す（無ければ実戦編）。"exact": true の問題（終盤編、scripts/endgame_quiz.py）は
+最後にまとめ、選択肢を終局まで読み切った勝つ確率（各選択肢の "win"）で比べる。選択肢の並びは問題ごとに固定の乱数で入れ替える（正解がいつもAにならないように）。
 """
 
 from __future__ import annotations
@@ -57,6 +58,8 @@ def to_page(p: dict, lang: str = "ja") -> dict:
         p = {**p, **en}
     out = {k: p[k] for k in KEEP}
     out["level"] = "intro" if p.get("level") == "入門" else "real"
+    if p.get("exact"):  # 終盤の問題: 選択肢を読み切りの勝つ確率（win）で比べる
+        out["exact"] = True
     opts = [json.loads(json.dumps(o)) for o in p["options"]]  # 先頭が最善手
     for o, note in zip(opts, p.get("notes", [])):
         o["note"] = note
@@ -66,7 +69,8 @@ def to_page(p: dict, lang: str = "ja") -> dict:
     order = list(range(len(opts)))
     random.Random(p["id"]).shuffle(order)
     out["options"] = [
-        {k: opts[i][k] for k in ("move", "diff", "facts", "note") if k in opts[i]} for i in order
+        {k: opts[i][k] for k in ("move", "diff", "win", "facts", "note") if k in opts[i]}
+        for i in order
     ]
     out["best"] = order.index(0)
     return out
@@ -74,6 +78,7 @@ def to_page(p: dict, lang: str = "ja") -> dict:
 
 def ai_note(puzzles: list[dict], lang: str = "ja") -> str:
     """どのAIで答えを確かめたかの一文（scripts/recheck_puzzles.py が書く checked_by から）。"""
+    puzzles = [p for p in puzzles if not p.get("exact")]  # 終盤の問題は読み切りなので、AIに依らない
     names = {(p.get("checked_by") or {}).get("name") for p in puzzles}
     if len(names) != 1 or None in names:
         return ""
@@ -104,7 +109,8 @@ def main() -> None:
 
     def page(lang: str) -> str:
         puzzles = [to_page(p, lang) for p in raw]
-        puzzles.sort(key=lambda p: p["level"] != "intro")  # 安定ソート: 入門編を先に
+        # 安定ソート: 入門編を先に、終盤編（読み切り）を最後に
+        puzzles.sort(key=lambda p: (p["level"] != "intro", bool(p.get("exact"))))
         data = {"tiles": tile_library(), "puzzles": puzzles}
         blob = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
         body = tpl if lang == "ja" else translate(tpl, "quiz")

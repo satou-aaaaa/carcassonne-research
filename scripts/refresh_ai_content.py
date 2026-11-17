@@ -50,7 +50,10 @@ def content_ai() -> dict:
     puzzles = json.loads(PUZZLES.read_text(encoding="utf-8"))
     return {
         "tips": (summ.get("ai") or {}).get("name"),
-        "quiz": sorted({(p.get("checked_by") or {}).get("name") or "" for p in puzzles}),
+        # 終盤編（exact）は読み切りで確かめるのでAIの世代を持たない
+        "quiz": sorted(
+            {(p.get("checked_by") or {}).get("name") or "" for p in puzzles if not p.get("exact")}
+        ),
     }
 
 

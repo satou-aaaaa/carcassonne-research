@@ -101,6 +101,7 @@ footer { margin-top: 22px; font-size: 12.5px; color: var(--muted); max-width: 70
 @media (prefers-reduced-motion: no-preference) { .opt { transition: border-color .15s; } }
 .lvl { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .08em; padding: 0 7px; border-radius: 3px; margin-right: 6px; background: var(--line); color: var(--ink); }
 .lvl.easy { background: var(--accent); color: var(--accent-ink); }
+.lvl.end { background: var(--gold); color: #1a1300; }
 .progress button.easy { border-style: dashed; }
 nav.site { --paper: var(--surface); --field: var(--accent); }
 __SITE_NAV_CSS__
@@ -128,6 +129,7 @@ __SITE_NAV__
     「この手を選んだ場合の最終的な点差（あなた−相手）」です。山札の順番は分からない前提で計算しているので、
     実際の対局ではAIの予想どおりにならないこともあります。数点の差は「どちらも悪くない」くらいに受け取ってください。
     __AI_NOTE__
+    終盤編の勝つ確率はAIの予想ではなく、残りのタイルのすべての引き方と、両者のすべての手を終局まで読み切った値です（山札の順番は分からないので、残りのタイルはどれも同じ確率で出るとして計算）。
   </footer>
   __SITE_SUPPORT__
 </div>
@@ -321,9 +323,9 @@ function render() {
   document.documentElement.style.setProperty("--op", seatColor(op));
   const colorJa = p => p === 0 ? "赤" : "青";
   card.innerHTML = `
-    <div class="eyebrow">${P.level === "intro" ? '<span class="lvl easy">入門</span>' : '<span class="lvl">実戦</span>'}問題 ${idx + 1} / ${PUZ.length} ・ 第${P.turn}手 ・ 山札の残り ${P.deck_left}枚</div>
+    <div class="eyebrow">${P.level === "intro" ? '<span class="lvl easy">入門</span>' : P.exact ? '<span class="lvl end">終盤</span>' : '<span class="lvl">実戦</span>'}問題 ${idx + 1} / ${PUZ.length} ・ 第${P.turn}手 ・ 山札の残り ${P.deck_left}枚</div>
     <h2>${P.title}</h2>
-    <p class="prompt">${P.prompt} <b>AIならどの手を選ぶでしょう？</b></p>
+    <p class="prompt">${P.prompt} <b>${P.exact ? "勝つ確率がいちばん高い手はどれでしょう？" : "AIならどの手を選ぶでしょう？"}</b></p>
     <div class="situ">
       <canvas id="curTile" width="152" height="152" aria-label="引いたタイル"></canvas>
       <div class="who me">あなた（${colorJa(me)}）<b>${P.scores[me]}点</b>手持ちミープル ${P.supply[me]}</div>
@@ -332,9 +334,11 @@ function render() {
     <div class="opts" id="opts"></div>
     <div id="after"></div>
     <div class="row" id="actions"></div>
-    <details><summary>山札に残っているタイル（公開情報）</summary><div id="remain"></div></details>`;
+    <details${P.exact ? " open" : ""}><summary>山札に残っているタイル（公開情報）</summary><div id="remain"></div></details>`;
   $("curTile").getContext("2d").drawImage(tileCanvas(P.current, 0), 0, 0, 152, 152);
-  const bestDiff = P.options[P.best].diff, worst = Math.min(...P.options.map(o => o.diff));
+  // 終盤の問題（exact）は、点差の予想ではなく終局まで読み切った勝つ確率（win）で比べる
+  const val = o => P.exact ? o.win * 100 : o.diff;
+  const bestDiff = val(P.options[P.best]), worst = Math.min(...P.options.map(val));
   P.options.forEach((o, i) => {
     const b = document.createElement("button");
     b.className = "opt"; b.type = "button";
@@ -345,8 +349,10 @@ function render() {
     if (!done && hinted[P.id]) html += `<small class="hint">${optSub(o)}</small>`;
     if (done) {
       html += `<small>${optSub(o)}</small>`;
-      const gap = o.diff - bestDiff, w = worst < bestDiff ? 35 + 65 * (o.diff - worst) / (bestDiff - worst) : 100;
-      html += `<small>AIの予想点差 <b>${fmt(o.diff)}</b>${i === P.best ? "（最善）" : `（最善より ${Math.abs(gap).toFixed(1)}点 損）`}${i === ans ? " ← あなたの答え" : ""}</small><span class="bar"><i style="width:${w}%"></i></span>`;
+      const gap = val(o) - bestDiff, w = worst < bestDiff ? 35 + 65 * (val(o) - worst) / (bestDiff - worst) : 100;
+      html += P.exact
+        ? `<small>勝つ確率（終局まで読み切り） <b>${Math.round(val(o))}%</b>${i === P.best ? "（最善）" : `（最善より ${Math.round(Math.abs(gap))}ポイント低い）`}${i === ans ? " ← あなたの答え" : ""}</small><span class="bar"><i style="width:${w}%"></i></span>`
+        : `<small>AIの予想点差 <b>${fmt(o.diff)}</b>${i === P.best ? "（最善）" : `（最善より ${Math.abs(gap).toFixed(1)}点 損）`}${i === ans ? " ← あなたの答え" : ""}</small><span class="bar"><i style="width:${w}%"></i></span>`;
       if (o.note) html += `<small>${o.note}</small>`;
     }
     t.innerHTML = html;
@@ -368,7 +374,7 @@ function render() {
   } else {
     const ok = ans === P.best;
     $("after").innerHTML = `<div class="explain">
-      <div class="verdict ${ok ? "ok" : "ng"}">${ok ? "正解！" : `AIの答えは ${LETTERS[P.best]}`}</div>
+      <div class="verdict ${ok ? "ok" : "ng"}">${ok ? "正解！" : P.exact ? `正解は ${LETTERS[P.best]}` : `AIの答えは ${LETTERS[P.best]}`}</div>
       ${ok ? "" : `<p class="note">あなたの答えは ${LETTERS[ans]}。選択肢を押すと、それぞれの置き方を盤面で見比べられます。</p>`}
       ${hinted[P.id] ? `<p class="note">この問題はヒントを見て解きました。</p>` : ""}
       ${P.explain.map(p => `<p>${p}</p>`).join("")}
@@ -437,7 +443,9 @@ document.addEventListener("keydown", ev => {
   } else return;
   ev.preventDefault();
 });
-{ const ne = PUZ.filter(p => p.level === "intro").length;
-  if (ne) $("levels").textContent = ` 1〜${ne}問目は入門編（点線の番号）、そのあとは実戦編です。`; }
+{ const ne = PUZ.filter(p => p.level === "intro").length, nx = PUZ.filter(p => p.exact).length;
+  let t = ne ? ` 1〜${ne}問目は入門編（点線の番号）、そのあとは実戦編です。` : "";
+  if (nx) t += ` 最後の${nx}問は終盤編で、山札の残りがわずかな局面を終局まで読み切り、勝つ確率がいちばん高い手を答えにしています。`;
+  $("levels").textContent = t; }
 go(Math.max(0, PUZ.findIndex(p => answers[p.id] === undefined)));
 </script>
