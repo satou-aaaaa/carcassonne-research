@@ -461,16 +461,16 @@ def replay(R, ts, tmap, g) -> dict:
             R.get("explain_supply")
             and i + 1 < len(g["supply"])
             and st.meeples != g["supply"][i + 1]
+            and "supply_diff" not in R
         ):
-            if "supply_diff" not in R:
-                R["supply_diff"] = {
-                    "move": i, "tile": name, "turns": k, "piece": piece, "meeple": str(m.__dict__),
-                    "ours": g["supply"][i + 1], "theirs": list(st.meeples),
-                    "placed": [[f"{q.meeple_type.name} {q.coordinate_with_side.coordinate.row - OFF}"
-                                f",{q.coordinate_with_side.coordinate.column - OFF} {q.coordinate_with_side.side}"
-                                for q in pm] for pm in st.placed_meeples],
-                    "history_upto": hist[: i + 1],
-                }  # fmt: skip
+            R["supply_diff"] = {
+                "move": i, "tile": name, "turns": k, "piece": piece, "meeple": str(m.__dict__),
+                "ours": g["supply"][i + 1], "theirs": list(st.meeples),
+                "placed": [[f"{q.meeple_type.name} {q.coordinate_with_side.coordinate.row - OFF}"
+                            f",{q.coordinate_with_side.coordinate.column - OFF} {q.coordinate_with_side.side}"
+                            for q in pm] for pm in st.placed_meeples],
+                "history_upto": hist[: i + 1],
+            }  # fmt: skip
     fin = {k: list(v) for k, v in R["final"].items()}
     # 修道院の人ごとの点は、終局の数えの合計から都市・道・草原を引いて出す
     fin["M"] = [R["final_total"][p] - sum(fin[k][p] for k in "CRF") for p in (0, 1)]
