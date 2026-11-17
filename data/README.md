@@ -24,3 +24,10 @@
 
 - 足すだけで、消したり書き換えたりしない。棋譜が減る変更は CI（test.yml の data ジョブ、`scripts/check_data_append_only.py`）が止める。
 - 週に一度、控えを GitHub の Release「data-backup」に足す（`.github/workflows/data-backup.yml`）。
+
+## endgame_puzzles.jsonl（終盤で勝率が大きく動く局面）
+
+`scripts/endgame_puzzles.py` が自己対戦の棋譜から集めた、山札の残り1〜3枚で「最善手と次善手の勝率の差が0.15以上」の局面（1局面1行）。
+`deck`（山札）と `history`（着手 [x, y, 種別, 向き, 断片]、data/puzzles.json と同じ形）で盤面を再現できる。
+`best_move`・`greedy`（目先の点）・`diff`（点差最大）・`champ`（最強AIの探索）の手と、それぞれの厳密な勝率を持つ。
+終盤クイズの材料（BACKLOG R-007）。作り直しは `--refresh`。

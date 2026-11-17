@@ -1,0 +1,563 @@
+{
+ "ai": "gen1304",
+ "min_gap": 0.15,
+ "source": "endgame_puzzles.jsonl",
+ "games": 74,
+ "positions": 117,
+ "by_bag": {
+  "1": 28,
+  "2": 38,
+  "3": 51
+ },
+ "unique_best": 38,
+ "quiz_ready": 68,
+ "no_meeples": 86,
+ "close": 105,
+ "mean_gap": 0.4829,
+ "traps": {
+  "greedy": {
+   "miss": 40,
+   "mean_loss": 0.1085
+  },
+  "diff": {
+   "miss": 10,
+   "mean_loss": 0.0214
+  },
+  "champ": {
+   "miss": 21,
+   "mean_loss": 0.0584
+  }
+ },
+ "lessons": {
+  "目先の点で正解": {
+   "count": 77,
+   "greedy_loss": {
+    "miss": 0,
+    "mean_loss": 0.0
+   },
+   "examples": [
+    {
+     "id": "rec_1004_g0_p69",
+     "bag": 1,
+     "score": [
+      55,
+      58
+     ],
+     "meeples": [
+      1,
+      0
+     ],
+     "best": 0.5,
+     "n_best": [
+      1,
+      203
+     ],
+     "best_meeple": "道",
+     "best_proj": [
+      19,
+      6
+     ],
+     "greedy_win": 0.5,
+     "greedy_meeple": "道",
+     "greedy_proj": [
+      19,
+      6
+     ]
+    },
+    {
+     "id": "rec_1002_g38_p68",
+     "bag": 2,
+     "score": [
+      56,
+      54
+     ],
+     "meeples": [
+      0,
+      0
+     ],
+     "best": 1.0,
+     "n_best": [
+      1,
+      73
+     ],
+     "best_meeple": "なし",
+     "best_proj": [
+      12,
+      4
+     ],
+     "greedy_win": 1.0,
+     "greedy_meeple": "なし",
+     "greedy_proj": [
+      12,
+      4
+     ]
+    },
+    {
+     "id": "rec_1002_g13_p67",
+     "bag": 3,
+     "score": [
+      50,
+      64
+     ],
+     "meeples": [
+      0,
+      0
+     ],
+     "best": 0.833333,
+     "n_best": [
+      1,
+      71
+     ],
+     "best_meeple": "なし",
+     "best_proj": [
+      8,
+      0
+     ],
+     "greedy_win": 0.833333,
+     "greedy_meeple": "なし",
+     "greedy_proj": [
+      8,
+      0
+     ]
+    }
+   ]
+  },
+  "点は同じ、置き場所で決まる": {
+   "count": 18,
+   "greedy_loss": {
+    "miss": 18,
+    "mean_loss": 0.2143
+   },
+   "examples": [
+    {
+     "id": "rec_1004_g31_p68",
+     "bag": 2,
+     "score": [
+      64,
+      43
+     ],
+     "meeples": [
+      1,
+      0
+     ],
+     "best": 0.5,
+     "n_best": [
+      2,
+      173
+     ],
+     "best_meeple": "なし",
+     "best_proj": [
+      0,
+      0
+     ],
+     "greedy_win": 0.15,
+     "greedy_meeple": "道",
+     "greedy_proj": [
+      7,
+      3
+     ]
+    },
+    {
+     "id": "rec_1002_g38_p67",
+     "bag": 3,
+     "score": [
+      54,
+      56
+     ],
+     "meeples": [
+      0,
+      0
+     ],
+     "best": 1.0,
+     "n_best": [
+      1,
+      61
+     ],
+     "best_meeple": "なし",
+     "best_proj": [
+      1,
+      0
+     ],
+     "greedy_win": 0.666667,
+     "greedy_meeple": "なし",
+     "greedy_proj": [
+      1,
+      0
+     ]
+    },
+    {
+     "id": "rec_1004_g2_p68",
+     "bag": 2,
+     "score": [
+      52,
+      39
+     ],
+     "meeples": [
+      0,
+      0
+     ],
+     "best": 1.0,
+     "n_best": [
+      1,
+      57
+     ],
+     "best_meeple": "なし",
+     "best_proj": [
+      0,
+      0
+     ],
+     "greedy_win": 0.508929,
+     "greedy_meeple": "なし",
+     "greedy_proj": [
+      0,
+      0
+     ]
+    }
+   ]
+  },
+  "目先の点を捨てる": {
+   "count": 12,
+   "greedy_loss": {
+    "miss": 12,
+    "mean_loss": 0.4514
+   },
+   "examples": [
+    {
+     "id": "rec_1001_g43_p67",
+     "bag": 3,
+     "score": [
+      44,
+      52
+     ],
+     "meeples": [
+      1,
+      1
+     ],
+     "best": 0.666667,
+     "n_best": [
+      1,
+      171
+     ],
+     "best_meeple": "草原",
+     "best_proj": [
+      3,
+      0
+     ],
+     "greedy_win": 0.083333,
+     "greedy_meeple": "草原",
+     "greedy_proj": [
+      6,
+      0
+     ]
+    },
+    {
+     "id": "rec_1002_g13_p68",
+     "bag": 2,
+     "score": [
+      64,
+      58
+     ],
+     "meeples": [
+      0,
+      1
+     ],
+     "best": 0.25,
+     "n_best": [
+      1,
+      63
+     ],
+     "best_meeple": "なし",
+     "best_proj": [
+      0,
+      0
+     ],
+     "greedy_win": 0.0,
+     "greedy_meeple": "なし",
+     "greedy_proj": [
+      1,
+      0
+     ]
+    },
+    {
+     "id": "rec_1001_g41_p68",
+     "bag": 2,
+     "score": [
+      48,
+      49
+     ],
+     "meeples": [
+      0,
+      0
+     ],
+     "best": 0.75,
+     "n_best": [
+      1,
+      44
+     ],
+     "best_meeple": "なし",
+     "best_proj": [
+      0,
+      0
+     ],
+     "greedy_win": 0.5,
+     "greedy_meeple": "なし",
+     "greedy_proj": [
+      1,
+      0
+     ]
+    }
+   ]
+  },
+  "ミープルの置き先を変える": {
+   "count": 4,
+   "greedy_loss": {
+    "miss": 4,
+    "mean_loss": 0.3333
+   },
+   "examples": [
+    {
+     "id": "rec_1002_g26_p66",
+     "bag": 3,
+     "score": [
+      48,
+      55
+     ],
+     "meeples": [
+      1,
+      1
+     ],
+     "best": 0.333333,
+     "n_best": [
+      1,
+      184
+     ],
+     "best_meeple": "草原",
+     "best_proj": [
+      1,
+      0
+     ],
+     "greedy_win": 0.0,
+     "greedy_meeple": "都市",
+     "greedy_proj": [
+      4,
+      0
+     ]
+    },
+    {
+     "id": "rec_1000_g25_p67",
+     "bag": 3,
+     "score": [
+      42,
+      43
+     ],
+     "meeples": [
+      1,
+      2
+     ],
+     "best": 0.666667,
+     "n_best": [
+      2,
+      214
+     ],
+     "best_meeple": "草原",
+     "best_proj": [
+      0,
+      0
+     ],
+     "greedy_win": 0.333333,
+     "greedy_meeple": "道",
+     "greedy_proj": [
+      11,
+      3
+     ]
+    },
+    {
+     "id": "rec_1002_g11_p67",
+     "bag": 2,
+     "score": [
+      33,
+      31
+     ],
+     "meeples": [
+      1,
+      0
+     ],
+     "best": 0.5,
+     "n_best": [
+      2,
+      211
+     ],
+     "best_meeple": "草原",
+     "best_proj": [
+      0,
+      0
+     ],
+     "greedy_win": 0.0,
+     "greedy_meeple": "道",
+     "greedy_proj": [
+      4,
+      0
+     ]
+    }
+   ]
+  },
+  "ミープルを置かない": {
+   "count": 4,
+   "greedy_loss": {
+    "miss": 4,
+    "mean_loss": 0.3542
+   },
+   "examples": [
+    {
+     "id": "rec_1002_g8_p68",
+     "bag": 2,
+     "score": [
+      52,
+      50
+     ],
+     "meeples": [
+      1,
+      0
+     ],
+     "best": 0.5,
+     "n_best": [
+      1,
+      50
+     ],
+     "best_meeple": "なし",
+     "best_proj": [
+      0,
+      0
+     ],
+     "greedy_win": 0.0,
+     "greedy_meeple": "草原",
+     "greedy_proj": [
+      3,
+      0
+     ]
+    },
+    {
+     "id": "rec_1001_g39_p67",
+     "bag": 3,
+     "score": [
+      56,
+      43
+     ],
+     "meeples": [
+      1,
+      0
+     ],
+     "best": 1.0,
+     "n_best": [
+      6,
+      192
+     ],
+     "best_meeple": "なし",
+     "best_proj": [
+      1,
+      1
+     ],
+     "greedy_win": 0.416667,
+     "greedy_meeple": "道",
+     "greedy_proj": [
+      5,
+      0
+     ]
+    },
+    {
+     "id": "rec_1004_g7_p67",
+     "bag": 3,
+     "score": [
+      72,
+      52
+     ],
+     "meeples": [
+      1,
+      0
+     ],
+     "best": 1.0,
+     "n_best": [
+      52,
+      202
+     ],
+     "best_meeple": "なし",
+     "best_proj": [
+      0,
+      0
+     ],
+     "greedy_win": 0.833333,
+     "greedy_meeple": "草原",
+     "greedy_proj": [
+      4,
+      0
+     ]
+    }
+   ]
+  },
+  "相手の点を止める": {
+   "count": 2,
+   "greedy_loss": {
+    "miss": 2,
+    "mean_loss": 0.3333
+   },
+   "examples": [
+    {
+     "id": "rec_1002_g17_p68",
+     "bag": 2,
+     "score": [
+      28,
+      50
+     ],
+     "meeples": [
+      0,
+      0
+     ],
+     "best": 0.5,
+     "n_best": [
+      1,
+      49
+     ],
+     "best_meeple": "なし",
+     "best_proj": [
+      7,
+      0
+     ],
+     "greedy_win": 0.0,
+     "greedy_meeple": "なし",
+     "greedy_proj": [
+      15,
+      6
+     ]
+    },
+    {
+     "id": "rec_1002_g11_p66",
+     "bag": 3,
+     "score": [
+      31,
+      24
+     ],
+     "meeples": [
+      0,
+      0
+     ],
+     "best": 1.0,
+     "n_best": [
+      47,
+      48
+     ],
+     "best_meeple": "なし",
+     "best_proj": [
+      0,
+      0
+     ],
+     "greedy_win": 0.833333,
+     "greedy_meeple": "なし",
+     "greedy_proj": [
+      6,
+      1
+     ]
+    }
+   ]
+  }
+ }
+}
