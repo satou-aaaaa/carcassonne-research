@@ -1,0 +1,784 @@
+{
+ "ref": "wingedsheep/carcassonne@e80dbb429e0d",
+ "tiles_match": true,
+ "as_is": {
+  "games": 6,
+  "match": 1,
+  "rows": [
+   {
+    "seed": 40000,
+    "kind": "random",
+    "ours": [
+     12,
+     12
+    ],
+    "theirs": [
+     18,
+     12
+    ],
+    "stop": null,
+    "why": null,
+    "first_diff": 70,
+    "plies": 71,
+    "final_ours": {
+     "C": [
+      4,
+      10
+     ],
+     "R": [
+      2,
+      2
+     ],
+     "F": [
+      6,
+      0
+     ],
+     "M": [
+      0,
+      0
+     ]
+    },
+    "final_theirs": {
+     "C": [
+      4,
+      10
+     ],
+     "R": [
+      2,
+      2
+     ],
+     "F": [
+      12,
+      0
+     ],
+     "M": [
+      0,
+      0
+     ]
+    },
+    "final_diff_kinds": [
+     "F"
+    ],
+    "ours_at": [
+     12,
+     12
+    ],
+    "theirs_at": [
+     18,
+     12
+    ],
+    "final_only": true,
+    "tie": null
+   },
+   {
+    "seed": 40001,
+    "kind": "fmcts300",
+    "ours": [
+     60,
+     30
+    ],
+    "theirs": [
+     75,
+     30
+    ],
+    "stop": null,
+    "why": null,
+    "first_diff": 70,
+    "plies": 71,
+    "final_ours": {
+     "C": [
+      4,
+      6
+     ],
+     "R": [
+      15,
+      8
+     ],
+     "F": [
+      18,
+      0
+     ],
+     "M": [
+      0,
+      0
+     ]
+    },
+    "final_theirs": {
+     "C": [
+      4,
+      6
+     ],
+     "R": [
+      15,
+      8
+     ],
+     "F": [
+      33,
+      0
+     ],
+     "M": [
+      0,
+      0
+     ]
+    },
+    "final_diff_kinds": [
+     "F"
+    ],
+    "ours_at": [
+     60,
+     30
+    ],
+    "theirs_at": [
+     75,
+     30
+    ],
+    "final_only": true,
+    "tie": null
+   },
+   {
+    "seed": 40002,
+    "kind": "random",
+    "ours": [
+     20,
+     20
+    ],
+    "theirs": [
+     11,
+     11
+    ],
+    "stop": null,
+    "why": null,
+    "first_diff": 70,
+    "plies": 71,
+    "final_ours": {
+     "C": [
+      4,
+      7
+     ],
+     "R": [
+      7,
+      0
+     ],
+     "F": [
+      9,
+      9
+     ],
+     "M": [
+      0,
+      0
+     ]
+    },
+    "final_theirs": {
+     "C": [
+      4,
+      7
+     ],
+     "R": [
+      7,
+      0
+     ],
+     "F": [
+      0,
+      0
+     ],
+     "M": [
+      0,
+      0
+     ]
+    },
+    "final_diff_kinds": [
+     "F"
+    ],
+    "ours_at": [
+     20,
+     20
+    ],
+    "theirs_at": [
+     11,
+     11
+    ],
+    "final_only": true,
+    "tie": null
+   },
+   {
+    "seed": 40003,
+    "kind": "fmcts300",
+    "ours": [
+     57,
+     49
+    ],
+    "theirs": [
+     60,
+     58
+    ],
+    "stop": null,
+    "why": null,
+    "first_diff": 69,
+    "plies": 70,
+    "final_ours": {
+     "C": [
+      9,
+      24
+     ],
+     "R": [
+      4,
+      1
+     ],
+     "F": [
+      3,
+      18
+     ],
+     "M": [
+      13,
+      0
+     ]
+    },
+    "final_theirs": {
+     "C": [
+      9,
+      24
+     ],
+     "R": [
+      4,
+      1
+     ],
+     "F": [
+      6,
+      27
+     ],
+     "M": [
+      13,
+      0
+     ]
+    },
+    "final_diff_kinds": [
+     "F"
+    ],
+    "ours_at": [
+     57,
+     49
+    ],
+    "theirs_at": [
+     60,
+     58
+    ],
+    "final_only": true,
+    "tie": null
+   },
+   {
+    "seed": 40004,
+    "kind": "random",
+    "ours": [
+     18,
+     7
+    ],
+    "theirs": [
+     18,
+     7
+    ],
+    "stop": null,
+    "why": null,
+    "first_diff": null,
+    "plies": 71,
+    "final_ours": {
+     "C": [
+      8,
+      1
+     ],
+     "R": [
+      4,
+      3
+     ],
+     "F": [
+      0,
+      0
+     ],
+     "M": [
+      6,
+      0
+     ]
+    },
+    "final_theirs": {
+     "C": [
+      8,
+      1
+     ],
+     "R": [
+      4,
+      3
+     ],
+     "F": [
+      0,
+      0
+     ],
+     "M": [
+      6,
+      0
+     ]
+    },
+    "final_diff_kinds": []
+   },
+   {
+    "seed": 40005,
+    "kind": "fmcts300",
+    "ours": [
+     71,
+     44
+    ],
+    "theirs": [
+     74,
+     38
+    ],
+    "stop": null,
+    "why": null,
+    "first_diff": 70,
+    "plies": 71,
+    "final_ours": {
+     "C": [
+      9,
+      19
+     ],
+     "R": [
+      0,
+      11
+     ],
+     "F": [
+      27,
+      6
+     ],
+     "M": [
+      13,
+      0
+     ]
+    },
+    "final_theirs": {
+     "C": [
+      9,
+      19
+     ],
+     "R": [
+      0,
+      11
+     ],
+     "F": [
+      30,
+      0
+     ],
+     "M": [
+      13,
+      0
+     ]
+    },
+    "final_diff_kinds": [
+     "F"
+    ],
+    "ours_at": [
+     71,
+     44
+    ],
+    "theirs_at": [
+     74,
+     38
+    ],
+    "final_only": true,
+    "tie": null
+   }
+  ],
+  "mismatch_kinds": {
+   "終局の数え": 5
+  },
+  "final_diff_by_kind": {
+   "F": 5
+  }
+ },
+ "official_ties": {
+  "games": 6,
+  "match": 1,
+  "rows": [
+   {
+    "seed": 40000,
+    "kind": "random",
+    "ours": [
+     12,
+     12
+    ],
+    "theirs": [
+     18,
+     12
+    ],
+    "stop": null,
+    "why": null,
+    "first_diff": 70,
+    "plies": 71,
+    "final_ours": {
+     "C": [
+      4,
+      10
+     ],
+     "R": [
+      2,
+      2
+     ],
+     "F": [
+      6,
+      0
+     ],
+     "M": [
+      0,
+      0
+     ]
+    },
+    "final_theirs": {
+     "C": [
+      4,
+      10
+     ],
+     "R": [
+      2,
+      2
+     ],
+     "F": [
+      12,
+      0
+     ],
+     "M": [
+      0,
+      0
+     ]
+    },
+    "final_diff_kinds": [
+     "F"
+    ],
+    "ours_at": [
+     12,
+     12
+    ],
+    "theirs_at": [
+     18,
+     12
+    ],
+    "final_only": true,
+    "tie": null
+   },
+   {
+    "seed": 40001,
+    "kind": "fmcts300",
+    "ours": [
+     60,
+     30
+    ],
+    "theirs": [
+     75,
+     30
+    ],
+    "stop": null,
+    "why": null,
+    "first_diff": 70,
+    "plies": 71,
+    "final_ours": {
+     "C": [
+      4,
+      6
+     ],
+     "R": [
+      15,
+      8
+     ],
+     "F": [
+      18,
+      0
+     ],
+     "M": [
+      0,
+      0
+     ]
+    },
+    "final_theirs": {
+     "C": [
+      4,
+      6
+     ],
+     "R": [
+      15,
+      8
+     ],
+     "F": [
+      33,
+      0
+     ],
+     "M": [
+      0,
+      0
+     ]
+    },
+    "final_diff_kinds": [
+     "F"
+    ],
+    "ours_at": [
+     60,
+     30
+    ],
+    "theirs_at": [
+     75,
+     30
+    ],
+    "final_only": true,
+    "tie": null
+   },
+   {
+    "seed": 40002,
+    "kind": "random",
+    "ours": [
+     20,
+     20
+    ],
+    "theirs": [
+     29,
+     29
+    ],
+    "stop": null,
+    "why": null,
+    "first_diff": 70,
+    "plies": 71,
+    "final_ours": {
+     "C": [
+      4,
+      7
+     ],
+     "R": [
+      7,
+      0
+     ],
+     "F": [
+      9,
+      9
+     ],
+     "M": [
+      0,
+      0
+     ]
+    },
+    "final_theirs": {
+     "C": [
+      4,
+      7
+     ],
+     "R": [
+      7,
+      0
+     ],
+     "F": [
+      18,
+      18
+     ],
+     "M": [
+      0,
+      0
+     ]
+    },
+    "final_diff_kinds": [
+     "F"
+    ],
+    "ours_at": [
+     20,
+     20
+    ],
+    "theirs_at": [
+     29,
+     29
+    ],
+    "final_only": true,
+    "tie": null
+   },
+   {
+    "seed": 40003,
+    "kind": "fmcts300",
+    "ours": [
+     57,
+     49
+    ],
+    "theirs": [
+     60,
+     58
+    ],
+    "stop": null,
+    "why": null,
+    "first_diff": 69,
+    "plies": 70,
+    "final_ours": {
+     "C": [
+      9,
+      24
+     ],
+     "R": [
+      4,
+      1
+     ],
+     "F": [
+      3,
+      18
+     ],
+     "M": [
+      13,
+      0
+     ]
+    },
+    "final_theirs": {
+     "C": [
+      9,
+      24
+     ],
+     "R": [
+      4,
+      1
+     ],
+     "F": [
+      6,
+      27
+     ],
+     "M": [
+      13,
+      0
+     ]
+    },
+    "final_diff_kinds": [
+     "F"
+    ],
+    "ours_at": [
+     57,
+     49
+    ],
+    "theirs_at": [
+     60,
+     58
+    ],
+    "final_only": true,
+    "tie": null
+   },
+   {
+    "seed": 40004,
+    "kind": "random",
+    "ours": [
+     18,
+     7
+    ],
+    "theirs": [
+     18,
+     7
+    ],
+    "stop": null,
+    "why": null,
+    "first_diff": null,
+    "plies": 71,
+    "final_ours": {
+     "C": [
+      8,
+      1
+     ],
+     "R": [
+      4,
+      3
+     ],
+     "F": [
+      0,
+      0
+     ],
+     "M": [
+      6,
+      0
+     ]
+    },
+    "final_theirs": {
+     "C": [
+      8,
+      1
+     ],
+     "R": [
+      4,
+      3
+     ],
+     "F": [
+      0,
+      0
+     ],
+     "M": [
+      6,
+      0
+     ]
+    },
+    "final_diff_kinds": []
+   },
+   {
+    "seed": 40005,
+    "kind": "fmcts300",
+    "ours": [
+     71,
+     44
+    ],
+    "theirs": [
+     77,
+     41
+    ],
+    "stop": null,
+    "why": null,
+    "first_diff": 70,
+    "plies": 71,
+    "final_ours": {
+     "C": [
+      9,
+      19
+     ],
+     "R": [
+      0,
+      11
+     ],
+     "F": [
+      27,
+      6
+     ],
+     "M": [
+      13,
+      0
+     ]
+    },
+    "final_theirs": {
+     "C": [
+      9,
+      19
+     ],
+     "R": [
+      0,
+      11
+     ],
+     "F": [
+      33,
+      3
+     ],
+     "M": [
+      13,
+      0
+     ]
+    },
+    "final_diff_kinds": [
+     "F"
+    ],
+    "ours_at": [
+     71,
+     44
+    ],
+    "theirs_at": [
+     77,
+     41
+    ],
+    "final_only": true,
+    "tie": null
+   }
+  ],
+  "mismatch_kinds": {
+   "終局の数え": 5
+  },
+  "final_diff_by_kind": {
+   "F": 5
+  }
+ }
+}
