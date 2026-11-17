@@ -1,0 +1,654 @@
+"""独立した別実装（wingedsheep/carcassonne、MIT）で同じ棋譜をたどり、終局の得点を突き合わせる（R-004）。
+
+別実装のコードはこのリポジトリに取り込まない。`--ref` に、別に clone したその実装のフォルダを渡す:
+
+    git clone https://github.com/wingedsheep/carcassonne.git <dir>
+    git -C <dir> checkout e80dbb429e0d74727d0df2038802a42188b6fc62
+    python scripts/crosscheck_wingedsheep.py --ref <dir> --games 100 --out docs/results/crosscheck.json
+
+やること:
+1. こちらのエンジン（`carcassonne.state.State`）で対局を作る（ランダムな手の対局と、探索AIの対局を半々）。
+2. 同じ山札の並び・同じ着手（場所・向き・ミープルの位置）を別実装に1手ずつ与える。タイルの向きは辺と
+   都市・道・草原のつながりの形で、ミープルの位置は特徴（都市・道・草原・修道院）で対応づける。
+3. 1手ごとの得点と終局の得点を比べ、最初に食い違った手と、その手で何が起きたかを記録する。
+
+比べ方は3通り（結果の JSON の as_is / official_ties / official）:
+- as_is: 別実装そのまま（今の numpy で動くようにだけ直す）。
+- official_ties: 同数のミープルで引き分けた特徴に誰も点を入れない所を、公式ルール（同数なら全員が満点）に。
+- official_farms: さらに、草原の点で同じ都市を何度も数える所を、公式ルール（完成した都市1つにつき3点）に。
+- official: さらに、草原が都市の辺をまたいでつながるタイルの定義（1種）、草原を上のタイルへたどる向き（1か所）、
+  まわりの修道院の完成の調べ方（1か所）を直す。
+差し替えは別実装のコードを書き換えず、このスクリプトの中で関数を入れ替えて行う。
+"""
+
+from __future__ import annotations
+
+import argparse
+import contextlib
+import io
+import json
+import random
+import sys
+from collections import Counter
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from carcassonne.agents import RandomAgent
+from carcassonne.state import State
+from carcassonne.tiles import CITY, FIELD, MONASTERY, ROAD
+
+PINNED = "e80dbb429e0d74727d0df2038802a42188b6fc62"
+# こちらの半辺 side*2+h（辺の上を時計回り）→ 別実装の FarmerSide の名前
+HALF_NAMES = ["tlt", "trt", "trr", "brr", "brb", "blb", "bll", "tll"]
+SIDE_NAMES = ["top", "right", "bottom", "left"]
+OFF = 40  # 別実装の盤の中心（行・列）。こちらの (x, y) は (行 OFF-y, 列 OFF+x)。盤は 81×81（基本セットの72枚は収まる）
+
+
+def load_ref(ref: Path):
+    sys.path.insert(0, str(ref))
+    from wingedsheep.carcassonne.carcassonne_game_state import CarcassonneGameState
+    from wingedsheep.carcassonne.objects.actions.meeple_action import MeepleAction
+    from wingedsheep.carcassonne.objects.actions.pass_action import PassAction
+    from wingedsheep.carcassonne.objects.actions.tile_action import TileAction
+    from wingedsheep.carcassonne.objects.coordinate import Coordinate
+    from wingedsheep.carcassonne.objects.coordinate_with_side import CoordinateWithSide
+    from wingedsheep.carcassonne.objects.meeple_type import MeepleType
+    from wingedsheep.carcassonne.objects.side import Side
+    from wingedsheep.carcassonne.tile_sets.base_deck import base_tile_counts, base_tiles
+    from wingedsheep.carcassonne.tile_sets.supplementary_rules import SupplementaryRule
+    from wingedsheep.carcassonne.tile_sets.tile_sets import TileSet
+    from wingedsheep.carcassonne.utils.action_util import ActionUtil
+    from wingedsheep.carcassonne.utils.city_util import CityUtil
+    from wingedsheep.carcassonne.utils.meeple_util import MeepleUtil
+    from wingedsheep.carcassonne.utils.points_collector import PointsCollector
+    from wingedsheep.carcassonne.utils.side_modification_util import SideModificationUtil
+    from wingedsheep.carcassonne.utils.state_updater import StateUpdater
+
+    return {
+        "State": CarcassonneGameState, "MeepleAction": MeepleAction, "PassAction": PassAction,
+        "TileAction": TileAction, "Coordinate": Coordinate, "MeepleType": MeepleType,
+        "base_tiles": base_tiles, "base_tile_counts": base_tile_counts, "Rule": SupplementaryRule,
+        "TileSet": TileSet, "ActionUtil": ActionUtil, "CityUtil": CityUtil, "MeepleUtil": MeepleUtil, "CWS": CoordinateWithSide, "Side": Side, "SideUtil": SideModificationUtil, "Points": PointsCollector, "Updater": StateUpdater,
+    }  # fmt: skip
+
+
+def patch_numpy_compat(R) -> None:
+    """別実装は numpy 1.21 向けで、今の numpy では勝者を数にする所（int(1次元の配列)）が止まる。
+
+    中身（最多の人が1人ならその人、同数なら None）は変えずに、今の numpy で動く形にする。
+    """
+    import numpy as np
+
+    def winner(c):
+        w = np.argwhere(np.array(c) == np.amax(c)).ravel()
+        return int(w[0]) if len(w) == 1 else None
+
+    R["winner_impl"] = winner
+
+
+def instrument_final(R) -> None:
+    """別実装の終局の数えを、種類ごと・人ごとに R["final"] に記録する（得点の計算は変えない）。"""
+    P = R["Points"]
+    state = {"on": False, "who": None}
+    R["final"] = {k: [0, 0] for k in "CRFM"}
+    orig_final = P.count_final_scores.__func__
+    orig = {
+        k: getattr(P, n)
+        for k, n in (
+            ("C", "count_city_points"),
+            ("R", "count_road_points"),
+            ("F", "count_farm_points"),
+            ("M", "chapel_or_flowers_points"),
+        )
+    }
+    orig_winner = P.get_winning_player  # staticmethod を外した関数
+
+    def final(cls, game_state):
+        state["on"] = True
+        before = list(game_state.scores)
+        try:
+            orig_final(cls, game_state)
+        finally:
+            state["on"] = False
+        R["final_total"] = [a - b for a, b in zip(game_state.scores, before)]
+
+    def winner(c):
+        w = R["winner_impl"](c)
+        state["who"] = getattr(w, "players", None) or ([] if w is None else [int(w)])
+        return w
+
+    R["impl"] = orig
+
+    def wrap(kind, f):
+        def g(*a, **kw):
+            pts = R["impl"][kind](*a, **kw)
+            if state["on"] and kind != "M":  # 修道院は人ごとの数えを最後に差し引きで出す
+                for p in state["who"] or []:
+                    R["final"][kind][p] += pts
+            return pts
+
+        return staticmethod(g)
+
+    R["winner_impl"] = orig_winner
+    P.count_final_scores = classmethod(final)
+    P.get_winning_player = staticmethod(winner)
+    for k, f in orig.items():
+        setattr(
+            P,
+            {
+                "C": "count_city_points",
+                "R": "count_road_points",
+                "F": "count_farm_points",
+                "M": "chapel_or_flowers_points",
+            }[k],
+            wrap(k, f),
+        )
+
+
+def patch_farm_cities_once(R) -> None:
+    """別実装の草原の点のうち「同じ都市を何度も数える」所だけを、公式ルール（完成した都市1つにつき3点を1回）にする。
+
+    別実装は草原が接する都市を集めるとき、都市を表すオブジェクトに同じかどうかの判定が無く、同じ都市が
+    草原のタイルごとに別のものとして数えられる。都市を「含むマスと辺の組」で1つにまとめて数え直す。
+    """
+    CityUtil = R["CityUtil"]
+
+    def farm_points(game_state, farm):
+        seen = {}
+        for fc in farm.farmer_connections_with_coordinate:
+            for city in CityUtil.find_cities(
+                game_state=game_state,
+                coordinate=fc.coordinate,
+                sides=fc.farmer_connection.city_sides,
+            ):
+                key = frozenset(
+                    (p.coordinate.row, p.coordinate.column, str(p.side))
+                    for p in city.city_positions
+                )
+                seen[key] = city.finished
+        return 3 * sum(1 for done in seen.values() if done)
+
+    R["impl"]["F"] = farm_points
+
+
+def patch_tile_data(R) -> None:
+    """別実装のタイルの定義のうち、草原が都市の辺の上の半辺まで含む所を外す（草原は都市で区切られる）。
+
+    基本セットでは「都市1辺＋まっすぐな道」（city_top_straight_road）の、道と都市の間の草原だけがこうなっている
+    （tile_sets/base_deck.py。scan は R-004 の docs/EXPERIMENTS.md）。都市の辺どうしで2枚がつながると、
+    都市の向こう側の草原までつながってしまう。
+    """
+    FC = type(next(f for t in R["base_tiles"].values() for f in t.farms))
+    for t in R["base_tiles"].values():
+        cities = {str(s) for c in t.city for s in c}
+        t.farms = [
+            FC(
+                farmer_positions=f.farmer_positions,
+                tile_connections=[h for h in f.tile_connections if str(h.get_side()) not in cities],
+                city_sides=f.city_sides,
+            )
+            for f in t.farms
+        ]
+
+
+def patch_farm_neighbor(R) -> None:
+    """別実装で草原を隣のタイルへたどる所のうち、上の辺の右半分（trt）の向かいを直す。
+
+    上の辺の右半分の向かいは、上のタイルの下の辺の右半分（brb）。別実装は右の辺の下半分（brr）を返すので、
+    上へたどるときに草原がつながらなかったり、別の草原につながったりする（utils/side_modification_util.py）。
+    ほかの7つの向かいは正しい。
+    """
+    SU = R["SideUtil"]
+    orig = SU.opposite_farmer_side.__func__
+
+    def opposite(cls, farmer_side):
+        if str(farmer_side) == "trt":
+            return type(farmer_side).BRB
+        return orig(cls, farmer_side)
+
+    SU.opposite_farmer_side = classmethod(opposite)
+
+
+def patch_monastery_scan(R) -> None:
+    """別実装で、置いたタイルのまわり3×3の修道院の完成を調べる所を直す。
+
+    別実装は3×3を回す途中でループの変数 coordinate を上書きするので、2行目からは調べる列がずれ、
+    置いたタイルの左の列の修道院の完成を見落とす（utils/points_collector.py の
+    remove_meeples_and_collect_points）。元の処理のあとに、同じ判定（ミープルがいて9点なら得点して戻す）を
+    正しい3×3でもう一度行う（元の処理で数えた修道院はミープルが戻っているので重ならない）。
+    """
+    P, MU, CWS, Side, Coord = R["Points"], R["MeepleUtil"], R["CWS"], R["Side"], R["Coordinate"]
+    orig = P.remove_meeples_and_collect_points.__func__
+
+    def collect(cls, game_state, coordinate):
+        orig(cls, game_state, coordinate)
+        r0, c0 = coordinate.row, coordinate.column
+        for row in range(r0 - 1, r0 + 2):
+            for col in range(c0 - 1, c0 + 2):
+                tile = game_state.get_tile(row, col)
+                if tile is None or not tile.chapel:
+                    continue
+                pos = CWS(coordinate=Coord(row, col), side=Side.CENTER)
+                who = MU.position_contains_meeple(game_state=game_state, coordinate_with_side=pos)
+                if who is None or P.chapel_or_flowers_points(game_state, Coord(row, col)) != 9:
+                    continue
+                game_state.scores[who] += 9
+                mine = [q for q in game_state.placed_meeples[who] if q.coordinate_with_side == pos]
+                MU.remove_meeples(
+                    game_state=game_state, meeples=[mine if p == who else [] for p in range(2)]
+                )
+
+    P.remove_meeples_and_collect_points = classmethod(collect)
+
+
+class Tied(int):
+    """同数で引き分けた勝者たち（int としては先頭の1人）。"""
+
+    players: tuple[int, ...] = ()
+
+
+class TieScores(list):
+    """`scores[勝者] += 点` の勝者が Tied なら、同数の全員に同じ点を足す得点表。"""
+
+    def __setitem__(self, i, v):
+        if isinstance(i, Tied):
+            delta = v - list.__getitem__(self, int(i))
+            for p in i.players:
+                list.__setitem__(self, p, list.__getitem__(self, p) + delta)
+        else:
+            list.__setitem__(self, i, v)
+
+
+def patch_official_ties(R) -> None:
+    """別実装の得点処理のうち「同数なら誰も得点しない」所だけを、公式ルール（同数なら全員が満点）に差し替える。
+
+    別実装は勝者1人（int か None）を返し `scores[勝者] += 点` と足す形なので、同数のときは Tied を返し、
+    得点表 TieScores が同数の全員に足す（別実装のコードは書き換えない）。
+    """
+    import numpy as np
+
+    def winner(c):
+        c = np.array(c)
+        top = c.max()
+        if top <= 0:
+            return None
+        w = tuple(int(i) for i in np.argwhere(c == top).ravel())
+        if len(w) == 1:
+            return w[0]
+        t = Tied(w[0])
+        t.players = w
+        return t
+
+    R["winner_impl"] = winner
+    R["tie_scores"] = True
+
+
+def piece_sig(v):
+    """こちらの Variant を、向きで変わる形の署名にする（別実装のタイルと突き合わせる用）。"""
+    cities, roads, fields = [], [], []
+    mon = False
+    for p in v.pieces:
+        if p.kind == CITY:
+            cities.append((tuple(sorted(SIDE_NAMES[s] for s in p.sides)), p.pennant))
+        elif p.kind == ROAD:
+            roads.append(tuple(sorted(SIDE_NAMES[s] for s in p.sides)))
+        elif p.kind == FIELD:
+            # 接する都市は、その都市の辺の組（名前）で表す
+            adj = tuple(
+                sorted(
+                    {tuple(sorted(SIDE_NAMES[s] for s in v.pieces[c].sides)) for c in p.city_adj}
+                )
+            )
+            fields.append((tuple(sorted(HALF_NAMES[h] for h in p.halves)), adj))
+        elif p.kind == MONASTERY:
+            mon = True
+    return (tuple(sorted(cities)), tuple(sorted(roads)), tuple(sorted(fields)), mon)
+
+
+def ref_sig(t):
+    """別実装の（回したあとの）タイルの署名。都市・道・草原の分け方と盾・修道院。"""
+    shield = bool(t.shield)
+    cities = [(tuple(sorted(str(s) for s in c)), shield) for c in t.city]
+    # 別実装は盾を「タイルに1つ」で持つ。都市が1つより多いタイルに盾は無い（基本セット）
+    ends: dict = {}
+    for i, c in enumerate(t.road):
+        for s in (c.a, c.b):
+            if str(s) != "center":
+                ends.setdefault(i, []).append(str(s))
+    # 端が CENTER の道（行き止まり）は1辺だけの道。両端が辺の道は2辺の道
+    roads = [tuple(sorted(e)) for e in ends.values()]
+    city_of = {str(s): c[0] for c in cities for s in c[0]}
+    fields = []
+    for f in t.farms:
+        # 別実装は接する都市を辺で持つ（同じ都市の辺が1つだけのことも）。都市の辺の組にそろえる
+        adj = tuple(sorted({city_of[str(s)] for s in f.city_sides}))
+        # 別実装の草原には、都市の辺の上の半辺が入っているタイルがある（形の比較では都市の辺の半辺を外す）
+        halves = (str(h) for h in f.tile_connections if str(h.get_side()) not in city_of)
+        fields.append((tuple(sorted(halves)), adj))
+    return (tuple(sorted(cities)), tuple(sorted(roads)), tuple(sorted(fields)), bool(t.chapel))
+
+
+def tile_map(R, ts):
+    """こちらの (種別, 向き) → (別実装のタイル名, 回転数)。形がちょうど1通りに決まることを確かめる。"""
+    sigs: dict = {}
+    for name, t in R["base_tiles"].items():
+        for k in range(4):
+            sigs.setdefault(ref_sig(t.turn(k)), []).append((name, k))
+    out = {}
+    for ti, tt in enumerate(ts.types):
+        for vi, v in enumerate(tt.variants):
+            m = sigs.get(piece_sig(v))
+            if not m:
+                raise SystemExit(f"別実装に形の合うタイルがない: {tt.id} 向き{vi} {piece_sig(v)}")
+            # 絵柄違い（花の有無）の同形タイルは同じ扱い。名前は1つに決める
+            out[(ti, vi)] = min(m)
+    return out
+
+
+def ref_counts_by_shape(R) -> Counter:
+    """別実装の基本セットの枚数を、こちらの種別の形（回転0の署名）でまとめる。"""
+    c: Counter = Counter()
+    for name, n in R["base_tile_counts"].items():
+        t = R["base_tiles"][name]
+        c[min(ref_sig(t.turn(k)) for k in range(4))] += n
+    return c
+
+
+def our_counts_by_shape(ts) -> Counter:
+    c: Counter = Counter()
+    for tt in ts.types:
+        c[min(piece_sig(v) for v in tt.variants)] += tt.count
+    return c
+
+
+def meeple_side(v, piece: int, ref_tile) -> tuple[str, str]:
+    """こちらの断片 → 別実装の (MeepleType 名, Side 名)。"""
+    p = v.pieces[piece]
+    if p.kind == MONASTERY:
+        return "NORMAL", "center"
+    if p.kind in (CITY, ROAD):
+        return "NORMAL", SIDE_NAMES[p.sides[0]]
+    halves = {HALF_NAMES[h] for h in p.halves}
+    for f in ref_tile.farms:
+        if halves <= {str(h) for h in f.tile_connections}:  # 別実装は都市の辺の半辺を含むことがある
+            return "FARMER", str(f.farmer_positions[0])
+    raise ValueError("草原の対応が見つからない")
+
+
+def make_games(n: int, start: int, mcts_sims: int) -> list[dict]:
+    """半分はランダムな手（珍しい形が出やすい）、半分は探索AIどうしの対局を作る。"""
+    from carcassonne.fast_mcts import FastMCTSAgent
+
+    games = []
+    for i in range(n):
+        seed = start + i
+        st = State.new_game(seed)
+        rng = random.Random(seed)
+        if i % 2 == 0:
+            agents = [RandomAgent(), RandomAgent()]
+            kind = "random"
+        else:
+            agents = [FastMCTSAgent(n_sims=mcts_sims), FastMCTSAgent(n_sims=mcts_sims)]
+            kind = f"fmcts{mcts_sims}"
+        trace = []
+        supply = []  # 各手を指す前の手持ちミープル（食い違いを調べる用）
+        final = {k: [0, 0] for k in "CRFM"}
+
+        def finish(st=st, final=final):
+            # 終局の数えを種類（都市・道・草原・修道院）ごとに記録してから、いつもの終局処理をする
+            for r, pts in st._end_awards():
+                m = st.meeples[r]
+                for p in (0, 1):
+                    if m[p] == max(m):
+                        final[st.kind[r]][p] += pts
+            State._finish(st)
+
+        st._finish = finish
+        while not st.over:
+            supply.append(list(st.supply))
+            st.apply(agents[st.player].act(st, rng))
+            trace.append(list(st.scores))
+        games.append(
+            {"seed": seed, "kind": kind, "history": [list(h) for h in st.history], "trace": trace,
+                 "scores": list(st.scores), "discarded": len(st.discarded), "final": final,
+             "supply": supply}
+        )  # fmt: skip
+    return games
+
+
+def replay(R, ts, tmap, g) -> dict:
+    """別実装で棋譜をたどる。1手ごとの得点を返す（合法手に無い手があれば、そこで止めて理由を返す）."""
+    T = R["base_tiles"]
+    st = R["State"](
+        tile_sets=[R["TileSet"].BASE], supplementary_rules=[R["Rule"].FARMERS],
+        players=2, board_size=(2 * OFF + 1, 2 * OFF + 1), starting_position=R["Coordinate"](OFF, OFF),
+    )  # fmt: skip
+    if R.get("tie_scores"):
+        st.scores = TieScores(st.scores)
+    R["final"] = {k: [0, 0] for k in "CRFM"}
+    R["final_total"] = [0, 0]
+    name0, k0 = tmap[(ts.start, 0)]
+    st.board[OFF][OFF] = T[name0].turn(k0)
+    hist = g["history"]
+    st.deck = [T[tmap[(h[2], 0)][0]] for h in hist[1:]]
+    st.next_tile = T[tmap[(hist[0][2], 0)][0]]
+    trace = []
+    strace = []
+    R.pop("supply_diff", None)
+    for i, (x, y, ti, vi, piece) in enumerate(hist):
+        name, k = tmap[(ti, vi)]
+        coord = R["Coordinate"](OFF - y, OFF + x)
+        want = ref_sig(T[name].turn(k))
+        acts = R["ActionUtil"].get_possible_actions(st)
+        act = next(
+            (
+                a
+                for a in acts
+                if isinstance(a, R["TileAction"])
+                and a.coordinate == coord
+                and ref_sig(a.tile) == want
+            ),
+            None,
+        )
+        if act is None:
+            return {"trace": trace, "stop": i, "why": "タイルの置き方が別実装の合法手に無い"}
+        with contextlib.redirect_stdout(io.StringIO()):
+            st = R["Updater"].apply_action(st, act)
+        if piece is None:
+            m = R["PassAction"]()
+        else:
+            v = ts.types[ti].variants[vi]
+            mt, side = meeple_side(v, piece, act.tile)
+            acts = R["ActionUtil"].get_possible_actions(st)
+            m = next(
+                (
+                    a
+                    for a in acts
+                    if isinstance(a, R["MeepleAction"])
+                    and a.meeple_type.name == mt
+                    and a.coordinate_with_side.coordinate == coord
+                    and str(a.coordinate_with_side.side) == side
+                ),
+                None,
+            )
+            if m is None:
+                here = [
+                    f"{a.meeple_type.name} {a.coordinate_with_side.side}"
+                    for a in acts
+                    if isinstance(a, R["MeepleAction"])
+                    and a.coordinate_with_side.coordinate == coord
+                ]
+                return {
+                    "trace": trace,
+                    "stop": i,
+                    "why": f"ミープル（{mt} {side}）が別実装の合法手に無い",
+                    # 調べる用: 手持ちの数（別実装・こちら）と、別実装がこのタイルで許す置き場所
+                    "debug": {"supply_theirs": list(st.meeples), "supply_ours": g["supply"][i],
+                              "allowed_here": here, "player": st.current_player,
+                              "supply_diff": R.get("supply_diff")},
+                }  # fmt: skip
+        with contextlib.redirect_stdout(io.StringIO()):
+            st = R["Updater"].apply_action(st, m)
+        trace.append(list(st.scores))
+        strace.append(list(st.meeples))
+        if (
+            R.get("explain_supply")
+            and i + 1 < len(g["supply"])
+            and st.meeples != g["supply"][i + 1]
+            and "supply_diff" not in R
+        ):
+            R["supply_diff"] = {
+                "move": i, "tile": name, "turns": k, "piece": piece, "meeple": str(m.__dict__),
+                "ours": g["supply"][i + 1], "theirs": list(st.meeples),
+                "placed": [[f"{q.meeple_type.name} {q.coordinate_with_side.coordinate.row - OFF}"
+                            f",{q.coordinate_with_side.coordinate.column - OFF} {q.coordinate_with_side.side}"
+                            for q in pm] for pm in st.placed_meeples],
+                "history_upto": hist[: i + 1],
+            }  # fmt: skip
+    fin = {k: list(v) for k, v in R["final"].items()}
+    # 修道院の人ごとの点は、終局の数えの合計から都市・道・草原を引いて出す
+    fin["M"] = [R["final_total"][p] - sum(fin[k][p] for k in "CRF") for p in (0, 1)]
+    return {
+        "trace": trace,
+        "stop": None,
+        "why": None,
+        "final": fin,
+        "supply_diff": R.get("supply_diff"),
+    }
+
+
+def tie_events(g, upto: int) -> bool:
+    """こちらの手 upto（0始まり）の得点で、2人に同じ点が同時に入ったか（同数の引き分け）。"""
+    before = [0, 0] if upto == 0 else g["trace"][upto - 1]
+    after = g["trace"][upto]
+    d = [after[0] - before[0], after[1] - before[1]]
+    return d[0] > 0 and d[0] == d[1]
+
+
+def compare(R, ts, tmap, games) -> dict:
+    rows = []
+    for g in games:
+        r = replay(R, ts, tmap, g)
+        ours = g["trace"]
+        first = None
+        for i, s in enumerate(r["trace"]):
+            if s != ours[i]:
+                first = i
+                break
+        last = len(hist := g["history"]) - 1
+        if first is None and r["stop"] is None and r["trace"] and r["trace"][-1] != g["scores"]:
+            first = last  # 終局の数え（最後の手のあと）だけが食い違う
+        row = {
+            "seed": g["seed"], "kind": g["kind"], "ours": g["scores"],
+            "theirs": r["trace"][-1] if r["trace"] else None, "stop": r["stop"], "why": r["why"],
+            "first_diff": first, "plies": len(hist), "debug": r.get("debug"),
+            "supply_diff": r.get("supply_diff"),
+        }  # fmt: skip
+        if r.get("final") is not None:
+            row["final_ours"] = g["final"]
+            row["final_theirs"] = r["final"]
+            row["final_diff_kinds"] = [k for k in "CRFM" if g["final"][k] != r["final"][k]]
+        if first is not None:
+            row["ours_at"] = ours[first]
+            row["theirs_at"] = r["trace"][first]
+            row["final_only"] = first == last
+            row["tie"] = tie_events(g, first) if first < last else None
+        rows.append(row)
+    match = sum(1 for r in rows if r["first_diff"] is None and r["stop"] is None)
+    return {"games": len(rows), "match": match, "rows": rows}
+
+
+def summarize(res: dict) -> None:
+    """各比べ方の食い違いを数え、結果の JSON に書き足して表示する。"""
+    for key in ("as_is", "official_ties", "official_farms", "official"):
+        r = res[key]
+        r["match"] = sum(1 for x in r["rows"] if x["first_diff"] is None and x["stop"] is None)
+        r["games"] = len(r["rows"])
+        bad = [x for x in r["rows"] if x["first_diff"] is not None or x["stop"] is not None]
+        kinds = Counter(
+            "合法手の違い" if x["stop"] is not None else ("終局の数え" if x["final_only"] else
+            ("同数の引き分け" if x["tie"] else "途中の得点")) for x in bad
+        )  # fmt: skip
+        r["mismatch_kinds"] = dict(kinds)
+        r["final_diff_by_kind"] = dict(
+            Counter(k for x in r["rows"] for k in x.get("final_diff_kinds", []))
+        )
+        print(
+            f"{key}: {r['match']}/{r['games']} 局が全手一致 食い違い {dict(kinds)}"
+            f" 終局の数えが違った種類 {r['final_diff_by_kind']}"
+        )
+
+
+def merge(paths: list[str], out: str | None) -> None:
+    """分けて回した結果の JSON を1つにまとめる。"""
+    res: dict = {}
+    for p in paths:
+        d = json.loads(Path(p).read_text(encoding="utf-8"))
+        if not res:
+            res = {
+                k: v
+                for k, v in d.items()
+                if k not in ("as_is", "official_ties", "official_farms", "official")
+            }
+            res.update(
+                {k: {"rows": []} for k in ("as_is", "official_ties", "official_farms", "official")}
+            )
+        for k in ("as_is", "official_ties", "official_farms", "official"):
+            res[k]["rows"] += d[k]["rows"]
+    summarize(res)
+    if out:
+        Path(out).write_text(json.dumps(res, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--ref", help="wingedsheep/carcassonne を clone したフォルダ")
+    ap.add_argument(
+        "--merge", nargs="+", help="分けて回した結果の JSON をまとめる（別実装は要らない）"
+    )
+    ap.add_argument("--games", type=int, default=100)
+    ap.add_argument("--start", type=int, default=40000)
+    ap.add_argument("--sims", type=int, default=300, help="探索AIの対局の1手の探索回数")
+    ap.add_argument("--out", help="結果の JSON")
+    a = ap.parse_args()
+    if a.merge:
+        merge(a.merge, a.out)
+        return
+    if not a.ref:
+        ap.error("--ref が要る")
+    R = load_ref(Path(a.ref))
+    from carcassonne.tiles import load_tileset
+
+    ts = load_tileset()
+    rc, oc = ref_counts_by_shape(R), our_counts_by_shape(ts)
+    if rc != oc:
+        for k in sorted(set(rc) | set(oc), key=str):
+            if rc[k] != oc[k]:
+                print(f"形 {k}: 別実装 {rc[k]} 枚 / こちら {oc[k]} 枚")
+        raise SystemExit("タイルの形ごとの枚数が別実装と合わない")
+    tmap = tile_map(R, ts)
+    instrument_final(R)
+    patch_numpy_compat(R)
+    R["explain_supply"] = True  # 手持ちのミープルの数が最初に食い違った手を記録する
+    games = make_games(a.games, a.start, a.sims)
+    res = {"ref": f"wingedsheep/carcassonne@{PINNED[:12]}", "tiles_match": True}
+    res["as_is"] = compare(R, ts, tmap, games)
+    patch_official_ties(R)
+    res["official_ties"] = compare(R, ts, tmap, games)
+    patch_farm_cities_once(R)
+    res["official_farms"] = compare(R, ts, tmap, games)
+    patch_tile_data(R)
+    patch_farm_neighbor(R)
+    patch_monastery_scan(R)
+    res["official"] = compare(R, ts, tmap, games)
+    summarize(res)
+    if a.out:
+        Path(a.out).write_text(
+            json.dumps(res, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
+        )
+
+
+if __name__ == "__main__":
+    main()
