@@ -145,7 +145,9 @@ def ref_sig(t):
     for f in t.farms:
         # 別実装は接する都市を辺で持つ（同じ都市の辺が1つだけのことも）。都市の辺の組にそろえる
         adj = tuple(sorted({city_of[str(s)] for s in f.city_sides}))
-        fields.append((tuple(sorted(str(h) for h in f.tile_connections)), adj))
+        # 別実装の草原には、都市の辺の上の半辺が入っているタイルがある（形の比較では都市の辺の半辺を外す）
+        halves = (str(h) for h in f.tile_connections if str(h.get_side()) not in city_of)
+        fields.append((tuple(sorted(halves)), adj))
     return (tuple(sorted(cities)), tuple(sorted(roads)), tuple(sorted(fields)), bool(t.chapel))
 
 
@@ -191,7 +193,7 @@ def meeple_side(v, piece: int, ref_tile) -> tuple[str, str]:
         return "NORMAL", SIDE_NAMES[p.sides[0]]
     halves = {HALF_NAMES[h] for h in p.halves}
     for f in ref_tile.farms:
-        if {str(h) for h in f.tile_connections} == halves:
+        if halves <= {str(h) for h in f.tile_connections}:  # 別実装は都市の辺の半辺を含むことがある
             return "FARMER", str(f.farmer_positions[0])
     raise ValueError("草原の対応が見つからない")
 
