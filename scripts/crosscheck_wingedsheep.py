@@ -75,7 +75,64 @@ def patch_numpy_compat(R) -> None:
         w = np.argwhere(np.array(c) == np.amax(c)).ravel()
         return int(w[0]) if len(w) == 1 else None
 
-    R["Points"].get_winning_player = staticmethod(winner)
+    R["winner_impl"] = winner
+
+
+def instrument_final(R) -> None:
+    """別実装の終局の数えを、種類ごと・人ごとに R["final"] に記録する（得点の計算は変えない）。"""
+    P = R["Points"]
+    state = {"on": False, "who": None}
+    R["final"] = {k: [0, 0] for k in "CRFM"}
+    orig_final = P.count_final_scores.__func__
+    orig = {
+        k: getattr(P, n)
+        for k, n in (
+            ("C", "count_city_points"),
+            ("R", "count_road_points"),
+            ("F", "count_farm_points"),
+            ("M", "chapel_or_flowers_points"),
+        )
+    }
+    orig_winner = P.get_winning_player  # staticmethod を外した関数
+
+    def final(cls, game_state):
+        state["on"] = True
+        before = list(game_state.scores)
+        try:
+            orig_final(cls, game_state)
+        finally:
+            state["on"] = False
+        R["final_total"] = [a - b for a, b in zip(game_state.scores, before)]
+
+    def winner(c):
+        w = R["winner_impl"](c)
+        state["who"] = getattr(w, "players", None) or ([] if w is None else [int(w)])
+        return w
+
+    def wrap(kind, f):
+        def g(*a, **kw):
+            pts = f(*a, **kw)
+            if state["on"] and kind != "M":  # 修道院は人ごとの数えを最後に差し引きで出す
+                for p in state["who"] or []:
+                    R["final"][kind][p] += pts
+            return pts
+
+        return staticmethod(g)
+
+    R["winner_impl"] = orig_winner
+    P.count_final_scores = classmethod(final)
+    P.get_winning_player = staticmethod(winner)
+    for k, f in orig.items():
+        setattr(
+            P,
+            {
+                "C": "count_city_points",
+                "R": "count_road_points",
+                "F": "count_farm_points",
+                "M": "chapel_or_flowers_points",
+            }[k],
+            wrap(k, f),
+        )
 
 
 class Tied(int):
@@ -116,7 +173,7 @@ def patch_official_ties(R) -> None:
         t.players = w
         return t
 
-    R["Points"].get_winning_player = staticmethod(winner)
+    R["winner_impl"] = winner
     R["tie_scores"] = True
 
 
@@ -228,12 +285,24 @@ def make_games(n: int, start: int, mcts_sims: int) -> list[dict]:
             agents = [FastMCTSAgent(n_sims=mcts_sims), FastMCTSAgent(n_sims=mcts_sims)]
             kind = f"fmcts{mcts_sims}"
         trace = []
+        final = {k: [0, 0] for k in "CRFM"}
+
+        def finish(st=st, final=final):
+            # 終局の数えを種類（都市・道・草原・修道院）ごとに記録してから、いつもの終局処理をする
+            for r, pts in st._end_awards():
+                m = st.meeples[r]
+                for p in (0, 1):
+                    if m[p] == max(m):
+                        final[st.kind[r]][p] += pts
+            State._finish(st)
+
+        st._finish = finish
         while not st.over:
             st.apply(agents[st.player].act(st, rng))
             trace.append(list(st.scores))
         games.append(
             {"seed": seed, "kind": kind, "history": [list(h) for h in st.history], "trace": trace,
-                 "scores": list(st.scores), "discarded": len(st.discarded)}
+                 "scores": list(st.scores), "discarded": len(st.discarded), "final": final}
         )  # fmt: skip
     return games
 
@@ -247,6 +316,8 @@ def replay(R, ts, tmap, g) -> dict:
     )  # fmt: skip
     if R.get("tie_scores"):
         st.scores = TieScores(st.scores)
+    R["final"] = {k: [0, 0] for k in "CRFM"}
+    R["final_total"] = [0, 0]
     name0, k0 = tmap[(ts.start, 0)]
     st.board[OFF][OFF] = T[name0].turn(k0)
     hist = g["history"]
@@ -298,7 +369,10 @@ def replay(R, ts, tmap, g) -> dict:
         with contextlib.redirect_stdout(io.StringIO()):
             st = R["Updater"].apply_action(st, m)
         trace.append(list(st.scores))
-    return {"trace": trace, "stop": None, "why": None}
+    fin = {k: list(v) for k, v in R["final"].items()}
+    # 修道院の人ごとの点は、終局の数えの合計から都市・道・草原を引いて出す
+    fin["M"] = [R["final_total"][p] - sum(fin[k][p] for k in "CRF") for p in (0, 1)]
+    return {"trace": trace, "stop": None, "why": None, "final": fin}
 
 
 def tie_events(g, upto: int) -> bool:
@@ -327,6 +401,10 @@ def compare(R, ts, tmap, games) -> dict:
             "theirs": r["trace"][-1] if r["trace"] else None, "stop": r["stop"], "why": r["why"],
             "first_diff": first, "plies": len(hist),
         }  # fmt: skip
+        if r.get("final") is not None:
+            row["final_ours"] = g["final"]
+            row["final_theirs"] = r["final"]
+            row["final_diff_kinds"] = [k for k in "CRFM" if g["final"][k] != r["final"][k]]
         if first is not None:
             row["ours_at"] = ours[first]
             row["theirs_at"] = r["trace"][first]
@@ -359,6 +437,7 @@ def main() -> None:
                 print(f"形 {k}: 別実装 {rc[k]} 枚 / こちら {oc[k]} 枚")
         raise SystemExit("タイルの形ごとの枚数が別実装と合わない")
     tmap = tile_map(R, ts)
+    instrument_final(R)
     patch_numpy_compat(R)
     games = make_games(a.games, a.start, a.sims)
     res = {"ref": f"wingedsheep/carcassonne@{PINNED[:12]}", "tiles_match": True}
@@ -373,7 +452,13 @@ def main() -> None:
             ("同数の引き分け" if x["tie"] else "途中の得点")) for x in bad
         )  # fmt: skip
         r["mismatch_kinds"] = dict(kinds)
-        print(f"{key}: {r['match']}/{r['games']} 局が全手一致 食い違い {dict(kinds)}")
+        r["final_diff_by_kind"] = dict(
+            Counter(k for x in r["rows"] for k in x.get("final_diff_kinds", []))
+        )
+        print(
+            f"{key}: {r['match']}/{r['games']} 局が全手一致 食い違い {dict(kinds)}"
+            f" 終局の数えが違った種類 {r['final_diff_by_kind']}"
+        )
     if a.out:
         Path(a.out).write_text(
             json.dumps(res, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
