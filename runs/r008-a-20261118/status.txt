@@ -1,0 +1,5 @@
+finished: 2026-11-18T06:29Z
+exit_code: 0
+commit: 87eeebeeae660b3c5281761a5fa0c4a672b2f366
+run: https://github.com/satou-aaaaa/carcassonne-research/actions/runs/44245102982
+command: START=9200 SEEDS=100 bash scripts/sweeps/r008_puct_strong.sh
