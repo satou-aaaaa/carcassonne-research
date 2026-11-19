@@ -392,6 +392,12 @@
       }));
     } catch (err) { /* 保存できなくても対局は続ける */ }
   }
+  // このブラウザに残した途中の対局を読み込む（AIの手番で閉じられていたら、AIの手を進める）
+  async function loadLive() {
+    const g = restoreLive();
+    if (g && !g.S.sc[C.SC_OVER] && g.S.sc[C.SC_PL] !== g.human_seat) { await g.advanceAi(); saveLive(g); }
+    return g;
+  }
   function restoreLive() {
     let s;
     try { s = JSON.parse(root.localStorage.getItem(LIVE_KEY) || "null"); } catch (err) { return null; }
@@ -426,10 +432,7 @@
       return { tiles: LIB, levels };
     }
     if (path === "/api/state") {
-      if (!game) {
-        game = restoreLive();
-        if (game && !game.S.sc[C.SC_OVER] && game.S.sc[C.SC_PL] !== game.human_seat) { await game.advanceAi(); saveLive(game); }  // AIの手番で閉じられていた
-      }
+      if (!game) game = await loadLive();
       return game ? game.view() : null;
     }
     if (path === "/api/new") {
@@ -448,10 +451,12 @@
     }
     if (path === "/api/replay") {
       const rg = new ReplayGame(body.record);
-      if (!(game instanceof ReplayGame)) live = game;
+      // 再生リンクを開いてページを始めたときも、このブラウザに残した途中の対局を裏に取っておく（再生を終えると戻る）
+      if (!(game instanceof ReplayGame)) live = game || await loadLive();
       game = rg;
       if (body.ply !== undefined) game.goto(Number(body.ply));
-      return game.view();
+      // live_kept: 裏に途中の対局がある（ページ側は「新しい対局」で消える注意を出す）
+      return Object.assign(game.view(), { live_kept: !!(live && !live.S.sc[C.SC_OVER]) });
     }
     if (path === "/api/replay_goto") {
       if (!(game instanceof ReplayGame)) throw new Error("棋譜を開いていません");

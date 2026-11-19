@@ -36,11 +36,13 @@
   .score .pr { color:var(--muted); font-size:12px; margin-left:4px; }
   .score .mp { display:block; height:14px; line-height:0; }
   .score .mp svg { width:12px; height:12px; margin-right:1px; }
-  .score .pop { position:absolute; right:10px; top:6px; font-weight:700; font-size:18px; animation:pop 1.4s ease-out forwards; pointer-events:none; }
+  /* 欄の右上の角: 得点の浮き上がり（+4 など）と「考え中」を横に並べる（同じ所に重ねると読めない。スマホは欄が低い） */
+  .score .corner { position:absolute; right:8px; top:6px; display:flex; gap:6px; align-items:center; pointer-events:none; }
+  .score .pop { font-weight:700; font-size:18px; animation:pop 1.4s ease-out forwards; pointer-events:none; }
   @keyframes pop { 0% { opacity:0; transform:translateY(6px); } 15% { opacity:1; transform:translateY(0); } 70% { opacity:1; } 100% { opacity:0; transform:translateY(-14px); } }
   .turn { outline:2px solid var(--accent); }
   /* AIの考え中: AIの得点欄の右上に回る印と「考え中」（スマホで盤の上の案内が見えなくても分かるように。欄の高さは変えない） */
-  .score .think { display:none; position:absolute; right:8px; top:6px; background:var(--panel); font-size:12px; line-height:16px; font-weight:600; color:var(--accent); white-space:nowrap; }
+  .score .think { display:none; background:var(--panel); font-size:12px; line-height:16px; font-weight:600; color:var(--accent); white-space:nowrap; }
   .score .think::before { content:""; display:inline-block; width:9px; height:9px; margin-right:4px; border-radius:50%; border:2px solid currentColor; border-right-color:transparent; animation:spin .8s linear infinite; vertical-align:-1px; }
   .score .thinking .think { display:inline; }
   @media (prefers-reduced-motion: reduce) { .score .think::before, #hint.busy::before { animation-duration:2.4s; } }
@@ -88,6 +90,8 @@
   #replayBar[hidden] { display:none; }
   /* 再生中は置く・ヒント・待ったのボタンを出さない（押せないボタンが並ぶだけになるため） */
   body.replaying #tileCtl { display:none; }
+  /* 終局後（再生でないとき）は、空の「引いたタイル」と押せないヒント・待ったを隠し、結果の欄を上に寄せる */
+  body.over #tileSec > h2, body.over #tilebox, body.over #featInfo:empty { display:none; }
   #replayBar .row { align-items:center; justify-content:space-between; flex-wrap:nowrap; }
   #replayBar button { min-width:44px; min-height:40px; }
   #rpGraphBox .cap { font-size:12px; color:var(--muted); }
@@ -218,8 +222,8 @@
   <div id="scoreSec">
     <h2>得点（「予測」は今終局した場合の点）</h2>
     <div class="score">
-      <div class="me" id="boxMe"><small id="nameMe">あなた</small><b id="scMe">0</b><span class="pr" id="prMe"></span><span class="mp" id="spMe"></span></div>
-      <div class="ai" id="boxAi"><small>AI<span class="think" id="thinkAi" role="status">考え中</span></small><b id="scAi">0</b><span class="pr" id="prAi"></span><span class="mp" id="spAi"></span></div>
+      <div class="me" id="boxMe"><span class="corner"></span><small id="nameMe">あなた</small><b id="scMe">0</b><span class="pr" id="prMe"></span><span class="mp" id="spMe"></span></div>
+      <div class="ai" id="boxAi"><span class="corner"><span class="think" id="thinkAi" role="status">考え中</span></span><small>AI</small><b id="scAi">0</b><span class="pr" id="prAi"></span><span class="mp" id="spAi"></span></div>
     </div>
   </div>
   <div id="tileSec">
@@ -1036,7 +1040,7 @@ function animateDiff(prev, next, sent) {
     if (at) addAnim({type: "pop", x: at.x, y: at.y + (p === next.human_seat ? 0 : .3), text: `+${d}`, color: PCOL[p], dur: 1500});
     const box = $(p === next.human_seat ? "boxMe" : "boxAi"), el = document.createElement("span");
     el.className = "pop"; el.style.color = PCOL[p]; el.textContent = `+${d}`;
-    box.appendChild(el); setTimeout(() => el.remove(), 1500);
+    box.querySelector(".corner").prepend(el); setTimeout(() => el.remove(), 1500);
   }
   // スマホで盤が広がったら、置かれたばかりのタイルに寄る（全体は「全体を表示」で見られる）
   ensureVisible(fresh.concat(fresh.length && fitTarget(fresh).focused ? [] : next.placements || []), fresh);
@@ -1130,6 +1134,7 @@ function refresh() {
   const keys = TOUCH ? "" : "（R: 回転、Enter: 確定、Esc: 取り消し）";
   $("replayBar").hidden = !G.replay;
   document.body.classList.toggle("replaying", !!G.replay);
+  document.body.classList.toggle("over", !!(G.over && !G.replay));
   if (G.replay) {
     const r = G.replay;
     $("rpPos").textContent = `${r.ply} / ${r.total} 手目`;
@@ -1271,7 +1276,8 @@ const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { 
 $("btnNew").onclick = () => {
   $("fSeed").value = Math.floor(Math.random()*1e6);
   // 対局の途中なら、消えることを知らせ、キャンセルを選んだ状態で開く（「確定」のつもりの押し間違いで対局を消さない）
-  const mid = playing();
+  // 棋譜の再生中でも、裏に途中の対局が残っていれば同じ（再生を終えると戻るが、新しく始めると消える）
+  const mid = playing() || liveKept;
   $("newWarn").hidden = !mid;
   dlg.showModal();
   if (mid) $("btnCancel").focus();
@@ -1314,11 +1320,12 @@ async function copyReplayLink(rec, btn) {
 // 送ってもらった棋譜（scripts/human_games.py report が docs/human_games/ に100局ずつ書く。英語版 docs/en/ からは一つ上）
 const PUBLIC_GAMES = document.documentElement.lang === "en" ? "../human_games/" : "human_games/";
 const PUBLIC_CHUNK = 100;  // src/carcassonne/human_games.py の CHUNK と同じ
+let liveKept = false;  // 棋譜の再生中、裏に途中の対局が残っているか（再生を終えると戻る）
 let replayRec = null;  // 再生中の棋譜（再生リンク用）。play_local.js は検査済みの棋譜しか開かない
 async function replayOpen(record, ply) {
   const keep = G;
   busy = true; G = null; anims = []; pending = null; draw();
-  try { setState(await api("/api/replay", {record, ply})); replayRec = record; fitAll(false, G.replay.last && [G.replay.last]); setTimeout(replayAnalyze, 0); }
+  try { const v = await api("/api/replay", {record, ply}); liveKept = !!v.live_kept; setState(v); replayRec = record; fitAll(false, G.replay.last && [G.replay.last]); setTimeout(replayAnalyze, 0); }
   catch (err) { alert("棋譜を開けませんでした: " + err.message); if (keep) setState(keep); }
   busy = false; refresh();
 }
@@ -1396,7 +1403,7 @@ $("btnOpenRec").onclick = showRecent;
 $("btnRecFile").onclick = () => { $("recDlg").close(); $("recFile").click(); };
 $("rpLink").onclick = e => replayRec && copyReplayLink(replayRec, e.target);
 $("rpClose").onclick = async () => {
-  clearHash(); replayRec = null; const st = await api("/api/replay_close");
+  clearHash(); replayRec = null; liveKept = false; const st = await api("/api/replay_close");
   if (st) { setState(st); fitAll(false, G.last_ai && [G.last_ai]); }
   else { G = null; $("replayBar").hidden = $("result").hidden = true; document.body.classList.remove("replaying"); setHint("「新しい対局」を押してください"); draw(); $("btnNew").click(); }
 };
@@ -1426,7 +1433,7 @@ async function openFromHash() {
 window.addEventListener("hashchange", openFromHash);
 function clearHash() { if (location.hash) history.replaceState(null, "", location.pathname + location.search); }
 async function start(form) {
-  clearHash(); replayRec = null;
+  clearHash(); replayRec = null; liveKept = false;
   lastForm = form; busy = true; G = null; inflight = null; anims = []; stopThinking(); setHint("対局を準備中…（AI先手の場合は初手を考えます）"); draw();
   try { setState(await api("/api/new", form)); fitAll(false); }
   catch (err) { alert(err.message); }
