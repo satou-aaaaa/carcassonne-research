@@ -48,6 +48,10 @@
   button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
   button:disabled { opacity:.45; cursor:default; }
   button.sel { outline:2px solid var(--accent); font-weight:600; }
+  /* 対局中は「新しい対局」を控えめな枠線のボタンにして、緑の「確定」と見分けやすくし、置き場所も棋譜ログの下へ離す
+     （押し間違えると対局が消えるため。終局後・対局前は緑に戻して上に出す） */
+  body.playing #newRow { order:1; } body.playing #remainSec, body.playing aside > details { order:2; }
+  #newWarn { margin:0 0 8px; padding:6px 8px; border-left:4px solid #d9822b; background:var(--bg); font-size:13.5px; }
   kbd { font:11px/1 system-ui, sans-serif; border:1px solid var(--line); border-radius:3px; padding:1px 4px; margin-left:4px; color:var(--muted); }
   .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   #tilebox { display:flex; gap:12px; align-items:flex-start; }
@@ -189,7 +193,7 @@
 </div>
 <aside>
   <div id="home" class="local-only"><nav aria-label="サイト内のページ"><a href="index.html">← カルカソンヌ入門</a><a href="rules.html">ルール入門</a><a href="strategy.html">戦略ガイド</a><a href="ai_tips.html">強いAIのコツ</a><a href="quiz.html">次の一手クイズ</a><a href="stats.html">データで見る</a><a href="games.html">みんなの対局</a><a class="lang" href="en/play.html" hreflang="en" lang="en" data-lang="en" title="Switch to English">English</a></nav>AIはこのブラウザの中で考えます。<br><a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>&nbsp;Ko-fiでこのサイトを応援する</a></div>
-  <div class="row">
+  <div class="row" id="newRow">
     <button class="primary" id="btnNew">新しい対局</button>
     <button id="btnRematch" hidden>同じ山札で席替え再戦</button>
     <button id="btnOpenRec" type="button" hidden title="終わった対局や保存した棋譜を、一手ずつ再生する">棋譜を再生</button>
@@ -275,6 +279,7 @@
 <dialog id="dlg">
   <form method="dialog" id="newForm">
     <h3 style="margin-top:0">新しい対局</h3>
+    <p id="newWarn" role="alert" hidden>対局の途中です。新しく始めると今の対局は消え、続きから遊べません。</p>
     <label class="server-only">お名前（記録用）</label><input class="server-only" id="fName" placeholder="例: 山田">
     <label>席</label>
     <select id="fSeat"><option value="0">先手（赤）</option><option value="1">後手（青）</option></select>
@@ -374,6 +379,7 @@ function resize() {
   const r = cv.getBoundingClientRect(); cv.width = r.width * devicePixelRatio; cv.height = r.height * devicePixelRatio; draw();
 }
 function cellAt(px, py) { return [Math.floor((px - view.ox)/view.s), -Math.floor((py - view.oy)/view.s)]; }
+function playing() { return !!(G && !G.replay && !G.over); }
 function myTurn() { return G && !G.replay && !G.over && G.player === G.human_seat && !busy; }
 function curVariants() { return G && G.current !== null ? LIB[G.current].variants.length : 0; }
 // そのマスに置ける向き（置き方）の一覧
@@ -1148,6 +1154,8 @@ function refresh() {
   cb.hidden = !G.last_coach || !!G.replay;
   if (G.last_coach) cb.textContent = lastCoachText();
   $("btnRematch").hidden = !G.over || !!G.replay;
+  document.body.classList.toggle("playing", playing());
+  $("btnNew").classList.toggle("primary", !playing());
   refreshInfo();
   layoutMobile();
   draw();
@@ -1260,7 +1268,14 @@ $("log").addEventListener("click", e => {
 // ---------- 新規対局 ----------
 const dlg = $("dlg");
 const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 保存できなくても続ける */ } } };
-$("btnNew").onclick = () => { $("fSeed").value = Math.floor(Math.random()*1e6); dlg.showModal(); };
+$("btnNew").onclick = () => {
+  $("fSeed").value = Math.floor(Math.random()*1e6);
+  // 対局の途中なら、消えることを知らせ、キャンセルを選んだ状態で開く（「確定」のつもりの押し間違いで対局を消さない）
+  const mid = playing();
+  $("newWarn").hidden = !mid;
+  dlg.showModal();
+  if (mid) $("btnCancel").focus();
+};
 $("btnRand").onclick = () => $("fSeed").value = Math.floor(Math.random()*1e6);
 $("btnCancel").onclick = () => dlg.close();
 $("newForm").addEventListener("submit", () => {

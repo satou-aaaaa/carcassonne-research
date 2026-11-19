@@ -48,6 +48,10 @@
   button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
   button:disabled { opacity:.45; cursor:default; }
   button.sel { outline:2px solid var(--accent); font-weight:600; }
+  /* 対局中は「New game」を控えめな枠線のボタンにして、緑の「Confirm」と見分けやすくし、置き場所も棋譜ログの下へ離す
+     （押し間違えると対局が消えるため。終局後・対局前は緑に戻して上に出す） */
+  body.playing #newRow { order:1; } body.playing #remainSec, body.playing aside > details { order:2; }
+  #newWarn { margin:0 0 8px; padding:6px 8px; border-left:4px solid #d9822b; background:var(--bg); font-size:13.5px; }
   kbd { font:11px/1 system-ui, sans-serif; border:1px solid var(--line); border-radius:3px; padding:1px 4px; margin-left:4px; color:var(--muted); }
   .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   #tilebox { display:flex; gap:12px; align-items:flex-start; }
@@ -189,7 +193,7 @@
 </div>
 <aside>
   <div id="home" class="local-only"><nav aria-label="Site pages"><a href="index.html">← Carcassonne Primer</a><a href="rules.html">Rules</a><a href="strategy.html">Strategy</a><a href="ai_tips.html">Lessons from the AI</a><a href="quiz.html">Next-Move Quiz</a><a href="stats.html">By the Numbers</a><a href="games.html">Community Games</a><a class="lang" href="../play.html" hreflang="ja" lang="ja" data-lang="ja" title="日本語に切り替え">日本語</a></nav>The AI thinks inside your browser.<br><a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>&nbsp;Support this site on Ko-fi</a></div>
-  <div class="row">
+  <div class="row" id="newRow">
     <button class="primary" id="btnNew">New game</button>
     <button id="btnRematch" hidden>Rematch, same tiles, seats swapped</button>
     <button id="btnOpenRec" type="button" hidden title="Replay a finished game or a saved record move by move">Replay a game</button>
@@ -275,6 +279,7 @@
 <dialog id="dlg">
   <form method="dialog" id="newForm">
     <h3 style="margin-top:0">New game</h3>
+    <p id="newWarn" role="alert" hidden>A game is in progress. Starting a new one ends it, and you can't continue it later.</p>
     <label class="server-only">Your name (for the record)</label><input class="server-only" id="fName" placeholder="e.g. Alex">
     <label>Seat</label>
     <select id="fSeat"><option value="0">First (red)</option><option value="1">Second (blue)</option></select>
@@ -374,6 +379,7 @@ function resize() {
   const r = cv.getBoundingClientRect(); cv.width = r.width * devicePixelRatio; cv.height = r.height * devicePixelRatio; draw();
 }
 function cellAt(px, py) { return [Math.floor((px - view.ox)/view.s), -Math.floor((py - view.oy)/view.s)]; }
+function playing() { return !!(G && !G.replay && !G.over); }
 function myTurn() { return G && !G.replay && !G.over && G.player === G.human_seat && !busy; }
 function curVariants() { return G && G.current !== null ? LIB[G.current].variants.length : 0; }
 // そのマスに置ける向き（置き方）の一覧
@@ -1148,6 +1154,8 @@ function refresh() {
   cb.hidden = !G.last_coach || !!G.replay;
   if (G.last_coach) cb.textContent = lastCoachText();
   $("btnRematch").hidden = !G.over || !!G.replay;
+  document.body.classList.toggle("playing", playing());
+  $("btnNew").classList.toggle("primary", !playing());
   refreshInfo();
   layoutMobile();
   draw();
@@ -1260,7 +1268,14 @@ $("log").addEventListener("click", e => {
 // ---------- 新規対局 ----------
 const dlg = $("dlg");
 const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 保存できなくても続ける */ } } };
-$("btnNew").onclick = () => { $("fSeed").value = Math.floor(Math.random()*1e6); dlg.showModal(); };
+$("btnNew").onclick = () => {
+  $("fSeed").value = Math.floor(Math.random()*1e6);
+  // 対局の途中なら、消えることを知らせ、Cancelを選んだ状態で開く（「Confirm」のつもりの押し間違いで対局を消さない）
+  const mid = playing();
+  $("newWarn").hidden = !mid;
+  dlg.showModal();
+  if (mid) $("btnCancel").focus();
+};
 $("btnRand").onclick = () => $("fSeed").value = Math.floor(Math.random()*1e6);
 $("btnCancel").onclick = () => dlg.close();
 $("newForm").addEventListener("submit", () => {

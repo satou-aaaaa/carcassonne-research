@@ -179,5 +179,6 @@
  "<br>損の大きかった手では、AIの答えは「${tk}」が多め（${tn}手）。": "<br>On your costly moves, the AI most often chose “${tk}” (${tn} moves).",
  "<b>振り返り</b>（AIの見積もり）<br>採点した ${scored.length} 手のうち、AIの最善手とほぼ同じいい手は ${good} 手。損は合計で約 ${total} 点。${trend}": "<b>Review</b> (AI estimate)<br>Of the ${scored.length} moves graded, ${good} were about as good as the AI’s best. Total loss: about ${total} points.${trend}",
  "<div class=\"sub\">損の大きかった手（押すと、その手を置いた盤から再生）</div>": "<div class=\"sub\">Costliest moves (tap to replay from the board right after that move)</div>",
- "<br>大きな損はありませんでした。": "<br>No big losses."
+ "<br>大きな損はありませんでした。": "<br>No big losses.",
+ "対局の途中です。新しく始めると今の対局は消え、続きから遊べません。": "A game is in progress. Starting a new one ends it, and you can't continue it later."
 }

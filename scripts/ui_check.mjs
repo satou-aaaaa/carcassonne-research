@@ -217,6 +217,23 @@ async function exercisePlay(page, shotDir, vpName, moveProblems = []) {
   // AI の返し手を待つ（自分の番に戻り、置ける場所が出るまで）
   await page.waitForFunction(() => G && G.board.length >= 3 && myTurn(), null, { timeout: 30000 });
   await page.waitForTimeout(300);
+  // 対局中の「新しい対局」は「確定」と違う色にし、押したら対局が消えることを知らせてキャンセルを選んでおく
+  // （2026-11 利用者の声「新しい対局と確定が同じ色で押し間違えそう」の再発防止）
+  const look = await page.evaluate(() => {
+    const bg = (id) => getComputedStyle(document.getElementById(id)).backgroundColor;
+    return { same: bg("btnNew") === bg("btnOk") };
+  });
+  if (look.same) moveProblems.push("対局中の「新しい対局」が「確定」と同じ色");
+  await page.click("#btnNew");
+  const warn = await page.evaluate(() => ({
+    warn: !document.getElementById("newWarn").hidden,
+    cancel: document.activeElement && document.activeElement.id === "btnCancel",
+  }));
+  if (!warn.warn) moveProblems.push("対局中に「新しい対局」を押しても、対局が消える注意が出ない");
+  if (!warn.cancel) moveProblems.push("対局中に「新しい対局」を押したとき、キャンセルが選ばれていない");
+  if (shotDir) await page.screenshot({ path: path.join(shotDir, `play_newdlg_${vpName}.png`) });
+  await page.click("#btnCancel");
+  if (await page.evaluate(() => !(G && !G.over && G.board.length >= 3))) moveProblems.push("「新しい対局」をキャンセルしたら対局が消えた");
   return true;
 }
 
