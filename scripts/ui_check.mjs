@@ -243,6 +243,12 @@ async function exercisePlay(page, shotDir, vpName, moveProblems = []) {
     return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
   });
   if (lap) moveProblems.push("AIの得点欄で「考え中」と得点の浮き上がり（+点）が重なる");
+  // サイト内リンクは得点・引いたタイルより下（2026-11 の点検: PCでリンクが欄の上に並び、得点が下がって見えた）
+  const homeFirst = await page.evaluate(() => {
+    const h = document.getElementById("home");
+    return !!h && h.offsetParent !== null && h.getBoundingClientRect().top < $("scoreSec").getBoundingClientRect().top;
+  });
+  if (homeFirst) moveProblems.push("サイト内リンクが得点の欄より上にある（得点・引いたタイルを先に見せる）");
   return true;
 }
 
@@ -377,6 +383,7 @@ async function exerciseEndGame(browser, base, file) {
   const n0 = await page.evaluate(() => G.board.length);
   await page.evaluate((r) => replayOpen(r, 0), rec);
   await page.waitForFunction(() => G && G.replay, null, { timeout: 30000 });
+  if (await page.locator("#log").isVisible()) problems.push("棋譜の再生の0手目に、空の棋譜ログ欄が場所を取る");
   await page.evaluate(() => $("btnNew").click());
   if (await page.locator("#newWarn").isHidden()) problems.push("棋譜の再生中に「新しい対局」を押しても、裏の途中の対局が消える注意が出ない");
   await page.click("#btnCancel");

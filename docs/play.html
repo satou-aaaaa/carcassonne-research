@@ -117,7 +117,8 @@
   #result .share .pubnote { margin:6px 0 0; padding:6px 8px; border-left:4px solid var(--accent); background:var(--bg); color:var(--ink); font-size:13.5px; }
   #result .share .row { margin:6px 0 4px; flex-wrap:wrap; }
   #result .share button { min-height:36px; }
-  #home { font-size:12.5px; color:var(--muted); }
+  /* サイト内リンクは右の欄の一番下（PCでも得点・引いたタイルを欄の上に出す） */
+  #home { font-size:12.5px; color:var(--muted); order:10; }
   #home nav { display:flex; flex-wrap:wrap; gap:0 12px; margin-bottom:2px; }
   #home a { color:inherit; display:inline-flex; align-items:center; min-height:28px; }
   @media (pointer: coarse) { #home a { min-height:44px; } }
@@ -1093,6 +1094,7 @@ function refresh() {
     log.appendChild(d);
   }
   log.scrollTop = log.scrollHeight;
+  log.parentElement.hidden = !G.events.length;  // 空の棋譜ログ（対局の最初・再生の0手目）は場所を取らせない
   // 引いたタイル（仮置き中はその向き、そうでなければ次に置くときの向き）
   const cc = $("cur").getContext("2d"); cc.clearRect(0, 0, 192, 192);
   const tileShown = G.current !== null && !inflight;
