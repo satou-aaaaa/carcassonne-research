@@ -180,5 +180,9 @@
  "<b>振り返り</b>（AIの見積もり）<br>採点した ${scored.length} 手のうち、AIの最善手とほぼ同じいい手は ${good} 手。損は合計で約 ${total} 点。${trend}": "<b>Review</b> (AI estimate)<br>Of the ${scored.length} moves graded, ${good} were about as good as the AI’s best. Total loss: about ${total} points.${trend}",
  "<div class=\"sub\">損の大きかった手（押すと、その手を置いた盤から再生）</div>": "<div class=\"sub\">Costliest moves (tap to replay from the board right after that move)</div>",
  "<br>大きな損はありませんでした。": "<br>No big losses.",
- "対局の途中です。新しく始めると今の対局は消え、続きから遊べません。": "A game is in progress. Starting a new one ends it, and you can't continue it later."
+ "対局の途中です。新しく始めると今の対局は消え、続きから遊べません。": "A game is in progress. Starting a new one ends it, and you can't continue it later.",
+ "送る画面をもう一度開く": "Open the sending page again",
+ "✓ この対局の送る画面を開きました。ご協力ありがとうございます！": "✓ You opened the sending page for this game. Thank you for helping!",
+ "開いた画面で送信を押していれば、もう届いています。同じ対局は1回送れば十分です。": "If you pressed Submit there, it has already arrived. Sending a game once is enough.",
+ "送信を押さずに閉じたときだけ、もう一度開いてください。うっかり2回送っても、同じ対局は1局として数えるので大丈夫です。": "Open it again only if you closed it without submitting. If you send it twice by accident, no problem: the same game is counted only once."
 }

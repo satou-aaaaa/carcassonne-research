@@ -373,6 +373,17 @@ async function exerciseEndGame(browser, base, file) {
     await page.waitForFunction(() => G && G.over && !G.replay, null, { timeout: 30000 });
     if (!(await page.locator("#result .review .rvGo").count())) problems.push("再生を終えると振り返りが消える");
   }
+  // 棋譜を送る画面を開いたら「送信済み」になり、開き直してもそのまま（同じ対局を何度も送れてしまった、2026-11-19）
+  await page.evaluate(() => { window.open = () => null; });
+  const sendBtn = (await page.locator("#btnFormRec").count()) ? "#btnFormRec" : "#btnSendRec";
+  await page.locator(sendBtn).click();
+  if (!(await page.locator("#sentNote").isVisible())) problems.push("棋譜を送る画面を開いても「送信済み」と出ない");
+  if (await page.locator("#result .share .primary").count()) problems.push("送信済みの対局に、目立つ「送る」ボタンが残る");
+  await page.reload({ waitUntil: "load" });
+  await page.waitForFunction(() => G && G.over, null, { timeout: 30000 }).catch(() => {});
+  if ((await page.evaluate(() => !!(G && G.over && G.record))) && !(await page.locator("#sentNote").isVisible()))
+    problems.push("ページを開き直すと、送った対局がまた「送る」に戻る");
+  await page.evaluate(() => { window.open = () => null; });
   // 対局の途中で棋譜の再生を開き、再生中に「新しい対局」を押しても、裏の途中の対局が消える注意が出る
   // （2026-11 の点検: 再生中は注意が出ず、そのまま始めると途中の対局が黙って消えた）
   const rec = await page.evaluate(() => G.record);
@@ -562,7 +573,7 @@ async function main() {
             G = { review: [{ ply: 3, loss: 4.2, best }, { ply: 5, loss: 0.3, best }, { ply: 7, loss: 2.5, best: { ...best, piece: null, kind: null } }, { ply: 9, loss: 2.1, best }] };
             const rv = reviewHtml();
             G = keep;
-            const d = Object.assign(document.createElement("div"), { innerHTML: rv + shareHtml() });
+            const d = Object.assign(document.createElement("div"), { innerHTML: rv + shareHtml() + shareHtml({ via: "form" }) });
             d.style.cssText = "position:absolute;left:-9999px;width:600px";
             document.body.appendChild(d);
             const t = d.innerText;
