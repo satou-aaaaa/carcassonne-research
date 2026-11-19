@@ -234,6 +234,15 @@ async function exercisePlay(page, shotDir, vpName, moveProblems = []) {
   if (shotDir) await page.screenshot({ path: path.join(shotDir, `play_newdlg_${vpName}.png`) });
   await page.click("#btnCancel");
   if (await page.evaluate(() => !(G && !G.over && G.board.length >= 3))) moveProblems.push("「新しい対局」をキャンセルしたら対局が消えた");
+  // AIの考え中の印と、得点の浮き上がり（+4 など）が重ならない（2026-11 の点検で「考え中+4」と重なって読めなかった）
+  const lap = await page.evaluate(() => {
+    const box = $("boxAi"), el = document.createElement("span");
+    box.classList.add("thinking"); el.className = "pop"; el.textContent = "+12"; el.style.animation = "none"; box.querySelector(".corner").prepend(el);
+    const a = $("thinkAi").getBoundingClientRect(), b = el.getBoundingClientRect();
+    el.remove(); box.classList.remove("thinking");
+    return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+  });
+  if (lap) moveProblems.push("AIの得点欄で「考え中」と得点の浮き上がり（+点）が重なる");
   return true;
 }
 
@@ -339,6 +348,7 @@ async function exerciseEndGame(browser, base, file) {
   }
   await page.waitForTimeout(500);
   if (await page.locator("#remainSec").isVisible()) problems.push("終局後も「山札に残るタイル」（全部 ×0）が出たまま");
+  if (await page.locator("#btnHint").isVisible()) problems.push("終局後も空の「引いたタイル」と押せないヒント・待ったが場所を取る");
   const go = page.locator("#result .review .rvGo");
   if (!(await page.locator("#result .review").count())) problems.push("終局の欄に振り返りが無い");
   else if (!(await go.count())) problems.push("振り返りに損の大きかった手のボタンが無い");
@@ -357,6 +367,25 @@ async function exerciseEndGame(browser, base, file) {
     await page.waitForFunction(() => G && G.over && !G.replay, null, { timeout: 30000 });
     if (!(await page.locator("#result .review .rvGo").count())) problems.push("再生を終えると振り返りが消える");
   }
+  // 対局の途中で棋譜の再生を開き、再生中に「新しい対局」を押しても、裏の途中の対局が消える注意が出る
+  // （2026-11 の点検: 再生中は注意が出ず、そのまま始めると途中の対局が黙って消えた）
+  const rec = await page.evaluate(() => G.record);
+  await page.evaluate(() => start({ ...lastForm, seed: 3 }));
+  await page.waitForFunction(() => G && G.board && myTurn(), null, { timeout: 30000 });
+  await page.evaluate(() => { const p = G.placements[0]; sendMove(p.x, p.y, p.v, null); });
+  await page.waitForFunction(() => G && G.board.length >= 3 && myTurn(), null, { timeout: 30000 });
+  const n0 = await page.evaluate(() => G.board.length);
+  await page.evaluate((r) => replayOpen(r, 0), rec);
+  await page.waitForFunction(() => G && G.replay, null, { timeout: 30000 });
+  await page.evaluate(() => $("btnNew").click());
+  if (await page.locator("#newWarn").isHidden()) problems.push("棋譜の再生中に「新しい対局」を押しても、裏の途中の対局が消える注意が出ない");
+  await page.click("#btnCancel");
+  await page.click("#rpClose");
+  await page.waitForFunction(() => G && !G.replay, null, { timeout: 30000 });
+  if ((await page.evaluate(() => G.board.length)) !== n0) problems.push("棋譜の再生を終えても途中の対局に戻らない");
+  await page.evaluate(() => $("btnNew").click());
+  if (await page.locator("#newWarn").isHidden()) problems.push("再生から戻った途中の対局で「新しい対局」の注意が出ない");
+  await page.click("#btnCancel");
   await ctx.close();
   return problems;
 }
