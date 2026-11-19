@@ -117,6 +117,7 @@
   #result .share .pubnote { margin:6px 0 0; padding:6px 8px; border-left:4px solid var(--accent); background:var(--bg); color:var(--ink); font-size:13.5px; }
   #result .share .row { margin:6px 0 4px; flex-wrap:wrap; }
   #result .share button { min-height:36px; }
+  #result .share .sent { margin:6px 0 0; padding:6px 8px; border-left:4px solid var(--accent); background:var(--bg); color:var(--ink); font-size:13.5px; }
   /* サイト内リンクは右の欄の一番下（PCでも得点・引いたタイルを欄の上に出す） */
   #home { font-size:12.5px; color:var(--muted); order:10; }
   #home nav { display:flex; flex-wrap:wrap; gap:0 12px; margin-bottom:2px; }
@@ -1202,10 +1203,36 @@ function reviewHtml() {
   return `<div class="review"><b>振り返り</b>（AIの見積もり）<br>採点した ${scored.length} 手のうち、AIの最善手とほぼ同じいい手は ${good} 手。損は合計で約 ${total} 点。${trend}` +
     (items ? `<div class="sub">損の大きかった手（押すと、その手を置いた盤から再生）</div><ol>${items}</ol>` : `<br>大きな損はありませんでした。`) + more + `</div>`;
 }
+// 送った対局はこのブラウザに覚えておき、同じ対局を何度も送らないように「送信済み」と出す（PR: 重複送信を防ぐ）。
+// 受け取る側も同じ対局（山札・指し手・人の席が同じ）は1局にまとめる（src/carcassonne/human_games.py の key）。
+const SENT_KEY = "cc_sent_games", SENT_MAX = 300;
+function recordId(rec) {
+  const s = JSON.stringify([rec.deck, rec.moves, rec.human_seat]);
+  let a = 0x811c9dc5, b = 0;
+  for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); a = Math.imul(a ^ c, 16777619) >>> 0; b = (Math.imul(b, 31) + c) >>> 0; }
+  return a.toString(36) + "." + b.toString(36);
+}
+function sentGames() { try { const m = JSON.parse(store.get(SENT_KEY) || "{}"); return m && typeof m === "object" && !Array.isArray(m) ? m : {}; } catch (e) { return {}; } }
+function sentVia(rec) { return rec ? sentGames()[recordId(rec)] || null : null; }
+function markSent(rec, via) {
+  const m = sentGames();
+  m[recordId(rec)] = {t: Date.now(), via};
+  const keep = Object.entries(m).sort((x, y) => y[1].t - x[1].t).slice(0, SENT_MAX);
+  store.set(SENT_KEY, JSON.stringify(Object.fromEntries(keep)));
+}
 // 終局後の「棋譜を送る」欄。Google フォーム（アカウント不要）は設定があるときだけ出す（data/human_games_form.json）
-function shareHtml() {
-  const form = REC_FORM ? `<button type="button" class="primary" id="btnFormRec">規約に同意して送る（アカウント不要）</button>` : "";
+// sent はこの対局を送ったときの記録（markSent）。送った対局は「送信済み」の欄にする
+function shareHtml(sent = sentVia(G && G.record)) {
   const again = `<div class="row"><button type="button" id="btnReplayThis">この対局を再生</button><button type="button" id="btnLinkThis">再生リンクをコピー</button></div>`;
+  if (sent) {
+    // 送る画面を開いたあと。送信を押したかどうかはページからは分からないので、押さずに閉じたときのために開き直しは残す
+    const reopen = sent.via === "form" && REC_FORM ? `<button type="button" id="btnFormRec">送る画面をもう一度開く</button>`
+      : `<button type="button" id="btnSendRec">送る画面をもう一度開く</button>`;
+    return again + `<div class="share"><div class="sent" id="sentNote"><b>✓ この対局の送る画面を開きました。ご協力ありがとうございます！</b><br>開いた画面で送信を押していれば、もう届いています。同じ対局は1回送れば十分です。</div>` +
+      `<div class="row">${reopen}<button type="button" id="btnSaveRec">ファイルに保存</button></div>` +
+      `送信を押さずに閉じたときだけ、もう一度開いてください。うっかり2回送っても、同じ対局は1局として数えるので大丈夫です。</div>`;
+  }
+  const form = REC_FORM ? `<button type="button" class="primary" id="btnFormRec">規約に同意して送る（アカウント不要）</button>` : "";
   return again + `<div class="share"><b>よければ、棋譜を研究に使わせてください（任意）</b><br>人との対局から、AIの弱点を探して学習に使います。送らなくても、対戦や再生はこれまでどおり使えます。` +
     `<p class="pubnote">送った棋譜は <a href="games.html" target="_blank" rel="noopener">みんなの対局</a> のページで公開され、誰でも見て使えるデータ（CC BY 4.0）になります。名前は出ませんが、あとから消すことはできません。送る前に <a href="terms.html" target="_blank" rel="noopener">利用規約・データの扱い</a>を読んでください。</p>` +
     `<div class="row">${form}<button type="button" id="btnSendRec">規約に同意してGitHubで送る</button><button type="button" id="btnSaveRec">ファイルに保存</button></div>` +
@@ -1226,8 +1253,14 @@ function recordIssueUrl() {
 }
 $("result").addEventListener("click", e => {
   if (!G || !G.record) return;
-  if (e.target.id === "btnFormRec") window.open(recordFormUrl(), "_blank", "noopener");
-  if (e.target.id === "btnSendRec") window.open(recordIssueUrl(), "_blank", "noopener");
+  // 送る画面を開いたら「送信済み」に切り替える（同じ対局を続けて何度も送らないように）
+  const sendVia = e.target.id === "btnFormRec" ? "form" : e.target.id === "btnSendRec" ? "github" : null;
+  if (sendVia) {
+    window.open(sendVia === "form" ? recordFormUrl() : recordIssueUrl(), "_blank", "noopener");
+    markSent(G.record, sendVia);
+    $("result").innerHTML = resultHtml();
+    const note = $("sentNote"); if (note) note.scrollIntoView({block: "nearest"});
+  }
   // 再生は盤の上で見るので、スマホ（盤がページの上にある）では上まで戻す
   const toBoard = () => window.scrollTo({ top: 0, behavior: "smooth" });
   if (e.target.id === "btnReplayThis") { replayOpen(G.record, 0); toBoard(); }

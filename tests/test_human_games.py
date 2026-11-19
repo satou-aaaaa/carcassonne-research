@@ -214,3 +214,23 @@ def test_ingest_rows_reports_why_rows_were_rejected(tmp_path):
     out = hg.ingest_rows(["{壊れた", '{"v": 1}'], tmp_path / "g.jsonl")
     assert out["invalid"] == 2 and out["added"] == 0
     assert len(out["errors"]) == 2 and out["errors"][0].startswith("1件目")
+
+
+def test_same_game_sent_twice_is_counted_once(tmp_path):
+    """同じ対局を何度送っても（フォーム2回・GitHub・ヒント数などの付け足しが違っても）1局として数える。"""
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+    from check_data_append_only import game_key
+
+    rec = make_record(11)
+    path = tmp_path / "g.jsonl"
+    other = dict(rec, hints=3, coach=True, level="standard", ai="gen9")
+    got = hg.ingest_rows([json.dumps(rec), json.dumps(rec), json.dumps(other)], path, TS)
+    assert (got["added"], got["duplicate"]) == (1, 2)
+    status, msg = hg.ingest_issue(issue_body(rec), path, TS)
+    assert status == "duplicate" and "ありがとう" in msg  # 責めずにお礼を言う
+    assert len(hg.load(path)) == 1
+    # numba の要らない data ジョブの検査（check_data_append_only.py）も同じ見出しを使う
+    assert game_key(hg.load(path)[0]) == hg.key(hg.load(path)[0])
