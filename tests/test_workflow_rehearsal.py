@@ -191,6 +191,8 @@ def test_selfplay_notify_survives_long_body_and_504(tmp_path: Path) -> None:
     assert r.returncode == 0, r.stdout + r.stderr
     assert log.count("gh issue create") == 1, log  # 504 のあとは作れたかを探してから。2件にしない
     assert "gh issue close 5" in log, log
+    # 知らせは対応の要らないものなので、作ったらすぐ閉じる（開いたまま残さない、2026-11-20）
+    assert "gh issue close https://github.com/o/r/issues/99" in log, log
 
 
 def test_selfplay_notify_does_nothing_without_promotion(tmp_path: Path) -> None:

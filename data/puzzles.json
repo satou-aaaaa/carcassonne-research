@@ -1575,7 +1575,12 @@
     "Joins an unclaimed city and grows it to 3 tiles. Completion is still a way off."
    ]
   },
-  "disputed": "gen1373: 選択肢3の点差が最大"
+  "disputes": [
+   "gen1167",
+   "gen1244",
+   "gen1373"
+  ],
+  "retired": "gen1167・gen1244・gen1373 で答えが入れ替わった（gen1373: 選択肢3の点差が最大）"
  },
  {
   "id": "s0t58",
