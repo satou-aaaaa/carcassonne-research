@@ -451,6 +451,32 @@ async function exerciseManyGames(ctx, base, file, isMobile) {
     // ◀ ▶・形勢グラフ・その手の説明までが1画面に入ること（評価の切り替え・リンクのボタンは下にあってよい）
     const bar = await page.evaluate(() => ["rpNext", "rpGraph", "rpNote"].every(id => document.getElementById(id).getBoundingClientRect().bottom <= window.innerHeight));
     if (isMobile && !bar) problems.push("再生の ◀ ▶ が最初の画面に見えない（スクロールしないと押せない）");
+    // 今の手が見分けられること: 人の手もAIの手も盤で枠を付け（lastMark）、何手目の下に誰の手かを出し、
+    // スマホでは右下のボタン（陣地・全体を表示）の下に今の手のマスが隠れない（2026-11-20「リプレイを見やすく」）
+    for (const step of [1, 2]) {
+      await page.click("#rpNext");
+      await page.waitForTimeout(700);
+      const m = await page.evaluate(() => {
+        const lm = lastMark(), vb = document.getElementById("viewBtns"), c = cv.getBoundingClientRect(), r = vb.getBoundingClientRect();
+        const shown = getComputedStyle(vb).display !== "none" && vb.offsetWidth > 0;
+        const L = lm ? c.left + cellLeft(lm.x) : 0, T = lm ? c.top + cellTop(lm.y) : 0;
+        const under = !!lm && shown && L + view.s > r.left && T + view.s > r.top && L < r.right && T < r.bottom;
+        return { mark: !!lm, who: document.getElementById("rpWho").textContent, under, ply: G.replay.ply };
+      });
+      if (!m.mark) problems.push(`再生の${m.ply}手目で、今の手の枠が盤に出ない`);
+      if (!m.who) problems.push(`再生の${m.ply}手目で、誰の手か（#rpWho）が出ない`);
+      if (isMobile && m.under) problems.push(`再生の${m.ply}手目で、今の手のマスが盤の右下のボタンの下に隠れる`);
+    }
+    // 自動再生で手が進み、ほかのボタンを押すと止まること
+    const p0 = await page.evaluate(() => G.replay.ply);
+    await page.click("#rpPlay");
+    await page.waitForTimeout(4500);
+    const p1 = await page.evaluate(() => G.replay.ply);
+    if (p1 <= p0) problems.push("自動再生（#rpPlay）を押しても手が進まない");
+    await page.click("#rpPrev");
+    await page.waitForTimeout(2500);
+    const p2 = await page.evaluate(() => ({ ply: G.replay.ply, on: document.getElementById("rpPlay").getAttribute("aria-pressed") }));
+    if (p2.on !== "false") problems.push("◀ を押しても自動再生が止まらない");
     if (isMobile) {
       // 終局まで進めても、スマホではタイルが小さくなりすぎず（MIN_AUTO_TILE 以上）、直前に置いたマスが盤の中に見えること
       await page.click("#rpLast");

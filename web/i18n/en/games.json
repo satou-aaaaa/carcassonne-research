@@ -2,7 +2,7 @@
  "みんなの対局": "Community Games",
  "対戦ページから研究用に送ってもらった、人とAIの対局の棋譜。押すと盤面を一手ずつ再生できます。": "Records of human-vs-AI games that players sent in for research. Tap one to replay the board move by move.",
  "みんなの<span class=\"accent\">対局</span>": "Community <span class=\"accent\">Games</span>",
- "対戦ページで指した人が、研究用に送ってくれたAIとの対局です。押すと対戦ページが開き、盤面を ◀ ▶ で一手ずつ再生できます。名前などの個人の情報は入っていません。": "Games against the AI that players sent in for research. Tap one to open it on the play page and step through the board with ◀ ▶. No names or other personal information are included.",
+ "対戦ページで指した人が、研究用に送ってくれたAIとの対局です。押すと対戦ページが開き、盤面を ◀ ▶ で一手ずつ、または「⏵ 自動」で続けて再生できます。名前などの個人の情報は入っていません。": "Games against the AI that players sent in for research. Tap one to open it on the play page and step through the board with ◀ ▶, or press “⏵ Auto” to play it through. No names or other personal information are included.",
  "まとめ": "Summary",
  "対局の一覧": "All games",
  "AIの強さ": "AI level",

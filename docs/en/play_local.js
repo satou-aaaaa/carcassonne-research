@@ -363,6 +363,7 @@
         this.play(cell, g, piece);
         const [x, y] = C.xyOf(cell);
         this.last_ai = who !== this.human_seat ? { x, y } : null;
+        this.last_who = who;
       }
       this.ply = ply;
     }
@@ -373,7 +374,7 @@
       v.can_undo = false;
       const last = this.ply ? C.xyOf(this.plays[this.ply - 1][0]) : null;
       const a = this.analysis[this.ply] || null;
-      v.replay = { ply: this.ply, total: this.plays.length, last: last && { x: last[0], y: last[1] }, curve: this.curve, analysis: a };
+      v.replay = { ply: this.ply, total: this.plays.length, last: last && { x: last[0], y: last[1], p: this.last_who }, curve: this.curve, analysis: a };
       v.last_coach = a && (a.loss === null || a.loss >= 1) ? { best: a.best, loss: a.loss } : null;
       return v;
     }

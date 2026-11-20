@@ -97,15 +97,24 @@
   #rpGraphBox .cap { font-size:12px; color:var(--muted); }
   #rpGraph { width:100%; height:64px; display:block; cursor:pointer; background:var(--bg); border-radius:4px; }
   #rpGraph .zero { stroke:var(--line); stroke-width:1; }
-  #rpGraph .line { fill:none; stroke:var(--accent); stroke-width:2; vector-effect:non-scaling-stroke; }
+  #rpGraph .line { fill:none; stroke:var(--ink); stroke-width:1.5; vector-effect:non-scaling-stroke; opacity:.7; }
   #rpGraph .cur { stroke:var(--coach); stroke-width:2; vector-effect:non-scaling-stroke; }
   #rpEvalLbl { font-size:13px; }
   #rpNote { font-size:13px; line-height:1.5; color:var(--coach); min-height:1.5em; }
   #recList { display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow:auto; }
   #recList button { text-align:left; }
   #recDlg .note { font-size:13px; color:var(--muted); margin:0 0 8px; }
-  #rpPos { font-size:14px; font-weight:600; text-align:center; flex:1; }
-  #rpRange { width:100%; }
+  #rpPos { font-size:14px; font-weight:600; text-align:center; flex:1; display:flex; flex-direction:column; align-items:center; line-height:1.25; }
+  /* 今の手を指した側（盤の枠と同じ色） */
+  #rpWho { font-size:12px; font-weight:600; }
+  #rpWho:empty { display:none; }
+  #rpPlayRow { gap:8px; }
+  #rpPlay { flex:none; white-space:nowrap; }
+  #rpPlay[aria-pressed="true"] { background:var(--accent); color:#fff; border-color:var(--accent); }
+  #rpRange { width:100%; flex:1; min-width:0; }
+  #rpGraphWrap { position:relative; }
+  #rpGraphWrap .lead { position:absolute; left:4px; font-size:12px; font-weight:600; line-height:1; pointer-events:none; opacity:.85; }
+  #rpGraphWrap .up { top:3px; } #rpGraphWrap .dn { bottom:3px; }
   #result .review { margin-top:8px; padding-top:8px; border-top:1px solid var(--line); font-size:13.5px; line-height:1.55; }
   #result .review .sub { margin-top:6px; font-size:12.5px; color:var(--muted); }
   #result .review ol { margin:4px 0 0; padding-left:0; list-style:none; }
@@ -209,12 +218,12 @@
     <div class="row">
       <button type="button" id="rpFirst" aria-label="To the start" title="To the start">|◀</button>
       <button type="button" id="rpPrev" aria-label="Back one move" title="Back one move (←)">◀</button>
-      <span id="rpPos" aria-live="polite"></span>
+      <span id="rpPos" aria-live="polite"><span id="rpNum"></span><span id="rpWho"></span></span>
       <button type="button" id="rpNext" aria-label="Forward one move" title="Forward one move (→)">▶</button>
       <button type="button" id="rpLast" aria-label="To the end" title="To the end">▶|</button>
     </div>
-    <input id="rpRange" type="range" min="0" value="0" aria-label="Which move to show">
-    <div id="rpGraphBox"><div class="cap">Balance: projected margin for the human (if the game ended now). Tap to jump to that move</div><svg id="rpGraph" viewBox="0 0 300 60" preserveAspectRatio="none" role="img" aria-label="Balance chart"></svg></div>
+    <div class="row" id="rpPlayRow"><button type="button" id="rpPlay" aria-pressed="false" title="Step through the moves automatically (Space)">⏵ Auto</button><input id="rpRange" type="range" min="0" value="0" aria-label="Which move to show"></div>
+    <div id="rpGraphBox"><div class="cap">Balance: projected margin for the human (if the game ended now). Tap to jump to that move</div><div id="rpGraphWrap"><svg id="rpGraph" viewBox="0 0 300 60" preserveAspectRatio="none" role="img" aria-label="Balance chart"></svg><span class="lead up" id="rpLeadUp">▲ Human ahead</span><span class="lead dn" id="rpLeadDn">▼ AI ahead</span></div></div>
     <label class="chk" id="rpEvalLbl"><input type="checkbox" id="rpEval" checked> Show the AI's evaluation of each move (where the AI would play and how many points were lost)</label>
     <div id="rpNote" aria-live="polite"></div>
     <div class="row"><button type="button" id="rpLink" title="Copy a link anyone can use to replay this game">Copy replay link</button><button type="button" id="rpClose">Stop replay</button></div>
@@ -314,6 +323,7 @@
 const $ = id => document.getElementById(id);
 const KIND_JA = {C:"City", R:"Road", F:"Field", M:"Monastery"};
 const PCOL = ["#d64541", "#2f6fd6"];
+let rpTimer = null;  // 棋譜の自動再生のタイマー（下の rpToggle）
 const COACH = "#8e44ad";
 const TOUCH = matchMedia("(hover: none)").matches;
 if (TOUCH) document.documentElement.classList.add("touch");
@@ -435,6 +445,11 @@ function fillPart(x, y, p, color, alpha) {
 function drawFeature(f, color, alpha) {
   for (const q of f.parts) { const p = pieceOf(q.x, q.y, q.piece); if (p) fillPart(q.x, q.y, p, color, alpha); }
 }
+// 盤で枠を付ける直前の手 {x, y, p}（p は指したSeat）
+function lastMark() {
+  if (G.replay) return G.replay.last && G.replay.last.p !== undefined ? G.replay.last : null;
+  return G.last_ai ? {x: G.last_ai.x, y: G.last_ai.y, p: 1 - G.human_seat} : null;
+}
 function tag(x, y, text, color) {
   const L = cellLeft(x) + 3, T = cellTop(y) + 3;
   ctx.font = "bold 11px system-ui, sans-serif";
@@ -474,10 +489,11 @@ function draw() {
     const k = (now - a.t0) / a.dur, alpha = .55 * Math.abs(Math.sin(k * Math.PI * 3)) * (1 - k * .5);
     drawFeature(a.feature, a.color, alpha);
   }
-  if (G.last_ai) {
-    const ai = 1 - G.human_seat;
-    ctx.strokeStyle = PCOL[ai]; ctx.lineWidth = 4; ctx.strokeRect(cellLeft(G.last_ai.x)+2, cellTop(G.last_ai.y)+2, s-4, s-4);
-    if (s >= 40) tag(G.last_ai.x, G.last_ai.y, "AI", PCOL[ai]);
+  // 直前の手の枠（対局中はAI's move。再生中はHuman's moveもAI's moveも、今の手を指した側の色で示す）
+  const lm = lastMark();
+  if (lm) {
+    ctx.strokeStyle = PCOL[lm.p]; ctx.lineWidth = 4; ctx.strokeRect(cellLeft(lm.x)+2, cellTop(lm.y)+2, s-4, s-4);
+    if (s >= 40) tag(lm.x, lm.y, lm.p === G.human_seat ? "Human" : "AI", PCOL[lm.p]);
   }
   // 調べている特徴（置いたミープルにカーソル／タップ）
   if (inspect && !pending) drawFeature(inspect.feature, inspect.color, .45);
@@ -485,7 +501,7 @@ function draw() {
   if (showAreas && !pending) drawAreas();
   for (const m of G.meeples) drawMeeple(cellLeft(m.x), cellTop(m.y), m.piece, m.player, G.board.find(b => b.x === m.x && b.y === m.y));
   // AIが直前に置いたミープルを輪で示す（どこに置いたか見落とさない）
-  if (G.last_ai) for (const m of G.meeples) if (m.x === G.last_ai.x && m.y === G.last_ai.y && m.player !== G.human_seat) {
+  if (lm) for (const m of G.meeples) if (m.x === lm.x && m.y === lm.y && m.player === lm.p) {
     const b = G.board.find(q => q.x === m.x && q.y === m.y), [ax, ay] = anchors(b.t, b.v)[m.piece];
     ctx.save(); ctx.strokeStyle = PCOL[m.player]; ctx.lineWidth = 2.5; ctx.beginPath();
     ctx.arc(cellLeft(m.x) + ax*s, cellTop(m.y) + ay*s, meepleSize() * .72, 0, 7); ctx.stroke(); ctx.restore();
@@ -782,13 +798,15 @@ function ensureVisible(cells, focus) {
 }
 // スマホで、置ける緑のマスが盤の右下のボタン（Areas・Fit board）の下に隠れるなら、盤を少しずらして見えるようにする
 // （隠れたマスを押すとボタンが反応して置けない。画面の外のマスは緑の矢印で示すので、隠れるよりは外に出るほうがよい）
+// 再生中は、今の手のマスがボタンに少しでもかからないようにする（どこに置いたかを見るのが再生の目的のため）
 function dodgeButtons(to, focus) {
-  if (!isMobile() || !G || !G.placements || !G.placements.length) return to;
+  const rl = G && G.replay ? (G.replay.last ? [G.replay.last] : []) : null;
+  if (!isMobile() || !G || !(rl ? rl.length : G.placements && G.placements.length)) return to;
   const vb = $("viewBtns");
   if (getComputedStyle(vb).display === "none" || !vb.offsetWidth) return to;
-  const c = cv.getBoundingClientRect(), r = vb.getBoundingClientRect(), a = safeArea(), s = to.s, k = s * .3;
+  const c = cv.getBoundingClientRect(), r = vb.getBoundingClientRect(), a = safeArea(), s = to.s, k = s * (rl ? .55 : .3);
   const bl = r.left - c.left, bt = r.top - c.top;  // ボタンの左上（盤の中の座標）
-  const cells = placeCells();
+  const cells = rl || placeCells();
   // ボタンの下に真ん中（押す所）が隠れるマスと、それを出すのに要る左・上へのずらし量
   const hidden = v => cells.map(p => [v.ox + (p.x + .5)*s, v.oy - (p.y - .5)*s])
     .filter(([x, y]) => x > bl - k && y > bt - k && x < a.w && y < a.bottom);
@@ -885,7 +903,8 @@ window.addEventListener("keydown", e => {
   if (e.target.tagName === "BUTTON" && (e.key === " " || e.key === "Enter")) return;
   if (e.key === "r" || e.key === "R" || e.key === " ") { e.preventDefault(); rotate(); }
   if (e.key === "Escape") cancelPending();
-  if (G && G.replay && (e.key === "ArrowLeft" || e.key === "ArrowRight") && e.target.tagName !== "INPUT") { e.preventDefault(); replayGoto(G.replay.ply + (e.key === "ArrowLeft" ? -1 : 1)); }
+  if (G && G.replay && (e.key === "ArrowLeft" || e.key === "ArrowRight") && e.target.tagName !== "INPUT") { e.preventDefault(); rpStop(); replayGoto(G.replay.ply + (e.key === "ArrowLeft" ? -1 : 1)); }
+  if (G && G.replay && e.key === " " && !["INPUT", "BUTTON", "SELECT", "TEXTAREA"].includes(e.target.tagName)) { e.preventDefault(); rpToggle(); }
   if (e.key === "Enter" && pending && myTurn()) { e.preventDefault(); confirmMove(); }
 });
 function startPending(p, piece = null) {
@@ -1140,7 +1159,14 @@ function refresh() {
   document.body.classList.toggle("over", !!(G.over && !G.replay));
   if (G.replay) {
     const r = G.replay;
-    $("rpPos").textContent = `Move ${r.ply} / ${r.total}`;
+    $("rpNum").textContent = `Move ${r.ply} / ${r.total}`;
+    const lm = r.last && r.last.p !== undefined ? r.last.p : null;
+    $("rpWho").textContent = lm === null ? "" : lm === h ? "Human's move" : "AI's move";
+    $("rpWho").style.color = lm === null ? "" : PCOL[lm];
+    $("rpLeadUp").style.color = PCOL[h]; $("rpLeadDn").style.color = PCOL[1 - h];
+    $("rpPlay").textContent = rpTimer ? "⏸ Pause" : "⏵ Auto";
+    $("rpPlay").setAttribute("aria-pressed", rpTimer ? "true" : "false");
+    $("rpPlay").disabled = r.ply === r.total && !rpTimer;
     $("rpRange").max = r.total; $("rpRange").value = r.ply;
     $("rpFirst").disabled = $("rpPrev").disabled = r.ply === 0;
     $("rpNext").disabled = $("rpLast").disabled = r.ply === r.total;
@@ -1360,6 +1386,7 @@ let replayRec = null;  // 再生中の棋譜（再生リンク用）。play_loca
 async function replayOpen(record, ply) {
   const keep = G;
   busy = true; G = null; anims = []; pending = null; draw();
+  rpStop();
   try { const v = await api("/api/replay", {record, ply}); liveKept = !!v.live_kept; setState(v); replayRec = record; fitAll(false, G.replay.last && [G.replay.last]); setTimeout(replayAnalyze, 0); }
   catch (err) { alert("Could not open the game record: " + err.message); if (keep) setState(keep); }
   busy = false; refresh();
@@ -1380,15 +1407,25 @@ function showRecent() {
   $("recDlg").showModal();
 }
 // 形勢の線（ReplayGame.curve）と今の手数の印
+// 0 の線より上（Humanのリード）はHumanの色、下（AIのリード）はAIの色で塗り、どちらが優勢かを色で見せる
 function drawCurve(r) {
   const c = r.curve || [], n = Math.max(1, c.length - 1), m = Math.max(10, ...c.map(Math.abs));
   const X = i => (i / n) * 300, Y = d => 30 - (d / m) * 27;
-  $("rpGraph").innerHTML = `<line class="zero" x1="0" y1="30" x2="300" y2="30"/>` +
-    `<polyline class="line" points="${c.map((d, i) => `${X(i).toFixed(1)},${Y(d).toFixed(1)}`).join(" ")}"/>` +
-    `<line class="cur" x1="${X(r.ply).toFixed(1)}" y1="0" x2="${X(r.ply).toFixed(1)}" y2="60"/>`;
+  const h = G.human_seat, pts = c.map((d, i) => `${X(i).toFixed(1)},${Y(d).toFixed(1)}`).join(" ");
+  const area = c.length ? `0,30 ${pts} ${X(c.length - 1).toFixed(1)},30` : "";
+  const cx = X(r.ply).toFixed(1), cy = c.length > r.ply ? Y(c[r.ply]).toFixed(1) : 30;
+  $("rpGraph").innerHTML =
+    `<defs><clipPath id="rpUp"><rect x="0" y="0" width="300" height="30"/></clipPath><clipPath id="rpDn"><rect x="0" y="30" width="300" height="30"/></clipPath></defs>` +
+    `<polygon points="${area}" fill="${PCOL[h]}" fill-opacity=".28" clip-path="url(#rpUp)"/>` +
+    `<polygon points="${area}" fill="${PCOL[1 - h]}" fill-opacity=".28" clip-path="url(#rpDn)"/>` +
+    `<line class="zero" x1="0" y1="30" x2="300" y2="30"/>` +
+    `<polyline class="line" points="${pts}"/>` +
+    `<line class="cur" x1="${cx}" y1="0" x2="${cx}" y2="60"/>` +
+    `<ellipse cx="${cx}" cy="${cy}" rx="3.2" ry="5" fill="var(--coach)"/>`;
 }
 $("rpGraph").addEventListener("click", e => {
   if (!G || !G.replay) return;
+  rpStop();
   const b = e.currentTarget.getBoundingClientRect();
   replayGoto(Math.round((e.clientX - b.left) / b.width * G.replay.total));
 });
@@ -1429,16 +1466,32 @@ async function replayGoto(ply) {
   if (G.replay.last) { ensureVisible([G.replay.last], [G.replay.last]); addAnim({type: "ping", x: G.replay.last.x, y: G.replay.last.y, dur: 1200}); }
   if (!rpThinking) replayAnalyze();
 }
-$("rpFirst").onclick = () => replayGoto(0);
-$("rpPrev").onclick = () => replayGoto(G.replay.ply - 1);
-$("rpNext").onclick = () => replayGoto(G.replay.ply + 1);
-$("rpLast").onclick = () => replayGoto(G.replay.total);
-$("rpRange").oninput = e => replayGoto(+e.target.value);
+// 自動再生: 1手ずつ進め、盤で今の手を見る間を取る（評価を出すときは採点が終わるのを待ってから次へ）
+const RP_STEP_MS = 1600;
+function rpStop() { if (rpTimer) { clearTimeout(rpTimer); rpTimer = null; if (G && G.replay) refresh(); } }
+function rpTick() {
+  if (!G || !G.replay || G.replay.ply >= G.replay.total) { rpStop(); return; }
+  if (busy || (rpThinking && $("rpEval").checked)) { rpTimer = setTimeout(rpTick, 300); return; }
+  replayGoto(G.replay.ply + 1).then(() => { if (rpTimer) rpTimer = G.replay.ply >= G.replay.total ? (rpStop(), null) : setTimeout(rpTick, RP_STEP_MS); });
+}
+async function rpToggle() {
+  if (rpTimer) return rpStop();
+  if (!G || !G.replay) return;
+  rpTimer = -1; refresh();  // 押したらすぐ「停止」に変える
+  if (G.replay.ply >= G.replay.total) await replayGoto(0);
+  if (rpTimer === -1) rpTimer = setTimeout(rpTick, 400);
+}
+$("rpPlay").onclick = rpToggle;
+$("rpFirst").onclick = () => { rpStop(); replayGoto(0); };
+$("rpPrev").onclick = () => { rpStop(); replayGoto(G.replay.ply - 1); };
+$("rpNext").onclick = () => { rpStop(); replayGoto(G.replay.ply + 1); };
+$("rpLast").onclick = () => { rpStop(); replayGoto(G.replay.total); };
+$("rpRange").oninput = e => { rpStop(); replayGoto(+e.target.value); };
 $("btnOpenRec").onclick = showRecent;
 $("btnRecFile").onclick = () => { $("recDlg").close(); $("recFile").click(); };
 $("rpLink").onclick = e => replayRec && copyReplayLink(replayRec, e.target);
 $("rpClose").onclick = async () => {
-  clearHash(); replayRec = null; liveKept = false; const st = await api("/api/replay_close");
+  rpStop(); clearHash(); replayRec = null; liveKept = false; const st = await api("/api/replay_close");
   if (st) { setState(st); fitAll(false, G.last_ai && [G.last_ai]); }
   else { G = null; $("replayBar").hidden = $("result").hidden = true; document.body.classList.remove("replaying"); setHint("Press “New game”"); draw(); $("btnNew").click(); }
 };
