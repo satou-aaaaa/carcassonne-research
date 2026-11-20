@@ -5,8 +5,13 @@
   2. 学習: 直近 `window` 試行分のデータで、TD(λ) の目標（`td.py`）を使って候補の評価関数を作る。
      線形（`lin`）はチャンピオンの重みに向かって正則化する（学び直しで弱くなるのを防ぐ）。
      `mlp` は1隠れ層のMLP（`fast_eval.fit_mlp`）。
-  3. 判定: 候補とチャンピオンを同じ探索予算で `gate_seeds` 組（先後入替で2倍の局数）対戦させ、
-     勝率が `threshold` 以上なら候補を新しいチャンピオンにする。
+  3. 判定: 候補とチャンピオンを同じ探索予算で対戦させる。既定（`gate_mode="sprt"`）は逐次検定（SPRT）:
+     `gate_chunk` 組（先後入替で2倍の局数）ずつ指し、そのたびに「勝率 `sprt_p1` 以上」と「`sprt_p0` 以下」の
+     どちらに近いかを対数尤度比で測って、どちらかの線を越えた時点で採用・不採用を決める。
+     `gate_max_seeds` 組まで決まらなければ不採用。`gate_mode="fixed"` は以前の方式
+     （`gate_seeds` 組で勝率が `threshold` 以上なら採用）。
+     固定200局・勝率0.55では、同じ強さの候補も約6%が通り、1日に何十回も試すと偶然の採用が積み重なった
+     （2026-11-20、1404試行の判定勝率は平均0.499・ばらつきは運だけの大きさ。docs/EXPERIMENTS.md）。
      採用したときは、初代チャンピオンとも `anchor_seeds` 組対戦させ、通算でどれだけ伸びたかを記録する。
 
 作業は数分で終わる「単位」（自己対戦の塊・学習・対戦の塊）に分け、単位ごとに状態を `state.json` に
@@ -27,7 +32,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .arena import run_match
+from .arena import run_match, sprt_decision, sprt_llr
 from .fast_eval import FEATURE_NAMES, NF, fit_mlp, load_eval
 from .fast_mcts import FastMCTSAgent
 from .ridge_stats import solve_ridge, stats_of
@@ -48,8 +53,15 @@ class Config:
     ridge: float = 1000.0  # lin: チャンピオンの重みへの正則化の強さ
     gate_seeds: int = 100  # 判定の組数（局数はその2倍。100局では運で採用されることがあった）
     gate_chunk: int = 10  # 判定の1単位の組数
-    threshold: float = 0.55  # 採用に必要な勝率
-    anchor_seeds: int = 20  # 採用時に初代と対戦する組数（0で省略）
+    threshold: float = 0.55  # fixed: 採用に必要な勝率
+    # 判定の方式。sprt = 逐次検定（偶然の採用を防ぐ）、fixed = gate_seeds 組で threshold 以上なら採用
+    gate_mode: str = "sprt"
+    sprt_p0: float = 0.50  # H0: 候補の本当の勝率がこれ以下（強くなっていない）
+    sprt_p1: float = 0.56  # H1: 候補の本当の勝率がこれ以上（はっきり強い）
+    sprt_alpha: float = 0.01  # 強くなっていない候補を採用してしまう確率の上限
+    sprt_beta: float = 0.10  # はっきり強い候補を見落とす確率の上限
+    gate_max_seeds: int = 400  # sprt: ここまで指して決まらなければ不採用（局数はその2倍）
+    anchor_seeds: int = 50  # 採用時に初代と対戦する組数（0で省略）
     workers: int = 4
     # 人がAIと指した棋譜（対戦ページから送ってもらったもの。リポジトリからの相対パス、空なら使わない）。
     # 全局を毎回の学習に混ぜる。human_weight は1局を何局ぶんに数えるか（0で使わない）。
@@ -66,6 +78,20 @@ class Config:
 # root の下のフォルダ。状態は git のブランチで受け渡すので、空になったフォルダは次の実行では無い
 # （git は空のフォルダを残さない。2026-11-07 試行1003、Issue #143）。読み込むたびに作り直す。
 _SUBDIRS = ("data", "models", "gate")
+# 状態に保存された設定を新しい既定へ移す（古い state.json を読んだとき1度だけ）。
+# 2: 判定を逐次検定に替え、初代との対戦を40局→100局に増やした（2026-11-20）。
+CONFIG_VERSION = 2
+_UPGRADES = {
+    2: {
+        "gate_mode": "sprt",
+        "sprt_p0": 0.50,
+        "sprt_p1": 0.56,
+        "sprt_alpha": 0.01,
+        "sprt_beta": 0.10,
+        "gate_max_seeds": 400,
+        "anchor_seeds": 50,
+    },
+}
 REPO = Path(__file__).resolve().parents[2]
 
 _DATA_NAME = re.compile(r"^a(\d+)_")
@@ -133,6 +159,7 @@ class Loop:
         self.state_path = self.root / "state.json"
         if self.state_path.exists():
             self.state = json.loads(self.state_path.read_text(encoding="utf-8"))
+            self._upgrade_config()
             self.cfg = Config(**self.state["config"])
             self._make_dirs()
             return
@@ -148,7 +175,19 @@ class Loop:
             "champion": "models/gen000.npy",
             "phase": "selfplay",
             "history": [],
+            "config_version": CONFIG_VERSION,
         }
+        self.save()
+
+    def _upgrade_config(self) -> None:
+        v = self.state.get("config_version", 1)
+        if v >= CONFIG_VERSION:
+            return
+        if self.state.get("phase") == "gate":
+            return  # 判定の途中では方式を変えない（次の判定から）
+        for k in range(v + 1, CONFIG_VERSION + 1):
+            self.state["config"].update(_UPGRADES[k])
+        self.state["config_version"] = CONFIG_VERSION
         self.save()
 
     # ---- 状態 ----
@@ -369,39 +408,101 @@ class Loop:
             f" / チャンピオン{t['r2_champion']:.3f}"
         )
 
+    def _chunk_path(self, tag: str, k: int) -> Path:
+        return self.root / "gate" / f"{tag}_{k:02d}.json"
+
+    def _done_chunks(self, tag: str) -> list[dict]:
+        """tag の対戦の済んだ塊（先頭から連続しているもの）を返す。"""
+        done, k = [], 0
+        while (p := self._chunk_path(tag, k)).exists():
+            done.append(json.loads(p.read_text(encoding="utf-8")))
+            k += 1
+        return done
+
+    def _play_chunk(
+        self, tag: str, k: int, a_rel: str, b_rel: str, n_seeds: int, base: int
+    ) -> None:
+        c = self.cfg
+        s0 = base + k * c.gate_chunk
+        seeds = range(s0, min(s0 + c.gate_chunk, base + n_seeds))
+        m = run_match(self.agent(a_rel), self.agent(b_rel), seeds, workers=c.workers)
+        r = {"games": m.games, "wins": m.wins_a, "diff_sum": m.mean_diff_a * m.games}
+        _write_json(self._chunk_path(tag, k), r)
+
+    @staticmethod
+    def _total(done: list[dict]) -> tuple[int, float, float]:
+        return (
+            sum(r["games"] for r in done),
+            sum(r["wins"] for r in done),
+            sum(r["diff_sum"] for r in done),
+        )
+
     def _match_chunks(self, tag: str, a_rel: str, b_rel: str, n_seeds: int, base: int):
         """n_seeds 組のうち未対戦の塊を1つ（gate_chunk 組）指す。
 
         全部済んだら A 視点の (局数, 勝ち, 得点差の合計) を、まだ残っていれば None を返す。
         """
+        n_chunks = -(-n_seeds // self.cfg.gate_chunk)
+        done = self._done_chunks(tag)
+        if len(done) < n_chunks:
+            self._play_chunk(tag, len(done), a_rel, b_rel, n_seeds, base)
+            done = self._done_chunks(tag)
+            if len(done) < n_chunks:
+                return None, f"{len(done)}/{n_chunks}"
+        return self._total(done[:n_chunks]), ""
+
+    def _sprt_chunks(self, tag: str, a_rel: str, b_rel: str, base: int):
+        """逐次検定: 塊を1つ指し、決着がつけば ((局数, 勝ち, 得点差の合計), 決定, LLR) を返す。
+
+        決定は "accept"（採用）/ "reject"（不採用）/ "max"（上限まで決まらず不採用）。
+        まだ決まらなければ (None, 途中経過の文, None)。
+        """
         c = self.cfg
-        n_chunks = -(-n_seeds // c.gate_chunk)
-        outs = [self.root / "gate" / f"{tag}_{k:02d}.json" for k in range(n_chunks)]
-        todo = [k for k, o in enumerate(outs) if not o.exists()]
-        if todo:
-            k = todo[0]
-            s0 = base + k * c.gate_chunk
-            seeds = range(s0, min(s0 + c.gate_chunk, base + n_seeds))
-            m = run_match(self.agent(a_rel), self.agent(b_rel), seeds, workers=c.workers)
-            r = {"games": m.games, "wins": m.wins_a, "diff_sum": m.mean_diff_a * m.games}
-            _write_json(outs[k], r)
-            if len(todo) > 1:
-                return None, f"{n_chunks - len(todo) + 1}/{n_chunks}"
-        done = [json.loads(o.read_text(encoding="utf-8")) for o in outs]
-        n = sum(r["games"] for r in done)
-        return (n, sum(r["wins"] for r in done), sum(r["diff_sum"] for r in done)), ""
+        n_chunks = -(-c.gate_max_seeds // c.gate_chunk)
+        done = self._done_chunks(tag)
+        if done:
+            res, dec, llr = self._sprt_state(done)
+            if dec != "continue":
+                return res, dec, llr
+        if len(done) >= n_chunks:
+            return self._total(done), "max", self._sprt_state(done)[2]
+        self._play_chunk(tag, len(done), a_rel, b_rel, c.gate_max_seeds, base)
+        done = self._done_chunks(tag)
+        res, dec, llr = self._sprt_state(done)
+        if dec != "continue":
+            return res, dec, llr
+        if len(done) >= n_chunks:
+            return res, "max", llr
+        return None, f"{res[0]}局 勝率{res[1] / res[0]:.3f} LLR {llr:+.2f}", None
+
+    def _sprt_state(self, done: list[dict]):
+        c = self.cfg
+        res = self._total(done)
+        n, wins = res[0], res[1]
+        llr = sprt_llr(wins, n, c.sprt_p0, c.sprt_p1)
+        dec = sprt_decision(wins, n, c.sprt_p0, c.sprt_p1, c.sprt_alpha, c.sprt_beta)
+        return res, dec, llr
 
     def _gate(self) -> str:
         c, a = self.cfg, self.attempt
         tag = f"a{a:03d}_gate"
-        res, msg = self._match_chunks(
-            tag, self.cand_rel(), self.state["champion"], c.gate_seeds, 200_000 + a * 1000
-        )
-        if res is None:
-            return f"試行{a}: 判定 {msg}（候補 vs チャンピオン）"
+        base = 200_000 + a * 1000
+        extra = {}
+        if c.gate_mode == "sprt":
+            res, dec, llr = self._sprt_chunks(tag, self.cand_rel(), self.state["champion"], base)
+            if res is None:
+                return f"試行{a}: 判定（逐次検定）{dec}（候補 vs チャンピオン）"
+            promoted = dec == "accept"
+            extra = {"gate": "sprt", "sprt": dec, "llr": round(llr, 3)}
+        else:
+            res, msg = self._match_chunks(
+                tag, self.cand_rel(), self.state["champion"], c.gate_seeds, base
+            )
+            if res is None:
+                return f"試行{a}: 判定 {msg}（候補 vs チャンピオン）"
+            promoted = res[1] / res[0] >= c.threshold
         n, wins, dsum = res
         rate = wins / n
-        promoted = rate >= c.threshold
         entry = {
             "attempt": a,
             "candidate": self.cand_rel(),
@@ -410,6 +511,7 @@ class Loop:
             "win_rate": round(rate, 3),
             "mean_diff": round(dsum / n, 2),
             "promoted": promoted,
+            **extra,
             **self.state.pop("train", {}),
             "date": time.strftime("%Y-%m-%d"),
         }
@@ -445,16 +547,22 @@ class Loop:
         return f"試行{a}: 初代と対戦 {n}局 勝率{wins / n:.3f} 得点差{dsum / n:+.2f}"
 
     # ---- 記録 ----
+    def gate_rule(self) -> str:
+        c = self.cfg
+        if c.gate_mode == "sprt":
+            return (
+                f"判定は逐次検定（{2 * c.gate_chunk}局ずつ、勝率{c.sprt_p0}以下か{c.sprt_p1}以上かを"
+                f"誤り{c.sprt_alpha}/{c.sprt_beta}で決める、最大{2 * c.gate_max_seeds}局）"
+            )
+        return f"判定{2 * c.gate_seeds}局で勝率{c.threshold}以上なら採用"
+
     def write_progress(self) -> None:
         c = self.cfg
         lines = [
             "# 自己対戦ループの成績",
             "",
             f"- チャンピオン: `{self.state['champion']}`（初代は `{self.state['initial_source']}`）",
-            (
-                f"- 設定: 自己対戦{c.games}局/試行、探索{c.sims}回/手（depth={c.depth}）、"
-                f"モデル{c.model}、判定{2 * c.gate_seeds}局で勝率{c.threshold}以上なら採用"
-            ),
+            f"- 設定: 自己対戦{c.games}局/試行、探索{c.sims}回/手（depth={c.depth}）、モデル{c.model}、{self.gate_rule()}",
             "",
             "| 試行 | 日付 | 候補 vs チャンピオン | 得点差 | 判定 | 学習局面 | 検証R²(候補/現) | 初代との対戦 |",
             "|---|---|---|---|---|---|---|---|",
