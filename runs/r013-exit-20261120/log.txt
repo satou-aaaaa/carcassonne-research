@@ -1,0 +1,17 @@
+/home/runner/work/_temp/out/r013-exit-20261120/d1.npz: 28388局面 根の値と終局の相関 0.641
+/home/runner/work/_temp/out/r013-exit-20261120/w1_root.npy: 目標=root 28388局面 終局R² 生徒0.393/先生の評価0.399 根の値R² 生徒0.955/先生の評価0.895 重みの変化 9.997
+A=fmcts:sims=2000,depth=10,eval=/home/runner/work/_temp/out/r013-exit-20261120/w1_root.npy  B=fmcts:sims=2000,depth=10,eval=models/eval_champion.npy
+200局 Aの勝率 0.393 [0.327, 0.462] 平均得点差 -5.30±1.35
+/home/runner/work/_temp/out/r013-exit-20261120/w1_mix.npy: 目標=mix 28388局面 終局R² 生徒0.403/先生の評価0.399 根の値R² 生徒0.939/先生の評価0.895 重みの変化 5.002
+A=fmcts:sims=2000,depth=10,eval=/home/runner/work/_temp/out/r013-exit-20261120/w1_mix.npy  B=fmcts:sims=2000,depth=10,eval=models/eval_champion.npy
+200局 Aの勝率 0.450 [0.383, 0.519] 平均得点差 -2.88±1.31
+/home/runner/work/_temp/out/r013-exit-20261120/w1_td.npy: 目標=td 28388局面 終局R² 生徒0.402/先生の評価0.399 根の値R² 生徒0.895/先生の評価0.895 重みの変化 1.437
+A=fmcts:sims=2000,depth=10,eval=/home/runner/work/_temp/out/r013-exit-20261120/w1_td.npy  B=fmcts:sims=2000,depth=10,eval=models/eval_champion.npy
+200局 Aの勝率 0.495 [0.426, 0.564] 平均得点差 +0.94±1.19
+反復1の最良: mix
+/home/runner/work/_temp/out/r013-exit-20261120/d2.npz: 28384局面 根の値と終局の相関 0.633
+/home/runner/work/_temp/out/r013-exit-20261120/w2.npy: 目標=mix 56772局面 終局R² 生徒0.404/先生の評価0.407 根の値R² 生徒0.944/先生の評価0.933 重みの変化 3.500
+A=fmcts:sims=2000,depth=10,eval=/home/runner/work/_temp/out/r013-exit-20261120/w2.npy  B=fmcts:sims=2000,depth=10,eval=models/eval_champion.npy
+200局 Aの勝率 0.425 [0.359, 0.494] 平均得点差 -3.08±1.38
+A=fmcts:sims=2000,depth=10,eval=/home/runner/work/_temp/out/r013-exit-20261120/w2.npy  B=fmcts:sims=2000,depth=10,eval=/home/runner/work/_temp/out/r013-exit-20261120/w1_mix.npy
+200局 Aの勝率 0.468 [0.400, 0.537] 平均得点差 -2.39±1.50

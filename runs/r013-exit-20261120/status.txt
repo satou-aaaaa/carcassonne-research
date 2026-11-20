@@ -1,0 +1,5 @@
+finished: 2026-11-20T02:12Z
+exit_code: 0
+commit: f02bd6a5867ea3ab13c1a06a71395f5d3f546309
+run: https://github.com/satou-aaaaa/carcassonne-research/actions/runs/44649249727
+command: bash scripts/sweeps/r013_exit.sh

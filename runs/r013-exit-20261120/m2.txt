@@ -1,0 +1,2 @@
+A=fmcts:sims=2000,depth=10,eval=/home/runner/work/_temp/out/r013-exit-20261120/w2.npy  B=fmcts:sims=2000,depth=10,eval=models/eval_champion.npy
+200局 Aの勝率 0.425 [0.359, 0.494] 平均得点差 -3.08±1.38
