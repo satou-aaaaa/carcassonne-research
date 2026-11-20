@@ -9,6 +9,11 @@
 `disputed` を付けて公開ページから外す（解説が正解の手を前提に書かれているため）。
 付けた問題は人が見直し、解説を書き直すか差し替える。
 
+食い違いを出したAIの名前は `disputes` に残す。違う世代のAI 2つ以上（RETIRE_AFTER）で食い違った問題は、
+正解と次点の差がAIの世代で入れ替わる程度しかない（教材として答えが定まらない）ので、`retired` を付けて
+以後は確かめ直さず、ページにも出さない。s7t11 が世代ごとに外れては戻り、同じ知らせの Issue が
+開いては閉じるのを3回くり返した（2026-11-12・15・18）ための仕組み。戻すときは `retired` を消す。
+
 終盤編の問題（"exact": true）は、AIではなく終局までの読み切り（`endgame.solve`）で各選択肢の勝つ確率を
 計算し直す。答えはAIの強さに依らないが、ルールやエンジンを変えたときの確かめになる。
 """
@@ -28,6 +33,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from carcassonne.state import Move, State
 
 SRC = ROOT / "data" / "puzzles.json"
+RETIRE_AFTER = 2  # 違う世代のAIでこの回数食い違ったら、答えが定まらない問題として外す
 
 
 def recheck(p: dict, sims: int = 12000) -> dict:
@@ -95,8 +101,23 @@ def reason(r: dict) -> str:
     return "、".join(out)
 
 
+def mark_disputed(p: dict, ai_name: str, text: str) -> bool:
+    """食い違いを記録する。違う世代で RETIRE_AFTER 回目なら外して（retired）True を返す。"""
+    seen = p.setdefault("disputes", [])
+    if ai_name and ai_name not in seen:
+        seen.append(ai_name)
+    if len(seen) >= RETIRE_AFTER:
+        p.pop("disputed", None)
+        p["retired"] = f"{'・'.join(seen)} で答えが入れ替わった（{text}）"
+        return True
+    p["disputed"] = text
+    return False
+
+
 def apply_results(puzzles: list[dict], results: list[dict], ai: dict) -> list[str]:
-    """解析結果を問題に書き込み、正解が変わった問題の id を返す。"""
+    """解析結果を問題に書き込み、正解が変わった問題（人の見直しが要るもの）の id を返す。
+
+    違う世代で何度も食い違った問題は retired を付けて外し、返す一覧には入れない。"""
     res = {r["id"]: r for r in results}
     bad = []
     for p in puzzles:
@@ -110,6 +131,7 @@ def apply_results(puzzles: list[dict], results: list[dict], ai: dict) -> list[st
             if r["best_ok"]:
                 p.pop("disputed", None)
             else:
+                # 読み切りは世代に依らないので、外さず人に見直してもらう
                 p["disputed"] = f"読み切り: 選択肢{r['top'] + 1}の勝つ確率が最大"
                 bad.append(p["id"])
             continue
@@ -120,8 +142,7 @@ def apply_results(puzzles: list[dict], results: list[dict], ai: dict) -> list[st
         p["checked_by"] = {"name": ai["name"], "date": ai.get("date")}
         if r["best_ok"]:
             p.pop("disputed", None)
-        else:
-            p["disputed"] = f"{ai['name']}: {reason(r)}"
+        elif not mark_disputed(p, ai["name"], f"{ai['name']}: {reason(r)}"):
             bad.append(p["id"])
     return bad
 
@@ -138,7 +159,8 @@ def main() -> None:
     ai = champion_info()
     src = Path(args.src)
     puzzles = json.loads(src.read_text(encoding="utf-8"))
-    todo = [p for p in puzzles if not args.only or p["id"] in args.only]
+    # 外した問題（retired）は確かめ直さない
+    todo = [p for p in puzzles if not p.get("retired") and (not args.only or p["id"] in args.only)]
     with Pool(args.workers) as pool:
         results = pool.starmap(recheck, [(p, args.sims) for p in todo if not p.get("exact")])
         results += pool.map(recheck_exact, [p for p in todo if p.get("exact")])
@@ -155,6 +177,9 @@ def main() -> None:
     bad = apply_results(puzzles, results, ai)
     src.write_text(json.dumps(puzzles, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"{ai['name']} で {len(results)} 問を確かめた。正解が変わった問題: {bad or 'なし'}")
+    gone = [p["id"] for p in puzzles if p.get("retired")]
+    if gone:
+        print(f"外している問題（世代で答えが入れ替わる）: {gone}")
 
 
 if __name__ == "__main__":
