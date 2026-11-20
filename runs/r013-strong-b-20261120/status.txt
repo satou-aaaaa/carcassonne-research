@@ -1,0 +1,5 @@
+finished: 2026-11-20T03:32Z
+exit_code: 0
+commit: e325f016a2e978bd514d2cc8d7ae884650c0822b
+run: https://github.com/satou-aaaaa/carcassonne-research/actions/runs/44659884717
+command: python scripts/exit_iter.py gen --eval models/eval_champion.npy --sims 12000 --games 200 --seed 12 --workers 4 --out $RESEARCH_OUT/d.npz
