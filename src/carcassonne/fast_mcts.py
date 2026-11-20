@@ -797,7 +797,9 @@ def next_tile_reply2_value(
                         copy_into(Y, X)
                         Y[11][lo + 1] = u
                         Y[11][j2] = X[11][lo + 1]
-                        apply_move(Y, T, P, m_cell[r], m_g[r], m_pi[r], stamp, stamp_box, out_cell, out_g)
+                        apply_move(
+                            Y, T, P, m_cell[r], m_g[r], m_pi[r], stamp, stamp_box, out_cell, out_g
+                        )
                         if Y[10][SC_OVER] != 0:
                             d = float(Y[10][SC_S0] - Y[10][SC_S1])
                             t2 += n2 * (d if me == 0 else -d)

@@ -283,7 +283,7 @@ def test_next_tile_value_ignores_true_deck_order():
         if fn is reply2:  # 3手版は重いので候補を3つに絞る
             cells, gs, pieces = cells[:3], gs[:3], pieces[:3]
 
-        def values(S, fn=fn):
+        def values(S, fn=fn, cells=cells, gs=gs, pieces=pieces):
             return fn(
                 S, f.T, f.P, cells, gs, pieces, agent.eval_w, agent.eval_mode, agent.fbuf,
                 sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g,
