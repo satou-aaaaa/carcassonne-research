@@ -64,5 +64,35 @@
    "mean_diff": -2.39,
    "se_diff": 1.5
   }
- ]
+ ],
+ "strong_teacher": {
+  "runs": "r013-strong-a-20261120・r013-strong-b-20261120（各200局、12000回・depth=10 の探索で自己対戦）",
+  "positions": 28382,
+  "rows": [
+   {
+    "name": "先生12000回 目標=root",
+    "vs": "gen1373",
+    "games": 200,
+    "win_rate": 0.395,
+    "ci95": [
+     0.33,
+     0.464
+    ],
+    "mean_diff": -5.68,
+    "se_diff": 1.49
+   },
+   {
+    "name": "先生12000回 目標=mix",
+    "vs": "gen1373",
+    "games": 200,
+    "win_rate": 0.463,
+    "ci95": [
+     0.395,
+     0.532
+    ],
+    "mean_diff": -3.32,
+    "se_diff": 1.44
+   }
+  ]
+ }
 }
