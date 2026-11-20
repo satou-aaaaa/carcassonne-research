@@ -6,7 +6,7 @@ name: selfplay
 # 状態（state.json・直近の自己対戦データ・各世代の重み・progress.md）はブランチ selfplay-state の loop/ に置く。
 # 履歴を増やさないよう、そのブランチは毎回1コミットだけの状態で上書きする（main には入れない）。
 # selfplay-state ブランチが無いときは何もしない（共有フォルダから状態を移すまで、二重に回さないため）。
-# 新しく「採用」が出たときだけ Issue を立てて知らせ（前の採用の Issue は閉じるので、開いているのはいつも最新の1件だけ）、
+# 新しく「採用」が出たときだけ Issue を立てて知らせ（通知と記録のためで、作ったらすぐ閉じる。開いたまま残さない）、
 # 対戦ページ（docs/play.html）のAIも差し替える（main は PR 必須なので scripts/merge_via_pr.sh で PR を作ってすぐマージする）。
 # 差し替えたら、学習ページ（コツ集・クイズ）を同じAIで作り直す ai-content.yml を起動する。
 
@@ -127,4 +127,7 @@ jobs:
             ghr gh api "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100" --paginate \
               --jq ".[] | select(.pull_request == null) | select(.title | startswith(\"自己対戦ループ: \")) | select(.html_url != \"$url\") | .number" |
               while read -r n; do ghr gh issue close "$n" --comment "新しい採用が出たので閉じます: $url"; done
+            # 知らせは通知と記録のためだけで、人の対応は要らない。開いたまま残すと「Issue が増えた」に見えるので、
+            # 作ったらすぐ閉じる（2026-11-20 satou さん「issueが増えているようです」）
+            ghr gh issue close "$url" --comment "知らせのみ（対応は不要）なので閉じます。"
           fi

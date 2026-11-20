@@ -24,7 +24,7 @@ def test_eval_np_matches_numba_eval():
 def test_loop_runs_and_resumes(tmp_path):
     cfg = Config(
         games=2, chunk=1, sims=10, depth=2, window=2, gate_seeds=2, gate_chunk=1,
-        threshold=0.0, anchor_seeds=1, workers=1,
+        threshold=0.0, anchor_seeds=1, workers=1, gate_mode="fixed",
     )  # fmt: skip
     loop = Loop(tmp_path, cfg, "models/eval_v6_lin.npy")
     msgs = [loop.step() for _ in range(2)]  # 自己対戦2塊
@@ -160,7 +160,7 @@ def test_loop_survives_state_passed_through_git(tmp_path):
 
     cfg = Config(
         games=1, chunk=1, sims=10, depth=2, window=1, gate_seeds=1, gate_chunk=1,
-        threshold=0.0, anchor_seeds=1, workers=1,
+        threshold=0.0, anchor_seeds=1, workers=1, gate_mode="fixed",
     )  # fmt: skip
     root = tmp_path / "start"
     Loop(root, cfg, "models/eval_v6_lin.npy")  # 作った直後は data/・gate/ が空
@@ -225,3 +225,69 @@ def test_loop_search_settings_reach_agents(tmp_path):
         del st["config"][k]
     (tmp_path / "state.json").write_text(json.dumps(st), encoding="utf-8")
     assert Loop(tmp_path).search_kwargs() == {"rollout_depth": 2}  # 既定は選び直しなし
+
+
+def _gate_ready(tmp_path, **kw):
+    """判定の直前の状態を作る（候補 gen001 はチャンピオンと同じ重み）。"""
+    cfg = Config(
+        games=1, chunk=1, sims=10, depth=2, window=1, gate_chunk=1, anchor_seeds=0, workers=1, **kw
+    )
+    loop = Loop(tmp_path, cfg, "models/eval_v6_lin.npy")
+    (tmp_path / "models" / "gen001.npy").write_bytes(
+        (tmp_path / "models" / "gen000.npy").read_bytes()
+    )
+    loop.state["phase"] = "gate"
+    loop.save()
+    return loop
+
+
+def _fake_chunks(loop, tag, results):
+    for k, (games, wins) in enumerate(results):
+        (loop.root / "gate" / f"{tag}_{k:02d}.json").write_text(
+            json.dumps({"games": games, "wins": wins, "diff_sum": 0.0}), encoding="utf-8"
+        )
+
+
+def test_sprt_gate_accepts_clear_winner_and_rejects_noise(tmp_path):
+    # はっきり勝つ候補は採用
+    loop = _gate_ready(
+        tmp_path / "a", sprt_p0=0.5, sprt_p1=0.56, sprt_alpha=0.01, gate_max_seeds=400
+    )
+    _fake_chunks(loop, "a001_gate", [(20, 20)] * 10)
+    loop.step()
+    h = loop.state["history"][-1]
+    assert h["promoted"] and h["sprt"] == "accept" and loop.state["champion"] == "models/gen001.npy"
+    # 互角の候補は、固定200局なら0.55を越える成績（勝率0.56）でも、上限まで来て決まらなければ不採用
+    loop = _gate_ready(tmp_path / "b", gate_max_seeds=10)
+    _fake_chunks(loop, "a001_gate", [(2, 1.12)] * 10)
+    loop.step()
+    h = loop.state["history"][-1]
+    assert not h["promoted"] and h["sprt"] == "max" and h["games"] == 20
+    # 負け越しははっきり不採用
+    loop = _gate_ready(tmp_path / "c")
+    _fake_chunks(loop, "a001_gate", [(20, 6)] * 10)
+    loop.step()
+    assert loop.state["history"][-1]["sprt"] == "reject"
+
+
+def test_sprt_gate_plays_one_chunk_per_step(tmp_path):
+    loop = _gate_ready(tmp_path, gate_max_seeds=3)
+    msg = loop.step()
+    assert "逐次検定" in msg and (tmp_path / "gate" / "a001_gate_00.json").exists()
+    loop.step()
+    loop.step()  # 上限3組で必ず決まる
+    assert loop.state["phase"] == "selfplay" and loop.attempt == 2
+    assert loop.state["history"][-1]["games"] == 6
+
+
+def test_old_state_is_upgraded_to_sprt(tmp_path):
+    cfg = Config(games=1, chunk=1, sims=10, depth=2, workers=1, anchor_seeds=20)
+    Loop(tmp_path, cfg, "models/eval_v6_lin.npy")
+    st = json.loads((tmp_path / "state.json").read_text(encoding="utf-8"))
+    for k in ("gate_mode", "sprt_p0", "sprt_p1", "sprt_alpha", "sprt_beta", "gate_max_seeds"):
+        del st["config"][k]
+    del st["config_version"]
+    (tmp_path / "state.json").write_text(json.dumps(st), encoding="utf-8")
+    loop = Loop(tmp_path)
+    assert loop.cfg.gate_mode == "sprt" and loop.cfg.anchor_seeds == 50
+    assert json.loads((tmp_path / "state.json").read_text(encoding="utf-8"))["config_version"] == 2

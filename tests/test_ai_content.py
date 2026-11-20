@@ -174,3 +174,45 @@ def test_no_held_tips_left_in_the_repository():
     if p.exists():
         held = json.loads(p.read_text(encoding="utf-8"))
         assert held["failed_claims"] and held["ai"]["name"]
+
+
+def test_puzzle_disputed_by_two_generations_is_retired_without_an_issue():
+    """世代ごとに答えが入れ替わる問題は2世代目で外し、人への知らせ（返す一覧）に入れない（s7t11、2026-11-20）。"""
+    p = copy.deepcopy(json.loads((ROOT / "data/puzzles.json").read_text(encoding="utf-8"))[:1])
+    p[0].pop("disputes", None)
+    n = len(p[0]["options"])
+    res = [{"id": p[0]["id"], "diffs": [1.0] + [2.0] * (n - 1), "visits": [0.1] * n,
+            "best_ok": False, "top": 1}]  # fmt: skip
+    assert recheck_puzzles.apply_results(p, res, {"name": "genA"}) == [p[0]["id"]]
+    assert "retired" not in p[0]
+    # 同じ世代でもう一度確かめても外さない（世代が違うときだけ数える）
+    assert recheck_puzzles.apply_results(p, res, {"name": "genA"}) == [p[0]["id"]]
+    assert "retired" not in p[0]
+    # 間に正解へ戻っても、別の世代でまた食い違ったら外す
+    ok = [{**res[0], "best_ok": True, "top": 0}]
+    recheck_puzzles.apply_results(p, ok, {"name": "genB"})
+    assert "disputed" not in p[0]
+    assert recheck_puzzles.apply_results(p, res, {"name": "genC"}) == []
+    assert "disputed" not in p[0] and "genA" in p[0]["retired"] and "genC" in p[0]["retired"]
+
+
+def test_retired_puzzles_stay_off_the_page_and_do_not_make_content_stale():
+    puzzles = json.loads((ROOT / "data/puzzles.json").read_text(encoding="utf-8"))
+    gone = [p["id"] for p in puzzles if p.get("retired")]
+    assert "s7t11" in gone
+    page = (
+        (ROOT / "web/puzzles.json").read_text(encoding="utf-8")
+        if (ROOT / "web/puzzles.json").exists()
+        else ""
+    )
+    html = (ROOT / "docs/quiz.html").read_text(encoding="utf-8")
+    for pid in gone:
+        assert f'"{pid}"' not in html and f'"{pid}"' not in page
+    # 外した問題の checked_by は古いままでも、作り直しの判定（最新AIかどうか）に入れない
+    names = refresh_ai_content.content_ai()["quiz"]
+    live = {
+        (p.get("checked_by") or {}).get("name")
+        for p in puzzles
+        if not p.get("exact") and not p.get("retired")
+    }
+    assert set(names) == live
