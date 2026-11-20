@@ -234,6 +234,11 @@ class Loop:
     # ---- 単位作業 ----
     def step(self) -> str:
         """作業を1単位進め、何をしたかを返す。"""
+        # 設定の移行は判定の途中では待つので、判定が終わった次の単位で行う（1回の run は数時間続き、
+        # 読み込んだときが判定の途中だと、その run の間ずっと古い判定のままになっていた。2026-11-20 gen1420）
+        if self.state.get("config_version", 1) < CONFIG_VERSION and self.state["phase"] != "gate":
+            self._upgrade_config()
+            self.cfg = Config(**self.state["config"])
         if self.state["phase"] == "selfplay" and self._pending_challenge() is not None:
             self.state["phase"] = "challenge"
             self.save()

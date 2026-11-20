@@ -332,3 +332,17 @@ def test_upgrade_moves_anchor_to_gen1373(tmp_path):
     loop.state["phase"] = "anchor"
     loop.step()
     assert loop.state["history"][-1]["vs_initial"]["anchor"] == "gen1373"
+
+
+def test_upgrade_waits_for_gate_then_applies_in_same_run(tmp_path):
+    """判定の途中で読み込んだ古い状態も、判定が終わった次の単位から新しい設定になる（同じ run の中で）。"""
+    loop = _gate_ready(tmp_path, gate_mode="fixed", gate_seeds=1, threshold=1.1)
+    loop.state["config_version"] = 1
+    loop.state["config"]["gate_mode"] = "fixed"
+    loop.save()
+    loop = Loop(tmp_path)
+    assert loop.cfg.gate_mode == "fixed"  # 判定の途中なので、まだ移さない
+    loop.step()  # 判定（fixed）が終わる
+    assert loop.state["phase"] == "selfplay"
+    loop.step()  # 次の単位の前に移る
+    assert loop.cfg.gate_mode == "sprt" and loop.state["config_version"] == 3
