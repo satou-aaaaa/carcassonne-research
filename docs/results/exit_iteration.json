@@ -1,0 +1,68 @@
+{
+ "run": "r013-exit-20261120（research-results の runs/r013-exit-20261120/）",
+ "search": "fmcts:sims=2000,depth=10",
+ "teacher_E0": "gen1373",
+ "games_per_iteration": 400,
+ "rows": [
+  {
+   "name": "反復1 目標=root（探索の根の値）",
+   "vs": "gen1373",
+   "games": 200,
+   "win_rate": 0.393,
+   "ci95": [
+    0.327,
+    0.462
+   ],
+   "mean_diff": -5.3,
+   "se_diff": 1.35
+  },
+  {
+   "name": "反復1 目標=mix（根の値とTD(λ)を半々）",
+   "vs": "gen1373",
+   "games": 200,
+   "win_rate": 0.45,
+   "ci95": [
+    0.383,
+    0.519
+   ],
+   "mean_diff": -2.88,
+   "se_diff": 1.31
+  },
+  {
+   "name": "反復1 目標=td（対照、今のループと同じ）",
+   "vs": "gen1373",
+   "games": 200,
+   "win_rate": 0.495,
+   "ci95": [
+    0.426,
+    0.564
+   ],
+   "mean_diff": 0.94,
+   "se_diff": 1.19
+  },
+  {
+   "name": "反復2 目標=mix（反復1のmixで探索し直した教師）",
+   "vs": "gen1373",
+   "games": 200,
+   "win_rate": 0.425,
+   "ci95": [
+    0.359,
+    0.494
+   ],
+   "mean_diff": -3.08,
+   "se_diff": 1.38
+  },
+  {
+   "name": "反復2 目標=mix",
+   "vs": "反復1 mix",
+   "games": 200,
+   "win_rate": 0.468,
+   "ci95": [
+    0.4,
+    0.537
+   ],
+   "mean_diff": -2.39,
+   "se_diff": 1.5
+  }
+ ]
+}
