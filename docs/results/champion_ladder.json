@@ -1,0 +1,67 @@
+{
+ "champion": "gen1373",
+ "search": "fmcts:sims=2000,depth=10",
+ "seeds": "9000-9099 x 先後 = 200局",
+ "rows": [
+  {
+   "opponent": "gen000",
+   "adopted": "2026-10-08（初代 v9）",
+   "promotions_since": 82,
+   "win_rate": 0.64,
+   "ci95": [
+    0.571,
+    0.703
+   ],
+   "mean_diff": 7.04,
+   "se_diff": 1.48
+  },
+  {
+   "opponent": "gen386",
+   "adopted": "2026-10-21",
+   "promotions_since": 51,
+   "win_rate": 0.525,
+   "ci95": [
+    0.456,
+    0.593
+   ],
+   "mean_diff": 0.43,
+   "se_diff": 1.31
+  },
+  {
+   "opponent": "gen757",
+   "adopted": "2026-10-30",
+   "promotions_since": 34,
+   "win_rate": 0.52,
+   "ci95": [
+    0.451,
+    0.588
+   ],
+   "mean_diff": 1.57,
+   "se_diff": 1.56
+  },
+  {
+   "opponent": "gen1021",
+   "adopted": "2026-11-08",
+   "promotions_since": 21,
+   "win_rate": 0.55,
+   "ci95": [
+    0.481,
+    0.617
+   ],
+   "mean_diff": 1.5,
+   "se_diff": 1.27
+  },
+  {
+   "opponent": "gen1144",
+   "adopted": "2026-11-11",
+   "promotions_since": 13,
+   "win_rate": 0.492,
+   "ci95": [
+    0.424,
+    0.561
+   ],
+   "mean_diff": 0.69,
+   "se_diff": 1.49
+  }
+ ]
+}

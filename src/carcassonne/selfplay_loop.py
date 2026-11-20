@@ -12,7 +12,8 @@
      （`gate_seeds` 組で勝率が `threshold` 以上なら採用）。
      固定200局・勝率0.55では、同じ強さの候補も約6%が通り、1日に何十回も試すと偶然の採用が積み重なった
      （2026-11-20、1404試行の判定勝率は平均0.499・ばらつきは運だけの大きさ。docs/EXPERIMENTS.md）。
-     採用したときは、初代チャンピオンとも `anchor_seeds` 組対戦させ、通算でどれだけ伸びたかを記録する。
+     採用したときは、定点の相手 `anchor`（既定は初代、2026-11-20 から gen1373）とも `anchor_seeds` 組対戦させ、
+     通算でどれだけ伸びたかを記録する。初代は弱すぎていつも大勝するので、最近の伸びが見えなかった。
 
 作業は数分で終わる「単位」（自己対戦の塊・学習・対戦の塊）に分け、単位ごとに状態を `state.json` に
 保存する。途中で止まっても、次に `run` したときに続きから再開する。状態・データ・各世代の重みは
@@ -61,7 +62,8 @@ class Config:
     sprt_alpha: float = 0.01  # 強くなっていない候補を採用してしまう確率の上限
     sprt_beta: float = 0.10  # はっきり強い候補を見落とす確率の上限
     gate_max_seeds: int = 400  # sprt: ここまで指して決まらなければ不採用（局数はその2倍）
-    anchor_seeds: int = 50  # 採用時に初代と対戦する組数（0で省略）
+    anchor_seeds: int = 50  # 採用時に定点の相手と対戦する組数（0で省略）
+    anchor: str = "models/gen000.npy"  # 定点の相手（root からの相対パス）
     workers: int = 4
     # 人がAIと指した棋譜（対戦ページから送ってもらったもの。リポジトリからの相対パス、空なら使わない）。
     # 全局を毎回の学習に混ぜる。human_weight は1局を何局ぶんに数えるか（0で使わない）。
@@ -80,7 +82,8 @@ class Config:
 _SUBDIRS = ("data", "models", "gate")
 # 状態に保存された設定を新しい既定へ移す（古い state.json を読んだとき1度だけ）。
 # 2: 判定を逐次検定に替え、初代との対戦を40局→100局に増やした（2026-11-20）。
-CONFIG_VERSION = 2
+# 3: 定点の相手を初代から gen1373（2026-11-18 採用、ここ1か月の伸びが止まった版）に替えた（2026-11-20）。
+CONFIG_VERSION = 3
 _UPGRADES = {
     2: {
         "gate_mode": "sprt",
@@ -91,6 +94,7 @@ _UPGRADES = {
         "gate_max_seeds": 400,
         "anchor_seeds": 50,
     },
+    3: {"anchor": "models/gen1373.npy"},
 }
 REPO = Path(__file__).resolve().parents[2]
 
@@ -186,7 +190,10 @@ class Loop:
         if self.state.get("phase") == "gate":
             return  # 判定の途中では方式を変えない（次の判定から）
         for k in range(v + 1, CONFIG_VERSION + 1):
-            self.state["config"].update(_UPGRADES[k])
+            up = dict(_UPGRADES[k])
+            if "anchor" in up and not (self.root / up["anchor"]).exists():
+                up.pop("anchor")  # その世代が無い（別の初代から始めたループ）なら初代のまま
+            self.state["config"].update(up)
         self.state["config_version"] = CONFIG_VERSION
         self.save()
 
@@ -529,22 +536,25 @@ class Loop:
     def _anchor(self) -> str:
         c, a = self.cfg, self.attempt
         tag = f"a{a:03d}_anchor"
+        name = Path(c.anchor).stem
         res, msg = self._match_chunks(
-            tag, self.state["champion"], "models/gen000.npy", c.anchor_seeds, 300_000 + a * 1000
+            tag, self.state["champion"], c.anchor, c.anchor_seeds, 300_000 + a * 1000
         )
         if res is None:
-            return f"試行{a}: 初代と対戦 {msg}"
+            return f"試行{a}: 定点の相手 {name} と対戦 {msg}"
         n, wins, dsum = res
+        # 鍵の名前は以前のまま（初代と対戦していた頃の記録と同じ欄）。相手は anchor に残す
         self.state["history"][-1]["vs_initial"] = {
             "games": n,
             "win_rate": round(wins / n, 3),
             "mean_diff": round(dsum / n, 2),
+            "anchor": name,
         }
         self.state["phase"] = "selfplay"
         self.state["attempt"] = a + 1
         self.save()
         self.write_progress()
-        return f"試行{a}: 初代と対戦 {n}局 勝率{wins / n:.3f} 得点差{dsum / n:+.2f}"
+        return f"試行{a}: 定点の相手 {name} と対戦 {n}局 勝率{wins / n:.3f} 得点差{dsum / n:+.2f}"
 
     # ---- 記録 ----
     def gate_rule(self) -> str:
@@ -564,12 +574,16 @@ class Loop:
             f"- チャンピオン: `{self.state['champion']}`（初代は `{self.state['initial_source']}`）",
             f"- 設定: 自己対戦{c.games}局/試行、探索{c.sims}回/手（depth={c.depth}）、モデル{c.model}、{self.gate_rule()}",
             "",
-            "| 試行 | 日付 | 候補 vs チャンピオン | 得点差 | 判定 | 学習局面 | 検証R²(候補/現) | 初代との対戦 |",
+            "| 試行 | 日付 | 候補 vs チャンピオン | 得点差 | 判定 | 学習局面 | 検証R²(候補/現) | 定点の相手との対戦 |",
             "|---|---|---|---|---|---|---|---|",
         ]
         for h in self.state["history"]:
             vi = h.get("vs_initial")
-            vs = f"{vi['win_rate']:.3f}（{vi['mean_diff']:+.1f}点, {vi['games']}局）" if vi else ""
+            vs = (
+                f"{vi['win_rate']:.3f}（{vi['mean_diff']:+.1f}点, {vi['games']}局, 相手 {vi.get('anchor', 'gen000')}）"
+                if vi
+                else ""
+            )
             lines.append(
                 f"| {h['attempt']}{'（挑戦者 ' + h['challenge'] + '）' if h.get('challenge') else ''} | {h['date']} | {h['win_rate']:.3f}（{h['games']}局） "
                 f"| {h['mean_diff']:+.2f} | {'**採用**' if h['promoted'] else '不採用'} "
