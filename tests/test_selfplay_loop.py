@@ -290,4 +290,45 @@ def test_old_state_is_upgraded_to_sprt(tmp_path):
     (tmp_path / "state.json").write_text(json.dumps(st), encoding="utf-8")
     loop = Loop(tmp_path)
     assert loop.cfg.gate_mode == "sprt" and loop.cfg.anchor_seeds == 50
-    assert json.loads((tmp_path / "state.json").read_text(encoding="utf-8"))["config_version"] == 2
+    assert loop.cfg.anchor == "models/gen000.npy"  # gen1373 が無いループは初代のまま
+    assert json.loads((tmp_path / "state.json").read_text(encoding="utf-8"))["config_version"] == 3
+
+
+def test_upgrade_moves_anchor_to_gen1373(tmp_path):
+    cfg = Config(
+        games=1,
+        chunk=1,
+        sims=10,
+        depth=2,
+        workers=1,
+        anchor_seeds=1,
+        gate_mode="fixed",
+        threshold=0.0,
+    )
+    Loop(tmp_path, cfg, "models/eval_v6_lin.npy")
+    st = json.loads((tmp_path / "state.json").read_text(encoding="utf-8"))
+    st["config_version"] = 2
+    (tmp_path / "state.json").write_text(json.dumps(st), encoding="utf-8")
+    (tmp_path / "models" / "gen1373.npy").write_bytes(
+        (tmp_path / "models" / "gen000.npy").read_bytes()
+    )
+    loop = Loop(tmp_path)
+    assert loop.cfg.anchor == "models/gen1373.npy"
+    # 採用後の定点対戦は gen1373 と指し、相手の名前を残す
+    (tmp_path / "models" / "gen001.npy").write_bytes(
+        (tmp_path / "models" / "gen000.npy").read_bytes()
+    )
+    loop.state["champion"] = "models/gen001.npy"
+    loop.state["history"].append(
+        {
+            "attempt": 1,
+            "date": "2026-11-20",
+            "games": 2,
+            "win_rate": 1.0,
+            "mean_diff": 1.0,
+            "promoted": True,
+        }
+    )
+    loop.state["phase"] = "anchor"
+    loop.step()
+    assert loop.state["history"][-1]["vs_initial"]["anchor"] == "gen1373"

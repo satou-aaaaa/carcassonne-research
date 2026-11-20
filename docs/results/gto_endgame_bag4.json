@@ -1,0 +1,71 @@
+{
+ "ai": "gen1373",
+ "source": "gto4.jsonl",
+ "games": 80,
+ "all": {
+  "positions": 400,
+  "decisive": 60,
+  "champ_optimal": 46,
+  "record_optimal": 45,
+  "champ_loss": 3.3125
+ },
+ "by_bag": {
+  "0": {
+   "positions": 80,
+   "decisive": 3,
+   "champ_optimal": 3,
+   "record_optimal": 3,
+   "champ_loss": 0.0
+  },
+  "1": {
+   "positions": 80,
+   "decisive": 7,
+   "champ_optimal": 7,
+   "record_optimal": 6,
+   "champ_loss": 0.0
+  },
+  "2": {
+   "positions": 80,
+   "decisive": 7,
+   "champ_optimal": 7,
+   "record_optimal": 7,
+   "champ_loss": 0.0
+  },
+  "3": {
+   "positions": 80,
+   "decisive": 18,
+   "champ_optimal": 11,
+   "record_optimal": 13,
+   "champ_loss": 2.166667
+  },
+  "4": {
+   "positions": 80,
+   "decisive": 25,
+   "champ_optimal": 18,
+   "record_optimal": 16,
+   "champ_loss": 1.145833
+  }
+ },
+ "by_lead": {
+  "close": {
+   "positions": 287,
+   "decisive": 56,
+   "champ_optimal": 42,
+   "record_optimal": 41,
+   "champ_loss": 3.3125
+  },
+  "far": {
+   "positions": 113,
+   "decisive": 4,
+   "champ_optimal": 4,
+   "record_optimal": 4,
+   "champ_loss": 0.0
+  }
+ },
+ "diff_vs_win": {
+  "positions": 80,
+  "conflict": 0,
+  "max_bag": 0
+ },
+ "champ_loss_per_game": 0.041406
+}
