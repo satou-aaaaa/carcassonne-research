@@ -184,5 +184,12 @@
  "送る画面をもう一度開く": "Open the sending page again",
  "✓ この対局の送る画面を開きました。ご協力ありがとうございます！": "✓ You opened the sending page for this game. Thank you for helping!",
  "開いた画面で送信を押していれば、もう届いています。同じ対局は1回送れば十分です。": "If you pressed Submit there, it has already arrived. Sending a game once is enough.",
- "送信を押さずに閉じたときだけ、もう一度開いてください。うっかり2回送っても、同じ対局は1局として数えるので大丈夫です。": "Open it again only if you closed it without submitting. If you send it twice by accident, no problem: the same game is counted only once."
+ "送信を押さずに閉じたときだけ、もう一度開いてください。うっかり2回送っても、同じ対局は1局として数えるので大丈夫です。": "Open it again only if you closed it without submitting. If you send it twice by accident, no problem: the same game is counted only once.",
+ "自動で1手ずつ進める（スペース）": "Step through the moves automatically (Space)",
+ "⏵ 自動": "⏵ Auto",
+ "⏸ 停止": "⏸ Pause",
+ "▲ 人リード": "▲ Human ahead",
+ "▼ AIリード": "▼ AI ahead",
+ "人の手": "Human's move",
+ "AIの手": "AI's move"
 }
