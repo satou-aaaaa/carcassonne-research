@@ -481,13 +481,17 @@ async function exerciseManyGames(ctx, base, file, isMobile) {
       // 終局まで進めても、スマホではタイルが小さくなりすぎず（MIN_AUTO_TILE 以上）、直前に置いたマスが盤の中に見えること
       await page.click("#rpLast");
       await page.waitForTimeout(800);
+      // 盤の動き（viewAnim）と採点が落ち着くまで待つ（CI は遅く、決まった待ち時間だけだと動いている途中を測ることがあった、#252）
+      await page.waitForFunction(() => G.replay.ply === G.replay.total && !viewAnim && !rpThinking, null, { timeout: 15000 }).catch(() => {});
+      await page.waitForTimeout(300);
       const v = await page.evaluate(() => {
         const r = cv.getBoundingClientRect(), l = G.replay.last;
         const inside = !!l && cellLeft(l.x) >= 0 && cellTop(l.y) >= 0 && cellLeft(l.x) + view.s <= r.width && cellTop(l.y) + view.s <= r.height;
-        return { s: Math.round(view.s), min: typeof MIN_AUTO_TILE === "number" ? MIN_AUTO_TILE : 36, inside, h: Math.round(r.height) };
+        const at = l ? `マス(${l.x},${l.y}) 左${Math.round(cellLeft(l.x))} 上${Math.round(cellTop(l.y))} 盤${Math.round(r.width)}×${Math.round(r.height)} ${G.replay.ply}/${G.replay.total}手 動き${!!viewAnim}` : "なし";
+        return { s: Math.round(view.s), min: typeof MIN_AUTO_TILE === "number" ? MIN_AUTO_TILE : 36, inside, h: Math.round(r.height), at };
       });
       if (v.s < v.min) problems.push(`終盤の盤のタイルが ${v.s}px（スマホは ${v.min}px 以上にする）`);
-      if (!v.inside) problems.push("終盤に再生で進めると、直前に置いたマスが盤の外になる");
+      if (!v.inside) problems.push(`終盤に再生で進めると、直前に置いたマスが盤の外になる（${v.at}）`);
       if (v.h < 300) problems.push(`再生中の盤の高さが ${v.h}px しかない`);
     }
   } catch (e) {

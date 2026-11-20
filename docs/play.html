@@ -789,12 +789,15 @@ function fitAll(animate, focus, all) {
   else { Object.assign(view, to); draw(); }
 }
 // 指定のマスが画面外なら全体表示に戻す（スマホで全体が小さくなりすぎるときは focus のマスへ寄る）
+// 盤が動いている途中（viewAnim）に呼ばれたら、動いた先の位置で判断する。今の途中の位置で判断して新しい動きにすると、
+// 拡大率が途中のまま止まり、マスが画面の外に残る（2026-11-20、再生で ▶| を押したときに起きた）
 function ensureVisible(cells, focus) {
-  const a = safeArea(), m = 4;
-  const out = cells.some(c => cellLeft(c.x) < m || cellTop(c.y) < a.top + m || cellLeft(c.x) + view.s > a.w - m || cellTop(c.y) + view.s > a.bottom - m);
+  const a = safeArea(), m = 4, v = viewAnim ? viewAnim.to : view;
+  const L = c => v.ox + c.x*v.s, T = c => v.oy - c.y*v.s;
+  const out = cells.some(c => L(c) < m || T(c) < a.top + m || L(c) + v.s > a.w - m || T(c) + v.s > a.bottom - m);
   if (out) return fitAll(true, focus);
-  const to = dodgeButtons({...view}, focus);
-  if (to.ox !== view.ox || to.oy !== view.oy) { viewAnim = {from: {...view}, to, t0: performance.now()}; requestDraw(); }
+  const to = dodgeButtons({...v}, focus);
+  if (to.ox !== v.ox || to.oy !== v.oy || to.s !== v.s) { viewAnim = {from: {...view}, to, t0: performance.now()}; requestDraw(); }
 }
 // スマホで、置ける緑のマスが盤の右下のボタン（陣地・全体を表示）の下に隠れるなら、盤を少しずらして見えるようにする
 // （隠れたマスを押すとボタンが反応して置けない。画面の外のマスは緑の矢印で示すので、隠れるよりは外に出るほうがよい）
