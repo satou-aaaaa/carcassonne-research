@@ -1,0 +1,5 @@
+finished: 2026-11-20T05:59Z
+exit_code: 0
+commit: 081673c8e2b1c0771dc8c2633c251097a1c11336
+run: https://github.com/satou-aaaaa/carcassonne-research/actions/runs/44677121077
+command: python scripts/run_match.py fmcts:sims=12000,depth=10,eval=models/eval_champion.npy,rsel=0.5,rk=10,rr=1,eg=3 fmcts:sims=12000,depth=10,eval=models/eval_champion.npy,rsel=0.5,rk=6,rr=1,eg=3 --seeds 100 --start 9900 --workers 4 --log $RESEARCH_OUT/m.jsonl | tee $RESEARCH_OUT/m.txt
