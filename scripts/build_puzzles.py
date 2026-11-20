@@ -103,8 +103,8 @@ def main() -> None:
     ap.add_argument("--fragment", action="store_true", help="<html>等で包まない（Artifact公開用）")
     args = ap.parse_args()
     raw = [
-        p for p in load(Path(args.src)) if not p.get("disputed")
-    ]  # 最新AIと答えが食い違う問題は出さない
+        p for p in load(Path(args.src)) if not p.get("disputed") and not p.get("retired")
+    ]  # 最新AIと答えが食い違う問題・世代で答えが入れ替わるので外した問題は出さない
     tpl = (ROOT / "web" / "quiz_template.html").read_text(encoding="utf-8")
 
     def page(lang: str) -> str:

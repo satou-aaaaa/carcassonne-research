@@ -52,7 +52,11 @@ def content_ai() -> dict:
         "tips": (summ.get("ai") or {}).get("name"),
         # 終盤編（exact）は読み切りで確かめるのでAIの世代を持たない
         "quiz": sorted(
-            {(p.get("checked_by") or {}).get("name") or "" for p in puzzles if not p.get("exact")}
+            {
+                (p.get("checked_by") or {}).get("name") or ""
+                for p in puzzles
+                if not p.get("exact") and not p.get("retired")  # 外した問題は確かめ直さない
+            }
         ),
     }
 
