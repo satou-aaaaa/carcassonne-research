@@ -38,13 +38,14 @@ INT_KEYS = {
     "rk": "reselect_k",
     "eg": "endgame",
     "pply": "puct_ply",
+    "rr": "reselect_reply",
+    "rb": "reply_beam",
 }
 BOOL_KEYS = {
     "fact": "factored",
     "chance": "chance",
     "rf": "rollout_farm",
     "rs": "rollout_reshuffle",
-    "rr": "reselect_reply",
 }
 FLOAT_KEYS = {
     "c": "c",

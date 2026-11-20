@@ -209,6 +209,27 @@ def test_reply_value_on_last_tile_is_exact_final_score():
             d = float(Y[10][SC_S0] - Y[10][SC_S1]) * (1 if me == 0 else -1)
             best = d if best is None else min(best, d)
     assert got == pytest.approx(best)
+    from carcassonne.fast_mcts import next_tile_reply2_value
+
+    got2 = next_tile_reply2_value(
+        S, f.T, f.P, np.array([c]), np.array([g]), np.array([-1]), agent.eval_w,
+        agent.eval_mode, agent.fbuf, sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g, 3,
+    )[0]  # fmt: skip
+    assert got2 == pytest.approx(best)  # 相手の返し手で終局するなら3手版も同じ厳密値
+
+
+def test_reselect_reply2_plays_full_game_with_legal_moves():
+    agent = FastMCTSAgent(
+        n_sims=20, rollout_depth=2, eval_path=EVAL, reselect=0.5, reselect_k=2,
+        reselect_reply=2, reply_beam=1,
+    )  # fmt: skip
+    assert "rr=2,rb=1" in agent.name
+    st = State.new_game(34)
+    rng = random.Random(15)
+    while not st.over:
+        m = agent.act(st, rng)
+        assert m in st.legal_moves()
+        st.apply(m)
 
 
 def test_scale_decay_sharpens_reward_late():
@@ -233,7 +254,11 @@ def test_next_tile_value_ignores_true_deck_order():
     import numpy as np
 
     from carcassonne.fast import NT, SC_CUR, SC_DRAW, gen_placements
-    from carcassonne.fast_mcts import next_tile_reply_value, next_tile_value
+    from carcassonne.fast_mcts import (
+        next_tile_reply2_value,
+        next_tile_reply_value,
+        next_tile_value,
+    )
 
     agent = FastMCTSAgent(n_sims=10, eval_path=EVAL)
     st = State.new_game(29)
@@ -251,7 +276,12 @@ def test_next_tile_value_ignores_true_deck_order():
     gs = sc.out_g[:k].astype(np.int64).copy()
     pieces = np.full(k, -1, np.int64)
 
-    for fn in (next_tile_value, next_tile_reply_value):
+    def reply2(*a):
+        return next_tile_reply2_value(*a, 2)
+
+    for fn in (next_tile_value, next_tile_reply_value, reply2):
+        if fn is reply2:  # 3手版は重いので候補を3つに絞る
+            cells, gs, pieces = cells[:3], gs[:3], pieces[:3]
 
         def values(S, fn=fn):
             return fn(
