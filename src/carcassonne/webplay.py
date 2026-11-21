@@ -30,7 +30,7 @@ LEVELS = {
     "greedy": "貪欲法（練習用）",
 }
 
-# 選び直しの設定（最強・標準とも。scripts/build_play_page.py のブラウザ版もこれを使う）
+# 選び直しの設定（標準。最強は下の STRONG_RESELECT。scripts/build_play_page.py のブラウザ版もこれを使う）
 RESELECT = {"rsel": 0.5, "rk": 6, "rr": 1}
 # 最強だけ、相手の返し手のあと自分の次の手まで読む3手版（rr=2、相手の返し手は上位 rb 手）。
 # docs/EXPERIMENTS.md「選び直しを1段深く」（R-018）。標準は「すぐ指す」ため rr=1 のまま
