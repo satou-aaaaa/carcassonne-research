@@ -1,0 +1,5 @@
+finished: 2026-11-21T20:30Z
+exit_code: 0
+commit: b79480e99378ab3b6e7cee87191ea38e9bbf06c5
+run: https://github.com/satou-aaaaa/carcassonne-research/actions/runs/44919393064
+command: python scripts/spsa.py --out $RESEARCH_OUT --minutes 300 --pairs 16 --seed 0
