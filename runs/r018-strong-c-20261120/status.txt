@@ -1,0 +1,5 @@
+finished: 2026-11-21T02:32Z
+exit_code: 0
+commit: bbe6b4307da04f95772a035737400e625342c66a
+run: https://github.com/satou-aaaaa/carcassonne-research/actions/runs/44835240191
+command: MODE=strong REPLY_BEAM=3 START=10200 SEEDS=50 bash scripts/sweeps/r018_reply2.sh
