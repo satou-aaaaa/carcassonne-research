@@ -1,0 +1,2 @@
+A=fmcts:sims=2000,depth=10,eval=models/eval_champion.npy,eval=models/spsa/spsa0.npy  B=fmcts:sims=2000,depth=10,eval=models/eval_champion.npy,depth=10
+400局 Aの勝率 0.486 [0.438, 0.535] 平均得点差 -0.94±1.04
