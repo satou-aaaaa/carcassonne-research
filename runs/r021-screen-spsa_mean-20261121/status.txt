@@ -1,0 +1,5 @@
+finished: 2026-11-21T21:32Z
+exit_code: 0
+commit: 763ed0feec04271368e0bae756b5157ed4b0aabc
+run: https://github.com/satou-aaaaa/carcassonne-research/actions/runs/44949806092
+command: BASE=screen A=eval=models/spsa/spsa_mean.npy B=depth=10 START=13000 SEEDS=200 bash scripts/sweeps/r019.sh
