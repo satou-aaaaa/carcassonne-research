@@ -85,6 +85,78 @@ def meeple_lives(game: dict) -> list[dict]:
     return out
 
 
+def final_turn_skips(st: State, moves: list[Move]) -> dict[int, bool]:
+    """各自の最後の手番で、手持ちがあり置ける場所もあったのにミープルを置かなかったか（R-009）。
+
+    st は初期局面（書き換える）、moves は終局までの全手。返り値は {手番の人: 置かなかったか}。
+    置く機会が無かった人は入らない。人の棋譜（scripts/human_weak_spots.py）と強いAIの自己対戦で
+    同じ数え方にするための共通部品。
+    """
+    final = {}  # 手番の人 -> その人の最後の手の番号
+    probe = st.copy()
+    for ply, mv in enumerate(moves):
+        final[probe.player] = ply
+        probe.apply(mv)
+    out = {}
+    for ply, mv in enumerate(moves):
+        p = st.player
+        if (
+            final.get(p) == ply
+            and st.supply[p] > 0
+            and any(m.piece is not None for m in st.legal_moves())
+        ):
+            out[p] = mv.piece is None
+        st.apply(mv)
+    return out
+
+
+LAST_LEFT = 11  # 各自の最後の6手番 = 山札の残りが11枚以下の手（盤面全体の最後の12手）
+
+
+def last_turns(games: list[dict], lives: list[dict]) -> dict:
+    """各自の最後の6手番のミープルの使い方（R-009）。
+
+    人の棋譜の集計（scripts/human_weak_spots.py）と同じ区切り・同じ「使い残し」の数え方にする:
+    使い残しは、終局の直前（盤面全体の最後の1手の前）に手元に残っていたミープルの数。
+    """
+    last = [m for g in games for m in g["moves"] if m["left"] <= LAST_LEFT]
+    placed = [m["meeple"] for m in last if m["meeple"]]
+    kinds = Counter(p["kind"] for p in placed)
+    has = [m for m in last if m["supply"][0] > 0]
+    unused = []
+    for g in games:
+        final = g["moves"][-1]
+        unused += [final["supply"][0], final["supply"][1]]
+    late = [life for life in lives if life["left"] <= LAST_LEFT]
+    skips = [
+        k
+        for g in games
+        if "history" in g
+        for k in final_turn_skips(
+            State(State.new_game(g["seed"]).deck),
+            [Move(x, y, v, pc) for x, y, _t, v, pc in g["history"]],
+        ).values()
+    ]
+    n_pg = 2 * len(games)
+    return {
+        "games": len(games),
+        "meeples_per_player": len(placed) / n_pg,
+        "kind_share": {k: kinds[k] / len(placed) if placed else 0.0 for k in KINDS},
+        "place_rate_with_supply": mean(1.0 if m["meeple"] else 0.0 for m in has),
+        "points_per_meeple": mean(x["points"] for x in late),
+        "points_by_kind": {k: mean(x["points"] for x in late if x["kind"] == k) for k in KINDS},
+        "zero_points": mean(1.0 if x["points"] == 0 else 0.0 for x in late),
+        "unused_mean": mean(unused),
+        "final_turn_skip": mean(
+            1.0 if k else 0.0 for k in skips
+        ),  # 最後の手番で置けたのに置かなかった割合
+        "final_turn_chances": len(skips),
+        "unused_rate": mean(
+            1.0 if u > 0 else 0.0 for u in unused
+        ),  # 使い残して終局した割合（1人1局あたり）
+    }
+
+
 def summarize(path: str) -> dict:
     games = [json.loads(line) for line in Path(path).read_text(encoding="utf-8").splitlines()]
     moves = [m for g in games for m in g["moves"]]
@@ -180,6 +252,7 @@ def summarize(path: str) -> dict:
         }
         for k, v in by.items()
     }
+    out["last6"] = last_turns(games, lives)
     # 手持ちの推移（自分の手番開始時）
     curve = {}
     for left_mark in range(70, 0, -2):

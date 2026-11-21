@@ -307,7 +307,32 @@ def failed_claims(s: dict, g: dict, lead: dict) -> list[str]:
         (lead["C"] > 0, "#citywins, #recap: 勝った側は都市でも多く取る"),
         (s["touches_opp"] > g["touches_opp"], "#tiles: 強いAIは相手の特徴によく手を出す"),
     ]  # fmt: skip
+    if "last6" in s:  # R-009 で足した集計（それより前の世代の集計には無い）
+        last, human = s["last6"], _human()
+        claims += [
+            (last["place_rate_with_supply"] > 1 - s["skip_meeple_with_supply"],
+             "#last: 最後の6手番は、手持ちがあれば置く割合が1局を通したときより高い"),
+            (last["final_turn_skip"] < human["final_turn_skip"],
+             "#last: 最後の手番で置けるのに置かないのは、強いAIの方が人より少ない"),
+            (last["points_per_meeple"] >= 1.0, "#last: 最後の6手番のミープルは1個あたり1点以上"),
+        ]  # fmt: skip
     return [msg for ok, msg in claims if not ok]
+
+
+def _human() -> dict:
+    """人の棋譜の集計（scripts/human_weak_spots.py の docs/results/human_weak_spots.json）から、#last で使う値。"""
+    h = json.loads(
+        (ROOT / "docs" / "results" / "human_weak_spots.json").read_text(encoding="utf-8")
+    )
+    return {
+        "games": h["games"],
+        "final_turn_skip": h["final_turn_skip"]["human"]["skipped"]
+        / h["final_turn_skip"]["human"]["chances"],
+        # 最後の6手番の3点以上の損のうち、手持ち1個のときにミープルを置かずに進めた手の割合
+        "last_one_share": h["last6_no_meeple"]["supply"].get("1", 0) / h["last6"]["bad"],
+        "last6_share": h["last6"]["loss"] / h["bad_loss"],
+        "last_loss": h["last6_no_meeple"]["loss_per_game"],
+    }
 
 
 def summary_failed_claims(summ: dict) -> list[str]:
@@ -379,6 +404,7 @@ def main() -> None:
     pct = lambda v: f"{v * 100:.0f}"
     lead = {k: s["winner_points_by_kind"][k] - s["loser_points_by_kind"][k] for k, _ in kinds}
     check_claims(s, g, lead)
+    human = _human()
     ai = summ.get("ai") or {}
     blk_s = s["blocks_per_game_player"].get("opp_C", 0)
     blk_g = g["blocks_per_game_player"].get("opp_C", 0)
@@ -432,6 +458,17 @@ def main() -> None:
         "farm_mid_strong": f"{farms_in_phase(s, '中盤'):.1f}",
         "farm_late_strong": f"{farms_in_phase(s, '終盤'):.1f}",
         "city_points": f"{s['points_by_source']['C_done'] + s['points_by_source']['C_end']:.0f}",
+        "place_all": pct(1 - s["skip_meeple_with_supply"]),
+        "last6_games": s["last6"]["games"],
+        "last6_place": pct(s["last6"]["place_rate_with_supply"]),
+        "last6_per_player": f"{s['last6']['meeples_per_player']:.1f}",
+        "last6_points": f"{s['last6']['points_per_meeple']:.1f}",
+        "skip_last_strong": pct(s["last6"]["final_turn_skip"]),
+        "skip_last_human": pct(human["final_turn_skip"]),
+        "human_games": human["games"],
+        "human_last6_share": pct(human["last6_share"]),
+        "human_last_loss": f"{human['last_loss']:.1f}",
+        "human_last_one_share": pct(human["last_one_share"]),
     }
     for k, v in ex.items():
         nums[f"svg_{k}"] = v["svg"]

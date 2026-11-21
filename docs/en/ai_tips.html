@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
-/* 構成: 1段組の読み物。各コツ = 見出し＋本文＋「強いAI／目先の点だけのAI」の数値ペア＋盤面図。
+/* 構成: 1段組の読み物。各コツ = 見出し＋本文＋「Strong AI／目先の点だけのAI」の数値ペア＋盤面図。
    色はタイルの絵（草原の緑・都市の土色）と、2人のミープル色（赤・青）から取る。 */
 :root {
   --bg: #f1f3ee;
@@ -164,7 +164,7 @@ summary { padding-block: 6px; }
 
 <nav class="toc" aria-label="Contents">
   <ol>
-    <li><span class="grp">Meeples</span><br><a href="#keep">Don't use them all up early</a><br><a href="#road">Only roads that end soon</a><br><a href="#city">Start your own new cities</a><br><a href="#farm">Few farmers, well placed</a></li>
+    <li><span class="grp">Meeples</span><br><a href="#keep">Don't use them all up early</a><br><a href="#road">Only roads that end soon</a><br><a href="#city">Start your own new cities</a><br><a href="#farm">Few farmers, well placed</a><br><a href="#last">Use them up in the last six turns</a></li>
     <li><span class="grp">Tiles</span><br><a href="#merge">Join your opponent's city and share it</a><br><a href="#block">Make your opponent's city uncompletable (advanced)</a><br><a href="#monastery">Fill around your monastery yourself</a></li>
     <li><span class="grp">Scoring</span><br><a href="#citywins">Winners pile up points in cities</a><br><a href="#recap">Summary</a></li>
   </ol>
@@ -238,6 +238,17 @@ summary { padding-block: 6px; }
       <figcaption><span class="k">From a real game (end game, 0 tiles left)</span><span class="red">Red</span> placed a meeple in a field (a farmer). This field touches 8 completed cities, so it is already worth 24 points. It also touches 6 unfinished cities, worth 3 more points each if completed.</figcaption>
     </figure>
   </article>
+
+  <article class="tip" id="last">
+    <h3>In your last six turns, use up your meeples</h3>
+    <p>At the end of the game, unfinished roads, cities and monasteries still score (1 point per tile for roads and cities; 1 point for a monastery and each tile around it). A meeple left in your hand scores nothing. So "don't place on cities or roads that won't close" does not apply to the last few turns. In games between strong AIs (20 games), in each player's last six turns the AI places a meeple on 85% of the turns where it has one (over the whole game: 64%). It placed 1.8 meeples per player on average in those turns, and each scored 5.9 points on average.</p>
+    <p>In 38 human games collected on the play page, 44% of the mistakes costing 3 points or more came in each player's last six turns, and 49% of those were moves that left the last meeple in hand (a loss of about 5.9 points per game). Place it on a road, city or monastery that scores a point or more even unfinished, or on a field next to completed cities.</p>
+    <div class="pair">
+      <div class="s"><span class="who">Strong AI</span><span class="n">0<small>%</small></span></div>
+      <div><span class="who">Humans (play-page games)</span><span class="n">29<small>%</small></span></div>
+      <span class="what">Share of players who, on their final turn, had a meeple and a place for it but did not place it</span>
+    </div>
+  </article>
 </section>
 
 <section class="group" id="tiles">
@@ -297,6 +308,7 @@ summary { padding-block: 6px; }
     <li>Only claim roads that look like they'll end soon.</li>
     <li>Start your own new cities and grow them. Winners score more in cities (field points also come from completed cities).</li>
     <li>Keep farmers few. Late in the game, put spare meeples in fields that touch many completed cities.</li>
+    <li>In your last six turns, use up the meeples in your hand. Unfinished roads, cities and monasteries still score, and a meeple left in hand scores nothing.</li>
     <li>Join your opponent's big cities and share them. Once you're comfortable, also look for moves that make them uncompletable.</li>
     <li>Fill in around your monastery yourself to get the meeple back quickly.</li>
   </ol>

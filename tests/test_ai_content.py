@@ -216,3 +216,31 @@ def test_retired_puzzles_stay_off_the_page_and_do_not_make_content_stale():
         if not p.get("exact") and not p.get("retired")
     }
     assert set(names) == live
+
+
+def test_last_turn_claims_use_the_human_games():
+    """#last（R-009）: 最後の6手番の言い切りは、強いAIの集計と人の棋譜の集計の両方で確かめる。"""
+    summ = json.loads((ROOT / "docs/results/habits_summary.json").read_text(encoding="utf-8"))
+    s = copy.deepcopy(summ["habits_strong"])
+    assert "last6" in s
+    assert build_tips_page.summary_failed_claims(summ) == []
+    s["last6"]["final_turn_skip"] = (
+        0.99  # 人より置かないことが多ければ、本文の言い切りは成り立たない
+    )
+    bad = build_tips_page.summary_failed_claims({**summ, "habits_strong": s})
+    assert any("#last" in m for m in bad)
+
+
+def test_last_turns_counts_unused_meeples_like_the_human_games():
+    """使い残しは、人の棋譜の集計と同じく「最後の1手の前に手元に残っていた数」で数える。"""
+    import summarize_habits
+
+    def mv(left, supply, kind=None):
+        return {"left": left, "supply": supply, "meeple": {"kind": kind} if kind else None}
+
+    games = [{"moves": [mv(20, [3, 2], "C"), mv(11, [1, 0], "R"), mv(1, [0, 1]), mv(0, [1, 0])]}]
+    lives = [{"left": 11, "kind": "R", "points": 3}, {"left": 20, "kind": "C", "points": 8}]
+    r = summarize_habits.last_turns(games, lives)
+    assert r["unused_mean"] == 0.5 and r["unused_rate"] == 0.5
+    assert r["meeples_per_player"] == 0.5 and r["kind_share"]["R"] == 1.0
+    assert r["points_per_meeple"] == 3 and r["place_rate_with_supply"] == 0.5
