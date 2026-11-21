@@ -798,7 +798,8 @@
 
     // 候補手ごとに、着手後に相手が引くタイル種別で平均した評価値（手番側視点の得点差）
     // （fast_mcts.next_tile_value。reply=true なら相手の一番良い返し手まで読む next_tile_reply_value）
-    nextTileValue(S, cands, w, reply) {
+    nextTileValue(S, cands, w, reply, beam) {
+      if (reply >= 2) return this.nextTileReply2(S, cands, w, beam || 3);
       const P = this.P, me = S.sc[SC_PL], lo = S.sc[SC_DRAW], fbuf = new Float64Array(NF);
       const X = copyState(S), Y = copyState(S), out = [];
       const evalLin = (st, who) => { this.features(st, who, fbuf); let v = 0; for (let q = 0; q < NF; q++) v += w[q] * fbuf[q]; return v; };
@@ -846,6 +847,105 @@
       return out;
     }
 
+    // 局面 Y の手番の人の全部の手を評価関数で採点し、手番の人に一番良い値を me 視点で返す（fast_mcts._side_best）
+    sideBest(Y, Z, me, evalLin) {
+      const mover = Y.sc[SC_PL], k = this.genPlacements(Y, Y.sc[SC_CUR], false);
+      const rc = this.outCell.slice(0, k), rg = this.outG.slice(0, k);
+      let best = mover === me ? -Infinity : Infinity, found = false;
+      for (let q = 0; q < k; q++) {
+        const npc = Y.sc[SC_SUP0 + mover] > 0 ? this.npc[rg[q]] : 0;
+        for (let pi = -1; pi < npc; pi++) {
+          if (pi >= 0 && !this.pieceFree(Y, rc[q], rg[q], pi)) continue;
+          copyInto(Z, Y);
+          this.applyMove(Z, rc[q], rg[q], pi);
+          let v;
+          if (Z.sc[SC_OVER] !== 0) { const d = Z.sc[SC_S0] - Z.sc[SC_S0 + 1]; v = me === 0 ? d : -d; }
+          else v = evalLin(Z, me);
+          found = true;
+          if (mover === me ? v > best : v < best) best = v;
+        }
+      }
+      return found ? best : NaN;
+    }
+
+    // nextTileValue の3手版（fast_mcts.next_tile_reply2_value）: 相手の返し手の1手読み上位 beam 手について、
+    // 自分が次に引くタイル種別ごとの自分の一番良い手まで読んで平均し、相手はその最小の返し手を選ぶ
+    nextTileReply2(S, cands, w, beam) {
+      const me = S.sc[SC_PL], lo = S.sc[SC_DRAW], fbuf = new Float64Array(NF);
+      const X = copyState(S), Y = copyState(S), Z = copyState(S), out = [];
+      const evalLin = (st, who) => { this.features(st, who, fbuf); let v = 0; for (let q = 0; q < NF; q++) v += w[q] * fbuf[q]; return v; };
+      for (const [cell, g, piece] of cands) {
+        if (lo >= NT - 1) { // この手で終局
+          copyInto(X, S);
+          this.applyMove(X, cell, g, piece);
+          const d = X.sc[SC_S0] - X.sc[SC_S0 + 1];
+          out.push(me === 0 ? d : -d);
+          continue;
+        }
+        const seen = new Set();
+        let tot = 0, wsum = 0;
+        for (let j = lo; j < NT - 1; j++) {
+          const t = S.deck[j];
+          if (seen.has(t)) continue;
+          seen.add(t);
+          let n = 0;
+          for (let q = lo; q < NT - 1; q++) if (S.deck[q] === t) n++;
+          copyInto(X, S);
+          X.deck[lo] = t;
+          X.deck[j] = S.deck[lo];
+          this.applyMove(X, cell, g, piece);
+          if (X.sc[SC_OVER] !== 0 || X.sc[SC_CUR] !== t || X.sc[SC_DRAW] !== lo + 1) continue;
+          const opp = X.sc[SC_PL], k = this.genPlacements(X, t, false);
+          const rc = this.outCell.slice(0, k), rg = this.outG.slice(0, k);
+          const moves = [];
+          for (let q = 0; q < k; q++) {
+            const npc = X.sc[SC_SUP0 + opp] > 0 ? this.npc[rg[q]] : 0;
+            for (let pi = -1; pi < npc; pi++) {
+              if (pi >= 0 && !this.pieceFree(X, rc[q], rg[q], pi)) continue;
+              copyInto(Y, X);
+              this.applyMove(Y, rc[q], rg[q], pi);
+              if (Y.sc[SC_OVER] !== 0) { const d = Y.sc[SC_S0] - Y.sc[SC_S0 + 1]; moves.push({ v: me === 0 ? d : -d, end: true, cell: rc[q], g: rg[q], pi }); }
+              else moves.push({ v: evalLin(Y, me), end: false, cell: rc[q], g: rg[q], pi });
+            }
+          }
+          if (!moves.length) continue;
+          // 相手に良い（me 視点で小さい）順。同じ値は列挙順（numpy の argsort と同じになるよう安定に）
+          const order = moves.map((m, i) => i).sort((a, b) => moves[a].v - moves[b].v || a - b);
+          let best = Infinity;
+          for (let b = 0; b < Math.min(beam, moves.length); b++) {
+            const m = moves[order[b]];
+            let v3;
+            if (m.end) v3 = m.v;
+            else {
+              const seen2 = new Set();
+              let t2 = 0, w2 = 0;
+              for (let j2 = lo + 1; j2 < NT - 1; j2++) {
+                const u = X.deck[j2];
+                if (seen2.has(u)) continue;
+                seen2.add(u);
+                let n2 = 0;
+                for (let q = lo + 1; q < NT - 1; q++) if (X.deck[q] === u) n2++;
+                copyInto(Y, X);
+                Y.deck[lo + 1] = u;
+                Y.deck[j2] = X.deck[lo + 1];
+                this.applyMove(Y, m.cell, m.g, m.pi);
+                if (Y.sc[SC_OVER] !== 0) { const d = Y.sc[SC_S0] - Y.sc[SC_S0 + 1]; t2 += n2 * (me === 0 ? d : -d); w2 += n2; continue; }
+                if (Y.sc[SC_CUR] !== u || Y.sc[SC_DRAW] !== lo + 2) continue;
+                const v = this.sideBest(Y, Z, me, evalLin);
+                if (!Number.isNaN(v)) { t2 += n2 * v; w2 += n2; }
+              }
+              v3 = w2 > 0 ? t2 / w2 : m.v;
+            }
+            if (v3 < best) best = v3;
+          }
+          tot += n * best;
+          wsum += n;
+        }
+        out.push(wsum > 0 ? tot / wsum : NaN);
+      }
+      return out;
+    }
+
     // 探索の訪問数の上位 rk 候補（配置×ミープル）を、探索の平均報酬を得点差に戻した値と
     // nextTileValue を (1-rsel):rsel で混ぜた値で選び直す（FastMCTSAgent.choose_reselect）
     searchReselect(S, opts) {
@@ -864,7 +964,7 @@
       }
       const top = all.map((o, i) => [o, i]).sort((a, b) => b[0].n - a[0].n || a[1] - b[1]).slice(0, opts.rk || 6).map(a => a[0]);
       if (top.length === 1 || opts.scale <= 0) return [st.cells[top[0].k], st.gs[top[0].k], top[0].q - 1];
-      const val = this.nextTileValue(S, top.map(o => [st.cells[o.k], st.gs[o.k], o.q - 1]), opts.w, !!opts.rr);
+      const val = this.nextTileValue(S, top.map(o => [st.cells[o.k], st.gs[o.k], o.q - 1]), opts.w, +opts.rr || 0, opts.rb);
       let b = 0, bv = -Infinity;
       top.forEach((o, i) => {
         const r = Math.min(Math.max(o.w / o.n, 0.0005), 0.9995);

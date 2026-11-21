@@ -25,13 +25,16 @@ from .tiles import load_tileset
 ROOT = Path(__file__).resolve().parents[2]
 KIND_JA = {"C": "都市", "R": "道", "F": "草原", "M": "修道院"}
 LEVELS = {
-    "strong": "最強（MCTS 12000回＋短いロールアウト10手＋評価関数＋相手の返し手まで読む選び直し＋終盤3枚の読み切り）",
+    "strong": "最強（MCTS 12000回＋短いロールアウト10手＋評価関数＋自分の次の手まで読む選び直し＋終盤3枚の読み切り）",
     "standard": "標準（MCTS 2000回＋評価関数＋相手の返し手まで読む選び直し＋終盤3枚の読み切り）",
     "greedy": "貪欲法（練習用）",
 }
 
-# 選び直しの設定（最強・標準とも。scripts/build_play_page.py のブラウザ版もこれを使う）
+# 選び直しの設定（標準。最強は下の STRONG_RESELECT。scripts/build_play_page.py のブラウザ版もこれを使う）
 RESELECT = {"rsel": 0.5, "rk": 6, "rr": 1}
+# 最強だけ、相手の返し手のあと自分の次の手まで読む3手版（rr=2、相手の返し手は上位 rb 手）。
+# docs/EXPERIMENTS.md「選び直しを1段深く」（R-018）。標準は「すぐ指す」ため rr=1 のまま
+STRONG_RESELECT = {**RESELECT, "rr": 2, "rb": 3}
 # 山札の残りがこの枚数以下なら、終局まで読み切った勝率最大の手（GTO）で指す（最強・標準とも。
 # docs/EXPERIMENTS.md「終盤の厳密解（GTO）」。ブラウザ版も同じ設定）
 ENDGAME = 3
@@ -74,10 +77,11 @@ def make_agent(level: str):
     depth = 10 if level == "strong" else None
     # 探索の上位6候補を、相手の一番良い返し手まで読んだ評価と半々で選び直す（最強・標準とも。
     # docs/EXPERIMENTS.md「相手の返し手まで読む選び直し」。ブラウザ版も同じ設定）
+    rs = STRONG_RESELECT if level == "strong" else RESELECT
     return FastMCTSAgent(
         n_sims=sims, rollout_depth=depth, eval_path=champion_eval_path(),
-        reselect=RESELECT["rsel"], reselect_k=RESELECT["rk"], reselect_reply=bool(RESELECT["rr"]),
-        endgame=ENDGAME,
+        reselect=rs["rsel"], reselect_k=rs["rk"], reselect_reply=rs["rr"],
+        reply_beam=rs.get("rb", 3), endgame=ENDGAME,
     )  # fmt: skip
 
 

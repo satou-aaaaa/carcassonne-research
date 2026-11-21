@@ -656,6 +656,174 @@ def next_tile_reply_value(
     return out
 
 
+@njit(cache=True)
+def _side_best(Y, Z, T, P, me, eval_w, eval_mode, fbuf, stamp, stamp_box, out_cell, out_g, rc, rg):
+    """局面 Y で手番の人が指せる全部の手（配置×ミープルなし・置ける断片）を評価関数で採点し、
+    手番の人にとって一番良い値を、me 視点の得点差で返す（手番が me なら最大、相手なら最小）。
+    終局する手は実際の得点差。合法手が無ければ nan。Z は作業用。"""
+    mover = Y[10][SC_PL]
+    t = Y[10][SC_CUR]
+    stamp_box[0] += 1
+    k = gen_placements(Y, T, t, stamp, stamp_box[0], out_cell, out_g, False)
+    for q in range(k):
+        rc[q] = out_cell[q]
+        rg[q] = out_g[q]
+    best = -1e30 if mover == me else 1e30
+    found = False
+    for q in range(k):
+        npc = T[1][rg[q]] if Y[10][SC_SUP0 + mover] > 0 else 0
+        for pi in range(-1, npc):
+            if pi >= 0 and not piece_free(Y, T, P, rc[q], rg[q], pi):
+                continue
+            copy_into(Z, Y)
+            apply_move(Z, T, P, rc[q], rg[q], pi, stamp, stamp_box, out_cell, out_g)
+            if Z[10][SC_OVER] != 0:
+                d = float(Z[10][SC_S0] - Z[10][SC_S1])
+                v = d if me == 0 else -d
+            else:
+                features(Z, T, P, me, fbuf)
+                v = eval_value(eval_w, eval_mode, fbuf)
+            found = True
+            if mover == me:
+                best = max(best, v)
+            else:
+                best = min(best, v)
+    return best if found else np.nan
+
+
+@njit(cache=True)
+def next_tile_reply2_value(
+    S, T, P, cells, gs, pieces, eval_w, eval_mode, fbuf, stamp, stamp_box, out_cell, out_g, beam
+):
+    """`next_tile_reply_value` の3手版: 相手が引くタイル種別ごとに、相手の返し手のうち1手読みで良い
+    上位 beam 手について、そのあと自分が引くタイル種別ごとの自分の一番良い手まで読み、
+    自分のタイル種別で平均した値（手番側視点の得点差）を返し手の値とする。相手はその値が最小の
+    返し手を選び、相手のタイル種別で平均する。実際の山札の並びは使わない（期待値を取る expectimax）。
+    """
+    me = S[10][SC_PL]
+    lo = S[10][SC_DRAW]
+    out = np.zeros(len(cells))
+    X = copy_state(S)
+    Y = copy_state(S)
+    Z = copy_state(S)
+    seen = np.zeros(128, np.bool_)
+    seen2 = np.zeros(128, np.bool_)
+    n_out = len(out_cell)
+    rc = np.zeros(n_out, np.int32)
+    rg = np.zeros(n_out, np.int16)
+    rc2 = np.zeros(n_out, np.int32)
+    rg2 = np.zeros(n_out, np.int16)
+    m_cell = np.zeros(n_out * 6, np.int32)
+    m_g = np.zeros(n_out * 6, np.int16)
+    m_pi = np.zeros(n_out * 6, np.int32)
+    m_v = np.zeros(n_out * 6)
+    m_end = np.zeros(n_out * 6, np.bool_)
+    for ci in range(len(cells)):
+        if lo >= S[10][SC_END]:  # この手で終局
+            copy_into(X, S)
+            apply_move(X, T, P, cells[ci], gs[ci], pieces[ci], stamp, stamp_box, out_cell, out_g)
+            d = float(X[10][SC_S0] - X[10][SC_S1])
+            out[ci] = d if me == 0 else -d
+            continue
+        seen[:] = False
+        tot = 0.0
+        wsum = 0.0
+        for j in range(lo, NT - 1):
+            t = S[11][j]
+            if seen[t]:
+                continue
+            seen[t] = True
+            n = 0
+            for q in range(lo, NT - 1):
+                if S[11][q] == t:
+                    n += 1
+            copy_into(X, S)
+            X[11][lo] = t
+            X[11][j] = S[11][lo]
+            apply_move(X, T, P, cells[ci], gs[ci], pieces[ci], stamp, stamp_box, out_cell, out_g)
+            if X[10][SC_OVER] != 0 or X[10][SC_CUR] != t or X[10][SC_DRAW] != lo + 1:
+                continue
+            opp = X[10][SC_PL]
+            # 相手の返し手を全部1手読みで採点する
+            stamp_box[0] += 1
+            k = gen_placements(X, T, t, stamp, stamp_box[0], out_cell, out_g, False)
+            for q in range(k):
+                rc[q] = out_cell[q]
+                rg[q] = out_g[q]
+            nm = 0
+            for q in range(k):
+                npc = T[1][rg[q]] if X[10][SC_SUP0 + opp] > 0 else 0
+                for pi in range(-1, npc):
+                    if pi >= 0 and not piece_free(X, T, P, rc[q], rg[q], pi):
+                        continue
+                    if nm >= len(m_v):
+                        continue
+                    copy_into(Y, X)
+                    apply_move(Y, T, P, rc[q], rg[q], pi, stamp, stamp_box, out_cell, out_g)
+                    if Y[10][SC_OVER] != 0:
+                        d = float(Y[10][SC_S0] - Y[10][SC_S1])
+                        m_v[nm] = d if me == 0 else -d
+                        m_end[nm] = True
+                    else:
+                        features(Y, T, P, me, fbuf)
+                        m_v[nm] = eval_value(eval_w, eval_mode, fbuf)
+                        m_end[nm] = False
+                    m_cell[nm] = rc[q]
+                    m_g[nm] = rg[q]
+                    m_pi[nm] = pi
+                    nm += 1
+            if nm == 0:
+                continue
+            order = np.argsort(
+                m_v[:nm], kind="mergesort"
+            )  # 相手に良い（me 視点で小さい）順。同じ値は列挙順
+            best = 1e30
+            for b in range(min(beam, nm)):
+                r = order[b]
+                if m_end[r]:
+                    v3 = m_v[r]
+                else:
+                    # 自分が次に引くタイル種別で平均した、自分の一番良い手の値
+                    seen2[:] = False
+                    t2 = 0.0
+                    w2 = 0.0
+                    for j2 in range(lo + 1, NT - 1):
+                        u = X[11][j2]
+                        if seen2[u]:
+                            continue
+                        seen2[u] = True
+                        n2 = 0
+                        for q in range(lo + 1, NT - 1):
+                            if X[11][q] == u:
+                                n2 += 1
+                        copy_into(Y, X)
+                        Y[11][lo + 1] = u
+                        Y[11][j2] = X[11][lo + 1]
+                        apply_move(
+                            Y, T, P, m_cell[r], m_g[r], m_pi[r], stamp, stamp_box, out_cell, out_g
+                        )
+                        if Y[10][SC_OVER] != 0:
+                            d = float(Y[10][SC_S0] - Y[10][SC_S1])
+                            t2 += n2 * (d if me == 0 else -d)
+                            w2 += n2
+                            continue
+                        if Y[10][SC_CUR] != u or Y[10][SC_DRAW] != lo + 2:
+                            continue
+                        v = _side_best(
+                            Y, Z, T, P, me, eval_w, eval_mode, fbuf, stamp, stamp_box,
+                            out_cell, out_g, rc2, rg2,
+                        )  # fmt: skip
+                        if not np.isnan(v):
+                            t2 += n2 * v
+                            w2 += n2
+                    v3 = t2 / w2 if w2 > 0 else m_v[r]
+                best = min(best, v3)
+            tot += n * best
+            wsum += n
+        out[ci] = tot / wsum if wsum > 0 else np.nan
+    return out
+
+
 class FastMCTSAgent:
     """`MCTSAgent` と同じ探索をNumbaで行うエージェント（Pythonの `State` に着手を返す）。"""
 
@@ -678,7 +846,8 @@ class FastMCTSAgent:
         rollout_reshuffle: bool = False,
         reselect: float = 0.0,
         reselect_k: int = 6,
-        reselect_reply: bool = False,
+        reselect_reply: int = 0,
+        reply_beam: int = 3,
         scale_decay: float = 0.0,
         scale_min: float = 5.0,
         endgame: int = 0,
@@ -702,7 +871,9 @@ class FastMCTSAgent:
         self.reselect = reselect if eval_path else 0.0
         self.reselect_k = max(1, int(reselect_k))
         # True なら選び直しの1手先評価を、相手の一番良い返し手まで読んだ値にする（`next_tile_reply_value`）
-        self.reselect_reply = reselect_reply
+        # 2 なら相手の返し手のあと自分の次の手まで読む（`next_tile_reply2_value`、相手の返し手は上位 reply_beam 手）
+        self.reselect_reply = int(reselect_reply)
+        self.reply_beam = max(1, int(reply_beam))
         # 0より大きいと、報酬の尺度を残りタイルの割合の scale_decay 乗で縮める（下限 scale_min）。
         # 終盤ほど点差より勝ち負けを重く見る
         self.scale_decay = scale_decay
@@ -749,7 +920,8 @@ class FastMCTSAgent:
             + ("" if rollout_farm else ",rf=0")
             + (",rs=1" if rollout_reshuffle else "")
             + (f",rsel={reselect:g},rk={reselect_k}" if self.reselect > 0 else "")
-            + (",rr=1" if self.reselect > 0 and reselect_reply else "")
+            + (f",rr={self.reselect_reply}" if self.reselect > 0 and self.reselect_reply else "")
+            + (f",rb={self.reply_beam}" if self.reselect > 0 and self.reselect_reply >= 2 else "")
             + (f",sd={scale_decay:g},smin={scale_min:g}" if scale_decay > 0 else "")
             + (f",eg={self.endgame}" if self.endgame > 0 else "")
             + (
@@ -851,12 +1023,17 @@ class FastMCTSAgent:
         ks, qs = ks[order], qs[order]
         if len(ks) == 1 or scale <= 0:
             return int(cells[ks[0]]), int(gs[ks[0]]), int(qs[0]) - 1
-        fn = next_tile_reply_value if self.reselect_reply else next_tile_value
-        val = fn(
+        args = (
             S, f.T, f.P, cells[ks].astype(np.int64), gs[ks].astype(np.int64),
             (qs - 1).astype(np.int64), self.eval_w, self.eval_mode, self.fbuf,
             sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g,
         )  # fmt: skip
+        if self.reselect_reply >= 2:
+            val = next_tile_reply2_value(*args, self.reply_beam)
+        elif self.reselect_reply:
+            val = next_tile_reply_value(*args)
+        else:
+            val = next_tile_value(*args)
         q = w2[ks, qs] / a2[ks, qs]
         dm = scale * np.arctanh(np.clip(2 * q - 1, -0.999, 0.999))
         dn = np.where(np.isnan(val), dm, val)
