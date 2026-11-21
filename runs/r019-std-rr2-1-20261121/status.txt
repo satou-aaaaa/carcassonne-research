@@ -1,0 +1,5 @@
+finished: 2026-11-21T14:30Z
+exit_code: 0
+commit: 60d620a22a1875cfb2357dc47d0b6ec93c00393f
+run: https://github.com/satou-aaaaa/carcassonne-research/actions/runs/44901926433
+command: BASE=standard A=rsel=0.5,rk=6,rr=2,rb=1 B=rsel=0.5,rk=6,rr=1 START=11100 SEEDS=100 bash scripts/sweeps/r019.sh
