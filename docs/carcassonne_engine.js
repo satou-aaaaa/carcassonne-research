@@ -77,6 +77,14 @@
     for (let t = 0; t < sn; t++) dg[st[t]] = t + 1;
     for (const k of KEYS_NOGRID) dst[k].set(src[k]);
   }
+  // 32ビットの整数を混ぜる（fast_mcts._mix32 と同じ値）。4手目のタイルの抽選に使う
+  function mix32(x) {
+    x = (x ^ (x >>> 16)) >>> 0;
+    x = Math.imul(x, 0x45D9F3B) >>> 0;
+    x = (x ^ (x >>> 16)) >>> 0;
+    x = Math.imul(x, 0x45D9F3B) >>> 0;
+    return (x ^ (x >>> 16)) >>> 0;
+  }
   function copyState(S) { const o = {}; for (const k of KEYS) o[k] = S[k].slice(); return o; }
 
   const nowMs = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
@@ -798,7 +806,8 @@
 
     // 候補手ごとに、着手後に相手が引くタイル種別で平均した評価値（手番側視点の得点差）
     // （fast_mcts.next_tile_value。reply=true なら相手の一番良い返し手まで読む next_tile_reply_value）
-    nextTileValue(S, cands, w, reply, beam) {
+    nextTileValue(S, cands, w, reply, beam, beam2, samples) {
+      if (reply >= 3) return this.nextTileReply3(S, cands, w, beam || 1, beam2 || 1, samples || 0);
       if (reply >= 2) return this.nextTileReply2(S, cands, w, beam || 3);
       const P = this.P, me = S.sc[SC_PL], lo = S.sc[SC_DRAW], fbuf = new Float64Array(NF);
       const X = copyState(S), Y = copyState(S), out = [];
@@ -946,6 +955,129 @@
       return out;
     }
 
+    // 局面 X の手番の人の全部の手を1手読み（me 視点の評価値、終局する手は実際の得点差）で採点する（fast_mcts._rank_moves）
+    rankMoves(X, Y, me, evalLin) {
+      const mover = X.sc[SC_PL], k = this.genPlacements(X, X.sc[SC_CUR], false);
+      const rc = this.outCell.slice(0, k), rg = this.outG.slice(0, k), moves = [];
+      for (let q = 0; q < k; q++) {
+        const npc = X.sc[SC_SUP0 + mover] > 0 ? this.npc[rg[q]] : 0;
+        for (let pi = -1; pi < npc; pi++) {
+          if (pi >= 0 && !this.pieceFree(X, rc[q], rg[q], pi)) continue;
+          copyInto(Y, X);
+          this.applyMove(Y, rc[q], rg[q], pi);
+          if (Y.sc[SC_OVER] !== 0) { const d = Y.sc[SC_S0] - Y.sc[SC_S0 + 1]; moves.push({ v: me === 0 ? d : -d, end: true, cell: rc[q], g: rg[q], pi }); }
+          else moves.push({ v: evalLin(Y, me), end: false, cell: rc[q], g: rg[q], pi });
+        }
+      }
+      return moves;
+    }
+
+    // nextTileValue の4手版（fast_mcts.next_tile_reply3_value）: 相手の返し手（上位 beam 手）→自分の次の手
+    // （タイル種別ごとに上位 beam2 手）→相手の次の返し手まで読む。4手目で相手が引くタイルは samples 枚の抽選
+    // （0 なら全種別）。抽選は局面と手から決まる疑似乱数（mix32）で、Python 版と同じ値になる
+    nextTileReply3(S, cands, w, beam, beam2, samples) {
+      const me = S.sc[SC_PL], lo = S.sc[SC_DRAW], fbuf = new Float64Array(NF);
+      const X = copyState(S), Y = copyState(S), Z = copyState(S), W = copyState(S), out = [];
+      const evalLin = (st, who) => { this.features(st, who, fbuf); let v = 0; for (let q = 0; q < NF; q++) v += w[q] * fbuf[q]; return v; };
+      const diffMe = st => { const d = st.sc[SC_S0] - st.sc[SC_S0 + 1]; return me === 0 ? d : -d; };
+      // 4手目: 自分の手 m を指したあと、相手が引くタイルごとの相手の一番良い手の値の平均
+      const fourth = (Yb, m, h0) => {
+        let t4 = 0, w4 = 0;
+        const one = (x4, j4, n4) => {
+          copyInto(Z, Yb);
+          Z.deck[lo + 2] = x4;
+          Z.deck[j4] = Yb.deck[lo + 2];
+          this.applyMove(Z, m.cell, m.g, m.pi);
+          if (Z.sc[SC_OVER] !== 0) { t4 += n4 * diffMe(Z); w4 += n4; return; }
+          if (Z.sc[SC_CUR] !== x4 || Z.sc[SC_DRAW] !== lo + 3) return;
+          const v = this.sideBest(Z, W, me, evalLin);
+          if (!Number.isNaN(v)) { t4 += n4 * v; w4 += n4; }
+        };
+        if (samples <= 0) {
+          const seen4 = new Set();
+          for (let j4 = lo + 2; j4 < NT - 1; j4++) {
+            const x4 = Yb.deck[j4];
+            if (seen4.has(x4)) continue;
+            seen4.add(x4);
+            let n4 = 0;
+            for (let q = lo + 2; q < NT - 1; q++) if (Yb.deck[q] === x4) n4++;
+            one(x4, j4, n4);
+          }
+        } else {
+          const nrest = NT - 1 - (lo + 2);
+          let h = h0;
+          for (let k4 = 0; k4 < samples; k4++) {
+            h = mix32((h + k4 * 0x9E3779B9) >>> 0);
+            const j4 = lo + 2 + (h % nrest);
+            one(Yb.deck[j4], j4, 1);
+          }
+        }
+        return w4 > 0 ? t4 / w4 : m.v;
+      };
+      cands.forEach(([cell, g, piece], ci) => {
+        if (lo >= NT - 1) { // この手で終局
+          copyInto(X, S);
+          this.applyMove(X, cell, g, piece);
+          out.push(diffMe(X));
+          return;
+        }
+        const seen = new Set();
+        let tot = 0, wsum = 0;
+        for (let j = lo; j < NT - 1; j++) {
+          const t = S.deck[j];
+          if (seen.has(t)) continue;
+          seen.add(t);
+          let n = 0;
+          for (let q = lo; q < NT - 1; q++) if (S.deck[q] === t) n++;
+          copyInto(X, S);
+          X.deck[lo] = t;
+          X.deck[j] = S.deck[lo];
+          this.applyMove(X, cell, g, piece);
+          if (X.sc[SC_OVER] !== 0 || X.sc[SC_CUR] !== t || X.sc[SC_DRAW] !== lo + 1) continue;
+          const moves = this.rankMoves(X, Y, me, evalLin);
+          if (!moves.length) continue;
+          const order = moves.map((m, i) => i).sort((a, b) => moves[a].v - moves[b].v || a - b);
+          let best = Infinity;
+          for (let b = 0; b < Math.min(beam, moves.length); b++) {
+            const m = moves[order[b]];
+            if (m.end) { if (m.v < best) best = m.v; continue; }
+            const seen2 = new Set();
+            let t2 = 0, w2 = 0;
+            for (let j2 = lo + 1; j2 < NT - 1; j2++) {
+              const u = X.deck[j2];
+              if (seen2.has(u)) continue;
+              seen2.add(u);
+              let n2 = 0;
+              for (let q = lo + 1; q < NT - 1; q++) if (X.deck[q] === u) n2++;
+              copyInto(Y, X);
+              Y.deck[lo + 1] = u;
+              Y.deck[j2] = X.deck[lo + 1];
+              this.applyMove(Y, m.cell, m.g, m.pi);
+              if (Y.sc[SC_OVER] !== 0) { t2 += n2 * diffMe(Y); w2 += n2; continue; }
+              if (Y.sc[SC_CUR] !== u || Y.sc[SC_DRAW] !== lo + 2) continue;
+              const mine = this.rankMoves(Y, Z, me, evalLin);
+              if (!mine.length) continue;
+              const order2 = mine.map((x, i) => i).sort((a, c) => mine[c].v - mine[a].v || a - c);
+              let mv = -Infinity;
+              for (let b2 = 0; b2 < Math.min(beam2, mine.length); b2++) {
+                const r2 = mine[order2[b2]];
+                const h0 = (lo * 7919 + ci * 104729 + t * 1299709 + b * 15485863 + u * 32452843 + b2 * 49979687) >>> 0;
+                const v4 = r2.end || lo + 2 >= NT - 1 ? r2.v : fourth(Y, r2, h0);
+                if (v4 > mv) mv = v4;
+              }
+              t2 += n2 * mv;
+              w2 += n2;
+            }
+            const v3 = w2 > 0 ? t2 / w2 : m.v;
+            if (v3 < best) best = v3;
+          }
+          if (best < Infinity) { tot += n * best; wsum += n; }
+        }
+        out.push(wsum > 0 ? tot / wsum : NaN);
+      });
+      return out;
+    }
+
     // 探索の訪問数の上位 rk 候補（配置×ミープル）を、探索の平均報酬を得点差に戻した値と
     // nextTileValue を (1-rsel):rsel で混ぜた値で選び直す（FastMCTSAgent.choose_reselect）
     searchReselect(S, opts) {
@@ -964,7 +1096,7 @@
       }
       const top = all.map((o, i) => [o, i]).sort((a, b) => b[0].n - a[0].n || a[1] - b[1]).slice(0, opts.rk || 6).map(a => a[0]);
       if (top.length === 1 || opts.scale <= 0) return [st.cells[top[0].k], st.gs[top[0].k], top[0].q - 1];
-      const val = this.nextTileValue(S, top.map(o => [st.cells[o.k], st.gs[o.k], o.q - 1]), opts.w, +opts.rr || 0, opts.rb);
+      const val = this.nextTileValue(S, top.map(o => [st.cells[o.k], st.gs[o.k], o.q - 1]), opts.w, +opts.rr || 0, opts.rb, opts.rb2, opts.rsm);
       let b = 0, bv = -Infinity;
       top.forEach((o, i) => {
         const r = Math.min(Math.max(o.w / o.n, 0.0005), 0.9995);

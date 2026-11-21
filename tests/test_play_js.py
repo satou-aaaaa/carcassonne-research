@@ -78,8 +78,13 @@ def test_engine_matches_python():
 
 
 def test_next_tile_value_matches_python():
-    """選び直しに使う「次のタイルで平均した評価値」（相手の返し手なし・あり・自分の次の手まで）が Python 版と一致する。"""
-    from carcassonne.fast_mcts import next_tile_reply2_value, next_tile_reply_value, next_tile_value
+    """選び直しに使う「次のタイルで平均した評価値」（相手の返し手なし・あり・自分の次の手まで・4手目まで）が Python 版と一致する。"""
+    from carcassonne.fast_mcts import (
+        next_tile_reply2_value,
+        next_tile_reply3_value,
+        next_tile_reply_value,
+        next_tile_value,
+    )
 
     fast = Fast()
     sc = fast.scratch
@@ -100,6 +105,11 @@ def test_next_tile_value_matches_python():
         v2 = next_tile_reply2_value(S, fast.T, fast.P, c[:2], g[:2], p[:2], w, 1, np.zeros(NF),
                                     sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g, 2)  # fmt: skip
         np.testing.assert_allclose(r["reply2"], v2, atol=1e-6)
+        # 4手目まで（4手目のタイルは2枚の抽選と、全種別の平均）
+        for key, n, sm in (("reply3all", 1, 0), ("reply3", 2, 2)):
+            v3 = next_tile_reply3_value(S, fast.T, fast.P, c[:n], g[:n], p[:n], w, 1, np.zeros(NF),
+                                        sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g, 1, 1, sm)  # fmt: skip
+            np.testing.assert_allclose(r[key], v3, atol=1e-6)
 
 
 def test_endgame_matches_python():
