@@ -134,7 +134,7 @@ if (args.cmd === "games") {
     }
     if (S.sc[C.SC_OVER]) continue;
     const cands = eng.legalMoves(S).slice(0, 4);
-    out.push({ deck, history, cands, plain: eng.nextTileValue(S, cands, w, false), reply: eng.nextTileValue(S, cands, w, true) });
+    out.push({ deck, history, cands, plain: eng.nextTileValue(S, cands, w, 0), reply: eng.nextTileValue(S, cands, w, 1), reply2: eng.nextTileValue(S, cands.slice(0, 2), w, 2, 2) });
   }
   console.log(JSON.stringify(out));
 } else if (args.cmd === "endgame") {

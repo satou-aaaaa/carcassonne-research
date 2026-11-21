@@ -774,7 +774,9 @@ def next_tile_reply2_value(
                     nm += 1
             if nm == 0:
                 continue
-            order = np.argsort(m_v[:nm])  # 相手に良い（me 視点で小さい）順
+            order = np.argsort(
+                m_v[:nm], kind="mergesort"
+            )  # 相手に良い（me 視点で小さい）順。同じ値は列挙順
             best = 1e30
             for b in range(min(beam, nm)):
                 r = order[b]
