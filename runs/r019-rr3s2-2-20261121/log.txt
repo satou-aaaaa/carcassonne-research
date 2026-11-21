@@ -1,0 +1,23 @@
+Traceback (most recent call last):
+  File "/home/runner/work/carcassonne-research/carcassonne-research/scripts/run_match.py", line 103, in <module>
+    main()
+  File "/home/runner/work/carcassonne-research/carcassonne-research/scripts/run_match.py", line 98, in main
+    summary = run_match(parse_agent(args.a), parse_agent(args.b), seeds, args.log, args.workers)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/carcassonne-research/carcassonne-research/src/carcassonne/arena.py", line 142, in run_match
+    results = list(ex.map(_play_job, jobs, chunksize=1))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/concurrent/futures/process.py", line 636, in _chain_from_iterable_of_lists
+    for element in iterable:
+                   ^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/concurrent/futures/_base.py", line 619, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/concurrent/futures/_base.py", line 317, in _result_or_cancel
+    return fut.result(timeout)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/concurrent/futures/_base.py", line 451, in result
+    self._condition.wait(timeout)
+  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/threading.py", line 355, in wait
+    waiter.acquire()
+KeyboardInterrupt
