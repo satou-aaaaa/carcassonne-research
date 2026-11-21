@@ -147,7 +147,7 @@ a { color: var(--field); }
 
 <nav class="toc" aria-label="目次">
   <ol>
-    <li><span class="grp">ミープル</span><br><a href="#keep">序盤に一気に使い切らない</a><br><a href="#road">道には「すぐ終わる道」だけ</a><br><a href="#city">都市は自分で新しく始める</a><br><a href="#farm">農民は数を絞り、置く場所を選ぶ</a></li>
+    <li><span class="grp">ミープル</span><br><a href="#keep">序盤に一気に使い切らない</a><br><a href="#road">道には「すぐ終わる道」だけ</a><br><a href="#city">都市は自分で新しく始める</a><br><a href="#farm">農民は数を絞り、置く場所を選ぶ</a><br><a href="#last">最後の6手番は使い切る</a></li>
     <li><span class="grp">タイル</span><br><a href="#merge">相手の都市に合流して分け合う</a><br><a href="#block">相手の都市を「完成しない形」にする（上級）</a><br><a href="#monastery">修道院は周りを自分で埋める</a></li>
     <li><span class="grp">得点</span><br><a href="#citywins">勝った側は都市で積み上げる</a><br><a href="#recap">まとめ</a></li>
   </ol>
@@ -221,6 +221,17 @@ a { color: var(--field); }
       <figcaption>{{cap_farm}}</figcaption>
     </figure>
   </article>
+
+  <article class="tip" id="last">
+    <h3>最後の6手番は、手元のミープルを使い切る</h3>
+    <p>終局では、未完成の道・都市・修道院も点になります（道と都市は1タイル1点、修道院は自分と周りのタイル1枚につき1点）。手元に残したミープルは0点です。だから「もう閉じない都市や道には置かない」は、最後の数手番には当てはまりません。強いAI同士の対局（{{last6_games}}局）でも、各自の最後の6手番は、手持ちがあれば{{last6_place}}%の手番で置きます（1局を通すと{{place_all}}%）。最後の6手番に置いたミープルは1人あたり平均{{last6_per_player}}個、1個あたり平均{{last6_points}}点でした。</p>
+    <p>対戦ページで集めた人の棋譜{{human_games}}局では、3点以上の損の{{human_last6_share}}%が各自の最後の6手番に集まり、その{{human_last_one_share}}%は「手元の最後の1個を置かずに進めた」手でした（1局あたり約{{human_last_loss}}点の損）。閉じなくても1〜数点になる道・都市・修道院や、完成した都市に接する草原に置きましょう。</p>
+    <div class="pair">
+      <div class="s"><span class="who">強いAI</span><span class="n">{{skip_last_strong}}<small>%</small></span></div>
+      <div><span class="who">人（対戦ページの棋譜）</span><span class="n">{{skip_last_human}}<small>%</small></span></div>
+      <span class="what">自分の最後の手番で、手持ちがあり置ける場所もあったのに、ミープルを置かなかった割合</span>
+    </div>
+  </article>
 </section>
 
 <section class="group" id="tiles">
@@ -280,6 +291,7 @@ a { color: var(--field); }
     <li>道に乗せるのは、すぐ終わりそうな道だけ。</li>
     <li>都市は自分で新しく始めて育てる。勝った側は都市でも多く取る（草原の点も完成した都市から生まれる）。</li>
     <li>農民は数を絞る。終盤に余ったミープルは、完成した都市にたくさん接する草原へ。</li>
+    <li>最後の6手番は、手元のミープルを使い切る。未完成でも道・都市・修道院は点になり、残したミープルは0点。</li>
     <li>相手の大きな都市には合流して分け合う。慣れてきたら、完成しない形にする手も考える。</li>
     <li>修道院の周りは自分で埋めて、ミープルを早く取り戻す。</li>
   </ol>

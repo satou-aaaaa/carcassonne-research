@@ -23,6 +23,9 @@ from carcassonne.human_findings import BAD
 from carcassonne.state import Move, State
 from carcassonne.tiles import load_tileset
 
+sys.path.insert(0, str(ROOT / "scripts"))
+from summarize_habits import final_turn_skips
+
 GAMES = ROOT / "data" / "human_games.jsonl"
 CACHE = ROOT / "docs" / "results" / "human_findings_cache.json"
 OUT = ROOT / "docs" / "results" / "human_weak_spots.json"
@@ -33,6 +36,7 @@ def analyze(games: list[dict], cache: dict) -> dict:
     ts = load_tileset()
     bad = []
     left = {"human": [], "ai": []}  # 終局の直前（最後の1手の前）に手元に残っていたミープル
+    skips = {"human": [], "ai": []}  # 最後の手番で、手持ちがあり置けたのに置かなかったか（R-009）
     for r in games:
         c = cache.get(hg.key(r))
         if c is None:
@@ -40,6 +44,9 @@ def analyze(games: list[dict], cache: dict) -> dict:
         scored = {m["ply"]: m for m in c["moves"] if m["loss"] is not None and m["loss"] >= BAD}
         st = State(r["deck"], ts)
         hs, n = r["human_seat"], len(r["moves"])
+        mvs = [Move(x, y, v, None if p < 0 else p) for x, y, v, p in r["moves"]]
+        for pl, skipped in final_turn_skips(State(r["deck"], ts), mvs).items():
+            skips["human" if pl == hs else "ai"].append(skipped)
         for ply, (x, y, v, p) in enumerate(r["moves"]):
             if ply == n - 1:
                 left["human"].append(st.supply[hs])
@@ -82,6 +89,9 @@ def analyze(games: list[dict], cache: dict) -> dict:
         "no_meeple_supply": dict(
             sorted(Counter(b["supply"] for b in bad if b["cat"] == "no_meeple").items())
         ),
+        "final_turn_skip": {
+            k: {"chances": len(v), "skipped": sum(v)} for k, v in skips.items() if v
+        },
         "unused_at_end": {
             k: {"mean": round(sum(v) / len(v), 2), "games_with_any": sum(x > 0 for x in v)}
             for k, v in left.items()

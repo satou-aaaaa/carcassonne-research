@@ -174,7 +174,30 @@
   "proj_gain_diff": 2.6520845566647093,
   "same_as_greedy": 0.270698766881973,
   "same_place_as_greedy": 0.3731650029359953,
-  "contested_merge_with_meeple": 0.035525543159130944
+  "contested_merge_with_meeple": 0.035525543159130944,
+  "last6": {
+   "games": 20,
+   "meeples_per_player": 1.75,
+   "kind_share": {
+    "C": 0.2,
+    "R": 0.3142857142857143,
+    "M": 0.11428571428571428,
+    "F": 0.37142857142857144
+   },
+   "place_rate_with_supply": 0.8536585365853658,
+   "points_per_meeple": 5.885714285714286,
+   "points_by_kind": {
+    "C": 5.0,
+    "R": 3.772727272727273,
+    "M": 6.125,
+    "F": 8.076923076923077
+   },
+   "zero_points": 0.0,
+   "unused_mean": 0.4,
+   "final_turn_skip": 0.0,
+   "final_turn_chances": 12,
+   "unused_rate": 0.325
+  }
  },
  "habits_greedy": {
   "level": "greedy",

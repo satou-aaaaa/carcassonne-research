@@ -1,58 +1,69 @@
 {
- "games": 30,
- "bad_moves": 105,
- "bad_loss": 535.4,
+ "games": 38,
+ "bad_moves": 146,
+ "bad_loss": 804.8,
  "by_type": {
-  "no_meeple:C": 18,
-  "no_meeple:R": 16,
-  "placement:-": 13,
-  "no_meeple:F": 12,
-  "other_feature:F": 10,
-  "other_feature:R": 9,
-  "extra_meeple:-": 8,
-  "placement:C": 5,
-  "no_meeple:M": 5,
-  "placement:R": 3,
-  "other_feature:M": 2,
+  "no_meeple:R": 22,
+  "placement:-": 22,
+  "no_meeple:C": 20,
+  "no_meeple:F": 17,
+  "other_feature:F": 15,
+  "extra_meeple:-": 11,
+  "other_feature:R": 10,
+  "placement:C": 7,
+  "no_meeple:M": 7,
+  "placement:R": 6,
+  "other_feature:M": 3,
+  "placement:M": 3,
   "other_feature:C": 2,
-  "placement:M": 2
+  "placement:F": 1
  },
  "last6": {
-  "bad": 37,
-  "loss": 251.3
+  "bad": 51,
+  "loss": 355.1
  },
  "last6_no_meeple": {
-  "bad": 21,
-  "loss": 161.5,
-  "loss_per_game": 5.4,
+  "bad": 30,
+  "loss": 224.0,
+  "loss_per_game": 5.9,
   "supply": {
-   "1": 19,
-   "2": 1,
+   "1": 25,
+   "2": 4,
    "3": 1
   },
   "best": {
-   "R": 9,
-   "F": 5,
-   "C": 4,
-   "M": 3
+   "R": 13,
+   "F": 7,
+   "M": 5,
+   "C": 5
   }
  },
  "no_meeple_supply": {
-  "1": 33,
-  "2": 9,
-  "3": 2,
-  "4": 3,
+  "1": 40,
+  "2": 14,
+  "3": 3,
+  "4": 4,
   "5": 1,
-  "6": 2,
+  "6": 3,
   "7": 1
+ },
+ "final_turn_skip": {
+  "human": {
+   "chances": 21,
+   "skipped": 6
+  },
+  "ai": {
+   "chances": 9,
+   "skipped": 0
+  }
  },
  "unused_at_end": {
   "human": {
-   "mean": 0.67,
-   "games_with_any": 14
+   "mean": 0.71,
+   "games_with_any": 21
   },
   "ai": {
-   "mean": 0.23,
+   "mean": 0.18,
    "games_with_any": 5
   }
  }
