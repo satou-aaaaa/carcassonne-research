@@ -824,6 +824,233 @@ def next_tile_reply2_value(
     return out
 
 
+@njit(cache=True)
+def _mix32(x):
+    """32ビットの整数を混ぜる（ブラウザ版 `mix32` と同じ値）。4手目のタイルの抽選に使う。"""
+    x = np.int64(x) & 0xFFFFFFFF
+    x = (x ^ (x >> 16)) & 0xFFFFFFFF
+    x = (x * 0x45D9F3B) & 0xFFFFFFFF
+    x = (x ^ (x >> 16)) & 0xFFFFFFFF
+    x = (x * 0x45D9F3B) & 0xFFFFFFFF
+    x = (x ^ (x >> 16)) & 0xFFFFFFFF
+    return x
+
+
+@njit(cache=True)
+def _rank_moves(X, T, P, me, eval_w, eval_mode, fbuf, stamp, stamp_box, out_cell, out_g, rc, rg,
+                Y, m_cell, m_g, m_pi, m_v, m_end):  # fmt: skip
+    """局面 X で手番の人の全部の手（配置×ミープルなし・置ける断片）を1手読み（me 視点の評価値、
+    終局する手は実際の得点差）で採点して m_* に入れ、手の数を返す。Y は作業用。"""
+    mover = X[10][SC_PL]
+    t = X[10][SC_CUR]
+    stamp_box[0] += 1
+    k = gen_placements(X, T, t, stamp, stamp_box[0], out_cell, out_g, False)
+    for q in range(k):
+        rc[q] = out_cell[q]
+        rg[q] = out_g[q]
+    nm = 0
+    for q in range(k):
+        npc = T[1][rg[q]] if X[10][SC_SUP0 + mover] > 0 else 0
+        for pi in range(-1, npc):
+            if pi >= 0 and not piece_free(X, T, P, rc[q], rg[q], pi):
+                continue
+            if nm >= len(m_v):
+                continue
+            copy_into(Y, X)
+            apply_move(Y, T, P, rc[q], rg[q], pi, stamp, stamp_box, out_cell, out_g)
+            if Y[10][SC_OVER] != 0:
+                d = float(Y[10][SC_S0] - Y[10][SC_S1])
+                m_v[nm] = d if me == 0 else -d
+                m_end[nm] = True
+            else:
+                features(Y, T, P, me, fbuf)
+                m_v[nm] = eval_value(eval_w, eval_mode, fbuf)
+                m_end[nm] = False
+            m_cell[nm] = rc[q]
+            m_g[nm] = rg[q]
+            m_pi[nm] = pi
+            nm += 1
+    return nm
+
+
+@njit(cache=True)
+def next_tile_reply3_value(
+    S, T, P, cells, gs, pieces, eval_w, eval_mode, fbuf, stamp, stamp_box, out_cell, out_g,
+    beam, beam2, samples,
+):  # fmt: skip
+    """`next_tile_reply2_value` の4手版: 相手の返し手（上位 beam 手）→自分の次の手（タイル種別ごとに
+    1手読みの上位 beam2 手）→相手の次の返し手（相手の一番良い手）まで読む expectimax。
+
+    4手目で相手が引くタイルは、samples が0なら未公開の全種別で平均し、1以上なら未公開の残りから
+    samples 枚を抽選して平均する（抽選は局面と手から決まる疑似乱数で、実際の山札の並びは使わない）。
+    """
+    me = S[10][SC_PL]
+    lo = S[10][SC_DRAW]
+    out = np.zeros(len(cells))
+    X = copy_state(S)
+    Y = copy_state(S)
+    Z = copy_state(S)
+    W = copy_state(S)
+    seen = np.zeros(128, np.bool_)
+    seen2 = np.zeros(128, np.bool_)
+    seen4 = np.zeros(128, np.bool_)
+    n_out = len(out_cell)
+    rc = np.zeros(n_out, np.int32)
+    rg = np.zeros(n_out, np.int16)
+    rc2 = np.zeros(n_out, np.int32)
+    rg2 = np.zeros(n_out, np.int16)
+    m_cell = np.zeros(n_out * 6, np.int32)
+    m_g = np.zeros(n_out * 6, np.int16)
+    m_pi = np.zeros(n_out * 6, np.int32)
+    m_v = np.zeros(n_out * 6)
+    m_end = np.zeros(n_out * 6, np.bool_)
+    s_cell = np.zeros(n_out * 6, np.int32)
+    s_g = np.zeros(n_out * 6, np.int16)
+    s_pi = np.zeros(n_out * 6, np.int32)
+    s_v = np.zeros(n_out * 6)
+    s_end = np.zeros(n_out * 6, np.bool_)
+    for ci in range(len(cells)):
+        if lo >= S[10][SC_END]:  # この手で終局
+            copy_into(X, S)
+            apply_move(X, T, P, cells[ci], gs[ci], pieces[ci], stamp, stamp_box, out_cell, out_g)
+            d = float(X[10][SC_S0] - X[10][SC_S1])
+            out[ci] = d if me == 0 else -d
+            continue
+        seen[:] = False
+        tot = 0.0
+        wsum = 0.0
+        for j in range(lo, NT - 1):
+            t = S[11][j]
+            if seen[t]:
+                continue
+            seen[t] = True
+            n = 0
+            for q in range(lo, NT - 1):
+                if S[11][q] == t:
+                    n += 1
+            copy_into(X, S)
+            X[11][lo] = t
+            X[11][j] = S[11][lo]
+            apply_move(X, T, P, cells[ci], gs[ci], pieces[ci], stamp, stamp_box, out_cell, out_g)
+            if X[10][SC_OVER] != 0 or X[10][SC_CUR] != t or X[10][SC_DRAW] != lo + 1:
+                continue
+            nm = _rank_moves(X, T, P, me, eval_w, eval_mode, fbuf, stamp, stamp_box, out_cell,
+                             out_g, rc, rg, Y, m_cell, m_g, m_pi, m_v, m_end)  # fmt: skip
+            if nm == 0:
+                continue
+            order = np.argsort(m_v[:nm], kind="mergesort")  # 相手に良い（me 視点で小さい）順
+            best = 1e30
+            for b in range(min(beam, nm)):
+                r = order[b]
+                if m_end[r]:
+                    best = min(best, m_v[r])
+                    continue
+                # 自分が次に引くタイル種別ごとに、自分の上位 beam2 手を4手目まで読んで一番良い値
+                seen2[:] = False
+                t2 = 0.0
+                w2 = 0.0
+                for j2 in range(lo + 1, NT - 1):
+                    u = X[11][j2]
+                    if seen2[u]:
+                        continue
+                    seen2[u] = True
+                    n2 = 0
+                    for q in range(lo + 1, NT - 1):
+                        if X[11][q] == u:
+                            n2 += 1
+                    copy_into(Y, X)
+                    Y[11][lo + 1] = u
+                    Y[11][j2] = X[11][lo + 1]
+                    apply_move(
+                        Y, T, P, m_cell[r], m_g[r], m_pi[r], stamp, stamp_box, out_cell, out_g
+                    )
+                    if Y[10][SC_OVER] != 0:
+                        d = float(Y[10][SC_S0] - Y[10][SC_S1])
+                        t2 += n2 * (d if me == 0 else -d)
+                        w2 += n2
+                        continue
+                    if Y[10][SC_CUR] != u or Y[10][SC_DRAW] != lo + 2:
+                        continue
+                    ns = _rank_moves(Y, T, P, me, eval_w, eval_mode, fbuf, stamp, stamp_box,
+                                     out_cell, out_g, rc, rg, Z, s_cell, s_g, s_pi, s_v, s_end)  # fmt: skip
+                    if ns == 0:
+                        continue
+                    order2 = np.argsort(-s_v[:ns], kind="mergesort")  # 自分に良い順
+                    mine = -1e30
+                    for b2 in range(min(beam2, ns)):
+                        r2 = order2[b2]
+                        if s_end[r2] or lo + 2 >= NT - 1:
+                            v4 = s_v[r2]
+                        else:
+                            t4 = 0.0
+                            w4 = 0.0
+                            if samples <= 0:
+                                seen4[:] = False
+                                for j4 in range(lo + 2, NT - 1):
+                                    x4 = Y[11][j4]
+                                    if seen4[x4]:
+                                        continue
+                                    seen4[x4] = True
+                                    n4 = 0
+                                    for q in range(lo + 2, NT - 1):
+                                        if Y[11][q] == x4:
+                                            n4 += 1
+                                    copy_into(Z, Y)
+                                    Z[11][lo + 2] = x4
+                                    Z[11][j4] = Y[11][lo + 2]
+                                    apply_move(Z, T, P, s_cell[r2], s_g[r2], s_pi[r2], stamp,
+                                               stamp_box, out_cell, out_g)  # fmt: skip
+                                    if Z[10][SC_OVER] != 0:
+                                        d = float(Z[10][SC_S0] - Z[10][SC_S1])
+                                        t4 += n4 * (d if me == 0 else -d)
+                                        w4 += n4
+                                        continue
+                                    if Z[10][SC_CUR] != x4 or Z[10][SC_DRAW] != lo + 3:
+                                        continue
+                                    v = _side_best(Z, W, T, P, me, eval_w, eval_mode, fbuf, stamp,
+                                                   stamp_box, out_cell, out_g, rc2, rg2)  # fmt: skip
+                                    if not np.isnan(v):
+                                        t4 += n4 * v
+                                        w4 += n4
+                            else:
+                                nrest = NT - 1 - (lo + 2)
+                                h = (np.int64(lo) * 7919 + np.int64(ci) * 104729
+                                     + np.int64(t) * 1299709 + np.int64(b) * 15485863
+                                     + np.int64(u) * 32452843 + np.int64(b2) * 49979687) & 0xFFFFFFFF  # fmt: skip
+                                for k4 in range(samples):
+                                    h = _mix32((h + k4 * 0x9E3779B9) & 0xFFFFFFFF)
+                                    j4 = lo + 2 + (h % nrest)
+                                    x4 = Y[11][j4]
+                                    copy_into(Z, Y)
+                                    Z[11][lo + 2] = x4
+                                    Z[11][j4] = Y[11][lo + 2]
+                                    apply_move(Z, T, P, s_cell[r2], s_g[r2], s_pi[r2], stamp,
+                                               stamp_box, out_cell, out_g)  # fmt: skip
+                                    if Z[10][SC_OVER] != 0:
+                                        d = float(Z[10][SC_S0] - Z[10][SC_S1])
+                                        t4 += d if me == 0 else -d
+                                        w4 += 1
+                                        continue
+                                    if Z[10][SC_CUR] != x4 or Z[10][SC_DRAW] != lo + 3:
+                                        continue
+                                    v = _side_best(Z, W, T, P, me, eval_w, eval_mode, fbuf, stamp,
+                                                   stamp_box, out_cell, out_g, rc2, rg2)  # fmt: skip
+                                    if not np.isnan(v):
+                                        t4 += v
+                                        w4 += 1
+                            v4 = t4 / w4 if w4 > 0 else s_v[r2]
+                        mine = max(mine, v4)
+                    t2 += n2 * mine
+                    w2 += n2
+                v3 = t2 / w2 if w2 > 0 else m_v[r]
+                best = min(best, v3)
+            if best < 1e29:
+                tot += n * best
+                wsum += n
+        out[ci] = tot / wsum if wsum > 0 else np.nan
+    return out
+
+
 class FastMCTSAgent:
     """`MCTSAgent` と同じ探索をNumbaで行うエージェント（Pythonの `State` に着手を返す）。"""
 
@@ -848,6 +1075,8 @@ class FastMCTSAgent:
         reselect_k: int = 6,
         reselect_reply: int = 0,
         reply_beam: int = 3,
+        reply_beam2: int = 1,
+        reply_samples: int = 0,
         scale_decay: float = 0.0,
         scale_min: float = 5.0,
         endgame: int = 0,
@@ -874,6 +1103,10 @@ class FastMCTSAgent:
         # 2 なら相手の返し手のあと自分の次の手まで読む（`next_tile_reply2_value`、相手の返し手は上位 reply_beam 手）
         self.reselect_reply = int(reselect_reply)
         self.reply_beam = max(1, int(reply_beam))
+        # 3 なら相手の次の返し手まで読む（`next_tile_reply3_value`）。自分の次の手は上位 reply_beam2 手、
+        # 4手目で相手が引くタイルは reply_samples 枚の抽選（0 なら全種別で平均）
+        self.reply_beam2 = max(1, int(reply_beam2))
+        self.reply_samples = max(0, int(reply_samples))
         # 0より大きいと、報酬の尺度を残りタイルの割合の scale_decay 乗で縮める（下限 scale_min）。
         # 終盤ほど点差より勝ち負けを重く見る
         self.scale_decay = scale_decay
@@ -922,6 +1155,11 @@ class FastMCTSAgent:
             + (f",rsel={reselect:g},rk={reselect_k}" if self.reselect > 0 else "")
             + (f",rr={self.reselect_reply}" if self.reselect > 0 and self.reselect_reply else "")
             + (f",rb={self.reply_beam}" if self.reselect > 0 and self.reselect_reply >= 2 else "")
+            + (
+                f",rb2={self.reply_beam2},rsm={self.reply_samples}"
+                if self.reselect > 0 and self.reselect_reply >= 3
+                else ""
+            )
             + (f",sd={scale_decay:g},smin={scale_min:g}" if scale_decay > 0 else "")
             + (f",eg={self.endgame}" if self.endgame > 0 else "")
             + (
@@ -1028,7 +1266,11 @@ class FastMCTSAgent:
             (qs - 1).astype(np.int64), self.eval_w, self.eval_mode, self.fbuf,
             sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g,
         )  # fmt: skip
-        if self.reselect_reply >= 2:
+        if self.reselect_reply >= 3:
+            val = next_tile_reply3_value(
+                *args, self.reply_beam, self.reply_beam2, self.reply_samples
+            )
+        elif self.reselect_reply >= 2:
             val = next_tile_reply2_value(*args, self.reply_beam)
         elif self.reselect_reply:
             val = next_tile_reply_value(*args)

@@ -40,6 +40,8 @@ INT_KEYS = {
     "pply": "puct_ply",
     "rr": "reselect_reply",
     "rb": "reply_beam",
+    "rb2": "reply_beam2",
+    "rsm": "reply_samples",
 }
 BOOL_KEYS = {
     "fact": "factored",
