@@ -10,7 +10,7 @@ import json
 import math
 import random
 from collections.abc import Callable
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -137,16 +137,52 @@ def run_match(
     """
     seeds = list(seeds)
     jobs = [(s, make_a, make_b) for s in seeds] + [(s, make_b, make_a) for s in seeds]
-    if workers > 1:
-        with ProcessPoolExecutor(max_workers=workers) as ex:
-            results = list(ex.map(_play_job, jobs, chunksize=1))
-    else:
-        results = [_play_job(j) for j in jobs]
-    a_first, b_first = results[: len(seeds)], results[len(seeds) :]
+    # 1局終わるごとにログへ書く（時間切れで止められても、そこまでの局が残る。2026-11-21 R-019 で
+    # Actions の時間切れにより何百局ぶんの結果が消えたため）
+    f = None
     if log_path is not None:
         path = Path(log_path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("a", encoding="utf-8") as f:
-            for r in a_first + b_first:
-                f.write(json.dumps(asdict(r), ensure_ascii=False) + "\n")
+        f = path.open("a", encoding="utf-8")
+    results: list[GameResult | None] = [None] * len(jobs)
+
+    def done(i: int, r: GameResult) -> None:
+        results[i] = r
+        if f is not None:
+            f.write(json.dumps(asdict(r), ensure_ascii=False) + "\n")
+            f.flush()
+
+    try:
+        if workers > 1:
+            with ProcessPoolExecutor(max_workers=workers) as ex:
+                futs = {ex.submit(_play_job, j): i for i, j in enumerate(jobs)}
+                for fut in as_completed(futs):
+                    done(futs[fut], fut.result())
+        else:
+            for i, j in enumerate(jobs):
+                done(i, _play_job(j))
+    finally:
+        if f is not None:
+            f.close()
+    a_first, b_first = results[: len(seeds)], results[len(seeds) :]
     return summarize(a_first, b_first)
+
+
+def summarize_log(paths: list[str | Path], a_name: str) -> MatchSummary:
+    """run_match の JSONL（途中で止まったものも可）を、先後の両方がそろった山札だけで A の視点に集計する。
+
+    a_name は A のエージェント名（`GameResult.p0`/`p1`）そのもの。
+    """
+    first: dict[tuple[int, bool], GameResult] = {}
+    for p in paths:
+        for line in Path(p).read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            r = GameResult(**json.loads(line))
+            if a_name not in (r.p0, r.p1):
+                continue
+            first[(r.seed, r.p0 == a_name)] = r
+    seeds = sorted({s for s, a in first if (s, not a) in first})
+    if not seeds:
+        raise ValueError("先後がそろった山札がありません")
+    return summarize([first[(s, True)] for s in seeds], [first[(s, False)] for s in seeds])

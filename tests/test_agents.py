@@ -115,3 +115,17 @@ def test_merge_summaries_matches_pooled_summary():
     assert abs(merged.mean_diff_a - whole.mean_diff_a) < 1e-9
     assert abs(merged.se_diff - whole.se_diff) < 1e-9
     assert abs(merged.win_rate - whole.win_rate) < 1e-9
+
+
+def test_summarize_log_uses_complete_pairs(tmp_path):
+    """途中で止まったログでも、先後がそろった山札だけで run_match と同じ集計になる。"""
+    from carcassonne.arena import summarize_log
+
+    log = tmp_path / "m.jsonl"
+    full = run_match(GreedyAgent, RandomAgent, range(3), log_path=log)
+    a_name = GreedyAgent().name
+    assert summarize_log([log], a_name) == full
+    lines = log.read_text(encoding="utf-8").splitlines()
+    cut = [ln for ln in lines if '"seed": 2' not in ln or '"p0": "' + a_name in ln]
+    log.write_text("\n".join(cut) + "\n", encoding="utf-8")
+    assert summarize_log([log], a_name).games == 4  # 山札2は片方だけなので除く
