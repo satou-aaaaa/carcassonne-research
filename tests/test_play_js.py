@@ -206,3 +206,20 @@ def test_end_review_grades_each_own_move_once():
     assert plies == [i + 1 for i, p in enumerate(who) if p == h]
     assert all(r["loss"] is None or r["loss"] >= 0 for r in review)
     assert all({"x", "y", "v", "piece", "kind"} <= r["best"].keys() for r in review)
+
+
+def test_strong_level_uses_same_reselect_as_python():
+    """対戦ページの「最強」の選び直し（rr・rb）が Python 版の webplay.make_agent("strong") と同じ。"""
+    import json as _json
+
+    from carcassonne.webplay import STRONG_RESELECT, make_agent
+
+    text = (ROOT / "docs" / "play_data.js").read_text(encoding="utf-8")
+    strong = _json.loads(
+        text[text.index('"strong":') + 9 : text.index("}", text.index('"strong":')) + 1]
+    )
+    for k, v in STRONG_RESELECT.items():
+        assert strong[k] == v
+    agent = make_agent("strong")
+    assert agent.reselect_reply == STRONG_RESELECT["rr"] == 2
+    assert agent.reply_beam == STRONG_RESELECT["rb"]

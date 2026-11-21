@@ -32,7 +32,7 @@ from i18n import lang_link, leftover, translate, write_pair
 from carcassonne.fast import build_tables
 from carcassonne.fast_eval import NF, load_eval
 from carcassonne.tiles import load_tileset
-from carcassonne.webplay import ENDGAME, RESELECT, tile_library
+from carcassonne.webplay import ENDGAME, RESELECT, STRONG_RESELECT, tile_library
 
 DOCS = ROOT / "docs"
 WEB = ROOT / "web"
@@ -53,10 +53,10 @@ TABLE_NAMES = [
 # 強さ（ブラウザ版）。sims・depth・選び直しは Python 版の webplay.make_agent と同じ
 LEVELS = {
     "strong": {
-        "label": "最強（自己対戦で学んだ最新AI。1手1〜数秒）",
+        "label": "最強（自己対戦で学んだ最新AI。1手数秒）",
         "sims": 12000,
         "depth": 10,
-        **RESELECT,  # 相手の返し手まで読む選び直し（webplay.make_agent と同じ）
+        **STRONG_RESELECT,  # 自分の次の手まで読む選び直し（webplay.make_agent と同じ）
         "eg": ENDGAME,  # 終盤は読み切った勝率最大の手（webplay.make_agent と同じ）
         # ブラウザだけ: 読み切りは長いと数十秒かかる局面があるので時間の上限（ミリ秒）を置く。読み切れなければ
         # 探索の手か、そこまでに確かめた良い手で指す（測定は docs/EXPERIMENTS.md「対戦ページの思考時間」）
@@ -73,7 +73,7 @@ LEVELS = {
     "greedy": {"label": "やさしい（目先の点だけを見る練習相手）"},
 }
 LABELS_EN = {
-    "strong": "Strongest (latest self-play AI {name}{adopted}; 1 to a few seconds per move)",
+    "strong": "Strongest (latest self-play AI {name}{adopted}; a few seconds per move)",
     "standard": "Standard (lighter search; moves instantly)",
     "greedy": "Easy (practice opponent that only looks at immediate points)",
 }
@@ -93,9 +93,7 @@ def play_data(lang: str = "ja") -> dict:
     info = json.loads((ROOT / CHAMPION).read_text(encoding="utf-8"))
     levels = json.loads(json.dumps(LEVELS))
     adopted = f"、{info['date']} 採用" if info.get("date") else ""
-    levels["strong"]["label"] = (
-        f"最強（自己対戦で学んだ最新AI {info['name']}{adopted}。1手1〜数秒）"
-    )
+    levels["strong"]["label"] = f"最強（自己対戦で学んだ最新AI {info['name']}{adopted}。1手数秒）"
     if lang == "en":
         adopted = f", adopted {info['date']}" if info.get("date") else ""
         for k, v in LABELS_EN.items():
