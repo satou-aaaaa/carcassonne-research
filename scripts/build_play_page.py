@@ -63,18 +63,18 @@ LEVELS = {
         "egMs": 3000,
     },
     "standard": {
-        "label": "標準（探索を減らした版。すぐ指す）",
+        "label": "標準（探索を減らした版。1手1秒ほど）",
         "sims": 2000,
         "depth": 0,
         **RESELECT,
         "eg": ENDGAME,
-        "egMs": 1000,  # 標準は「すぐ指す」ので読み切りも短く
+        "egMs": 1000,  # 標準は速く指すので読み切りも短く
     },
     "greedy": {"label": "やさしい（目先の点だけを見る練習相手）"},
 }
 LABELS_EN = {
     "strong": "Strongest (latest self-play AI {name}{adopted}; a few seconds per move)",
-    "standard": "Standard (lighter search; moves instantly)",
+    "standard": "Standard (lighter search; about a second per move)",
     "greedy": "Easy (practice opponent that only looks at immediate points)",
 }
 INJECT = """<style>.server-only { display: none !important; } .local-only { display: block !important; }</style>
