@@ -22,7 +22,7 @@
     return move;
   }
   function searchOpts(data, lv) {
-    return { sims: lv.sims, depth: lv.depth, c: 0.5, scale: 30, meepleProb: 0.3, w: Float64Array.from(data.eval.w), rsel: lv.rsel || 0, rk: lv.rk || 6, rr: +lv.rr || 0, rb: lv.rb || 3 };
+    return { sims: lv.sims, depth: lv.depth, c: 0.5, scale: 30, meepleProb: 0.3, w: Float64Array.from(data.eval.w), rsel: lv.rsel || 0, rk: lv.rk || 6, rr: +lv.rr || 0, rb: lv.rb || 3, rb2: lv.rb2 || 1, rsm: lv.rsm || 0 };
   }
   // 人間の手の採点用に、最強設定で候補手を解析する（webplay.make_coach）
   function analyzeMoves(eng, data, S, seed) {

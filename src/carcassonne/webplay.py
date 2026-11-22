@@ -26,15 +26,17 @@ ROOT = Path(__file__).resolve().parents[2]
 KIND_JA = {"C": "都市", "R": "道", "F": "草原", "M": "修道院"}
 LEVELS = {
     "strong": "最強（MCTS 12000回＋短いロールアウト10手＋評価関数＋自分の次の手まで読む選び直し＋終盤3枚の読み切り）",
-    "standard": "標準（MCTS 2000回＋評価関数＋相手の返し手まで読む選び直し＋終盤3枚の読み切り）",
+    "standard": "標準（MCTS 2000回＋評価関数＋自分の次の手まで読む選び直し＋終盤3枚の読み切り）",
     "greedy": "貪欲法（練習用）",
 }
 
 # 選び直しの設定（標準。最強は下の STRONG_RESELECT。scripts/build_play_page.py のブラウザ版もこれを使う）
-RESELECT = {"rsel": 0.5, "rk": 6, "rr": 1}
-# 最強だけ、相手の返し手のあと自分の次の手まで読む3手版（rr=2、相手の返し手は上位 rb 手）。
-# docs/EXPERIMENTS.md「選び直しを1段深く」（R-018）。標準は「すぐ指す」ため rr=1 のまま
-STRONG_RESELECT = {**RESELECT, "rr": 2, "rb": 3}
+# 相手の返し手のあと自分の次の手まで読む3手版（rr=2）。標準は相手の返し手を1手（rb=1）に絞って速くする
+# （R-019、2000回で rr=1 に400局 0.613・+6.6点。docs/EXPERIMENTS.md「選び直しの深さと速さ」）
+RESELECT = {"rsel": 0.5, "rk": 6, "rr": 2, "rb": 1}
+# 最強は相手の返し手を上位3手まで読み（R-018、docs/EXPERIMENTS.md「選び直しを1段深く」）、
+# 先読みの値を 0.8 の重みで混ぜる（R-019、0.5 に400局 0.552・+2.2点）
+STRONG_RESELECT = {**RESELECT, "rsel": 0.8, "rr": 2, "rb": 3}
 # 山札の残りがこの枚数以下なら、終局まで読み切った勝率最大の手（GTO）で指す（最強・標準とも。
 # docs/EXPERIMENTS.md「終盤の厳密解（GTO）」。ブラウザ版も同じ設定）
 ENDGAME = 3
@@ -81,7 +83,8 @@ def make_agent(level: str):
     return FastMCTSAgent(
         n_sims=sims, rollout_depth=depth, eval_path=champion_eval_path(),
         reselect=rs["rsel"], reselect_k=rs["rk"], reselect_reply=rs["rr"],
-        reply_beam=rs.get("rb", 3), endgame=ENDGAME,
+        reply_beam=rs.get("rb", 3), reply_beam2=rs.get("rb2", 1), reply_samples=rs.get("rsm", 0),
+        endgame=ENDGAME,
     )  # fmt: skip
 
 

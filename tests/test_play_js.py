@@ -78,8 +78,13 @@ def test_engine_matches_python():
 
 
 def test_next_tile_value_matches_python():
-    """選び直しに使う「次のタイルで平均した評価値」（相手の返し手なし・あり・自分の次の手まで）が Python 版と一致する。"""
-    from carcassonne.fast_mcts import next_tile_reply2_value, next_tile_reply_value, next_tile_value
+    """選び直しに使う「次のタイルで平均した評価値」（相手の返し手なし・あり・自分の次の手まで・4手目まで）が Python 版と一致する。"""
+    from carcassonne.fast_mcts import (
+        next_tile_reply2_value,
+        next_tile_reply3_value,
+        next_tile_reply_value,
+        next_tile_value,
+    )
 
     fast = Fast()
     sc = fast.scratch
@@ -100,6 +105,11 @@ def test_next_tile_value_matches_python():
         v2 = next_tile_reply2_value(S, fast.T, fast.P, c[:2], g[:2], p[:2], w, 1, np.zeros(NF),
                                     sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g, 2)  # fmt: skip
         np.testing.assert_allclose(r["reply2"], v2, atol=1e-6)
+        # 4手目まで（4手目のタイルは2枚の抽選と、全種別の平均）
+        for key, n, sm in (("reply3all", 1, 0), ("reply3", 2, 2)):
+            v3 = next_tile_reply3_value(S, fast.T, fast.P, c[:n], g[:n], p[:n], w, 1, np.zeros(NF),
+                                        sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g, 1, 1, sm)  # fmt: skip
+            np.testing.assert_allclose(r[key], v3, atol=1e-6)
 
 
 def test_endgame_matches_python():
@@ -208,18 +218,18 @@ def test_end_review_grades_each_own_move_once():
     assert all({"x", "y", "v", "piece", "kind"} <= r["best"].keys() for r in review)
 
 
-def test_strong_level_uses_same_reselect_as_python():
-    """対戦ページの「最強」の選び直し（rr・rb）が Python 版の webplay.make_agent("strong") と同じ。"""
+def test_levels_use_same_reselect_as_python():
+    """対戦ページの「最強」「標準」の選び直し（rr・rb）が Python 版の webplay.make_agent と同じ。"""
     import json as _json
 
-    from carcassonne.webplay import STRONG_RESELECT, make_agent
+    from carcassonne.webplay import RESELECT, STRONG_RESELECT, make_agent
 
     text = (ROOT / "docs" / "play_data.js").read_text(encoding="utf-8")
-    strong = _json.loads(
-        text[text.index('"strong":') + 9 : text.index("}", text.index('"strong":')) + 1]
-    )
-    for k, v in STRONG_RESELECT.items():
-        assert strong[k] == v
-    agent = make_agent("strong")
-    assert agent.reselect_reply == STRONG_RESELECT["rr"] == 2
-    assert agent.reply_beam == STRONG_RESELECT["rb"]
+    for level, rs in (("strong", STRONG_RESELECT), ("standard", RESELECT)):
+        key = f'"{level}":'
+        lv = _json.loads(text[text.index(key) + len(key) : text.index("}", text.index(key)) + 1])
+        for k, v in rs.items():
+            assert lv[k] == v
+        agent = make_agent(level)
+        assert agent.reselect_reply == rs["rr"] == 2
+        assert agent.reply_beam == rs["rb"]
