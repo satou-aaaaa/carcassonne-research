@@ -1,31 +1,31 @@
 {
- "games": 38,
- "human_moves": 1360,
- "human_wins": 17,
+ "games": 39,
+ "human_moves": 1396,
+ "human_wins": 18,
  "mean_loss": 1.1,
  "loss_bad_per_game": 21.2,
- "loss_small_per_game": 19.0,
- "bad_moves": 146,
- "bad_per_game": 3.8,
+ "loss_small_per_game": 19.1,
+ "bad_moves": 151,
+ "bad_per_game": 3.9,
  "by_cat": {
-  "no_meeple": 66,
+  "no_meeple": 69,
   "extra_meeple": 11,
-  "other_feature": 30,
-  "placement": 39,
+  "other_feature": 31,
+  "placement": 40,
   "unexplored": 0
  },
  "by_phase": {
   "early": {
    "bad": 10,
-   "moves": 456
+   "moves": 468
   },
   "middle": {
-   "bad": 46,
-   "moves": 456
+   "bad": 49,
+   "moves": 468
   },
   "late": {
-   "bad": 90,
-   "moves": 448
+   "bad": 92,
+   "moves": 460
   }
  },
  "worst": [
@@ -99,5 +99,5 @@
   "gen1373",
   "gen1420"
  ],
- "updated": "2026-11-21"
+ "updated": "2026-11-23"
 }
