@@ -191,5 +191,13 @@
  "▲ 人リード": "▲ Human ahead",
  "▼ AIリード": "▼ AI ahead",
  "人の手": "Human's move",
- "AIの手": "AI's move"
+ "AIの手": "AI's move",
+ "カルカソンヌのAI（${lv}）に ${me} − ${ai} で勝ちました！あなたも挑戦してみませんか？": "I beat the Carcassonne AI (${lv}) ${me} − ${ai}! Can you beat it too?",
+ "カルカソンヌのAI（${lv}）と対戦して ${me} − ${ai}、${ai - me}点差で負けました…あなたも挑戦してみませんか？": "I lost to the Carcassonne AI (${lv}) ${me} − ${ai}, by ${ai - me} points… Can you do better?",
+ "カルカソンヌのAI（${lv}）と対戦して ${me} − ${ai} で引き分けでした！あなたも挑戦してみませんか？": "I drew with the Carcassonne AI (${lv}) ${me} − ${ai}! Can you beat it?",
+ "\"カルカソンヌ\"": "\"Carcassonne\"",
+ "ほかのアプリで共有": "Share via app",
+ "結果をシェアする": "Share your result",
+ "Xでシェア": "Share on X",
+ "投稿画面が開くだけで、押すまで投稿されません。入るのは点数・AIの強さ・このページのURLだけです。": "This only opens the post screen; nothing is posted until you press Post. It includes just the score, the AI strength and this page’s URL."
 }

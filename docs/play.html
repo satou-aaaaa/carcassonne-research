@@ -121,6 +121,11 @@
   #result .review li { display:flex; align-items:center; gap:8px; margin:4px 0; }
   #result .review li button { flex:none; min-height:36px; }
   #result .review .learn { margin-top:8px; font-size:12.5px; color:var(--muted); }
+  #result .brag { margin-top:8px; padding-top:8px; border-top:1px solid var(--line); font-size:12.5px; color:var(--muted); line-height:1.5; }
+  #result .brag b { color:var(--ink); }
+  #result .brag .row { margin:6px 0 4px; flex-wrap:wrap; }
+  #result .brag button, #result .brag .btnlike { min-height:36px; }
+  #result .brag .btnlike { display:inline-flex; align-items:center; padding:0 14px; border-radius:6px; background:#000; color:#fff; font-weight:bold; text-decoration:none; }
   #result .share { margin-top:8px; padding-top:8px; border-top:1px solid var(--line); font-size:12.5px; color:var(--muted); line-height:1.5; }
   #result .share b { color:var(--ink); }
   #result .share .pubnote { margin:6px 0 0; padding:6px 8px; border-left:4px solid var(--accent); background:var(--bg); color:var(--ink); font-size:13.5px; }
@@ -144,7 +149,7 @@
     summary { padding-block:13px; } /* display を変えると開閉の三角が消えるので、余白で高さを取る */
     label.chk { min-height:44px; }
     label.chk input { width:20px; height:20px; }
-    #home a { min-height:44px; }
+    #home a, #result .brag .btnlike { min-height:44px; }
   }
   @media (max-width: 760px) {
     body { flex-direction:column; height:auto; }
@@ -1214,7 +1219,26 @@ function resultHtml() {
     `<table><tr><th></th><th style="color:${PCOL[h]}">${G.replay ? "人" : "あなた"}</th><th style="color:${PCOL[a]}">AI</th></tr>` +
     rows.map(([l, f]) => tr(l, f)).join("") + tr("合計", p => G.scores[p], "sum") + "</table>" +
     (G.saved === false ? "" : `<div style="font-size:12px;color:var(--muted);margin-top:4px">記録を保存しました。</div>`) +
+    (G.record && !G.replay ? bragHtml() : "") +
     (G.record ? reviewHtml() + shareHtml() : "");
+}
+// 対戦結果をSNSに共有する（X の投稿画面を開くだけ。送信はしない。名前・棋譜は入れない）。
+// X の Web Intent（https://docs.x.com/x-for-websites/post-button/guides/web-intent）: text・url・hashtags（# なし）を URL エンコードして渡す
+const SITE_PLAY = "https://satou-aaaaa.github.io/carcassonne-research/" + (document.documentElement.lang === "en" ? "en/" : "") + "play.html";
+function bragText() {
+  const r = G.record, h = r.human_seat, me = r.scores[h], ai = r.scores[1 - h], lv = levelShort(r.level);
+  if (me > ai) return `カルカソンヌのAI（${lv}）に ${me} − ${ai} で勝ちました！あなたも挑戦してみませんか？`;
+  if (me < ai) return `カルカソンヌのAI（${lv}）と対戦して ${me} − ${ai}、${ai - me}点差で負けました…あなたも挑戦してみませんか？`;
+  return `カルカソンヌのAI（${lv}）と対戦して ${me} − ${ai} で引き分けでした！あなたも挑戦してみませんか？`;
+}
+const BRAG_TAG = "カルカソンヌ";
+function bragXUrl() {
+  return `https://x.com/intent/tweet?text=${encodeURIComponent(bragText())}&url=${encodeURIComponent(SITE_PLAY)}&hashtags=${encodeURIComponent(BRAG_TAG)}`;
+}
+function bragHtml() {
+  const sheet = navigator.share ? `<button type="button" id="btnBragShare">ほかのアプリで共有</button>` : "";
+  return `<div class="brag"><b>結果をシェアする</b><div class="row"><a class="btnlike" id="btnBragX" href="${bragXUrl()}" target="_blank" rel="noopener">Xでシェア</a>${sheet}</div>` +
+    `投稿画面が開くだけで、押すまで投稿されません。入るのは点数・AIの強さ・このページのURLだけです。</div>`;
 }
 // 終局の振り返り: 初心者モードの採点（G.review）から、いい手の数・損の合計・損の大きかった手を出す。
 // 手を押すと、その手を置いた直後の盤から再生する（再生欄にAIの最善手が紫の点線で出る）
@@ -1298,6 +1322,9 @@ $("result").addEventListener("click", e => {
   }
   // 再生は盤の上で見るので、スマホ（盤がページの上にある）では上まで戻す
   const toBoard = () => window.scrollTo({ top: 0, behavior: "smooth" });
+  if (e.target.id === "btnBragShare") {
+    navigator.share({text: bragText() + " #" + BRAG_TAG, url: SITE_PLAY}).catch(() => {});
+  }
   if (e.target.id === "btnReplayThis") { replayOpen(G.record, 0); toBoard(); }
   if (e.target.classList.contains("rvGo")) { replayOpen(G.record, +e.target.dataset.ply); toBoard(); }
   if (e.target.id === "btnLinkThis") copyReplayLink(G.record, e.target);
