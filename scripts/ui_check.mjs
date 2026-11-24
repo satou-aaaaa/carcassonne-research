@@ -330,7 +330,7 @@ async function exerciseMidGame(browser, base, file) {
 //   - 結果の欄（ページの下の方）から再生を始めても画面が下のままで、盤が見えない
 //   - 1手目の盤の欄が空白ばかり（タイルが小さい。MAX_TOUCH_TILE）
 //   - 終局後も「山札に残るタイル」が全部 ×0 のまま場所を取る
-async function exerciseEndGame(browser, base, file) {
+async function exerciseEndGame(browser, base, file, shotDir = null) {
   const problems = [];
   const ctx = await browser.newContext({
     viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1,
@@ -355,6 +355,23 @@ async function exerciseEndGame(browser, base, file) {
   await page.waitForTimeout(500);
   if (await page.locator("#remainSec").isVisible()) problems.push("終局後も「山札に残るタイル」（全部 ×0）が出たまま");
   if (await page.locator("#btnHint").isVisible()) problems.push("終局後も空の「引いたタイル」と押せないヒント・待ったが場所を取る");
+  // 結果のシェア: X の投稿画面（Web Intent）を開くリンク。点数とページのURLとハッシュタグだけを入れる（名前・棋譜は入れない）
+  const bx = page.locator("#btnBragX");
+  if (!(await bx.count())) problems.push("終局の欄に「Xでシェア」が無い");
+  else {
+    const u = new URL(await bx.getAttribute("href"));
+    const t = u.searchParams.get("text") || "";
+    if (u.origin !== "https://x.com" || u.pathname !== "/intent/tweet") problems.push(`シェアの行き先が X の投稿画面でない（${u.href.slice(0, 60)}）`);
+    if (!/^https:\/\/satou-aaaaa\.github\.io\/carcassonne-research\/(en\/)?play\.html$/.test(u.searchParams.get("url") || "")) problems.push("シェアに対戦ページのURLが入らない");
+    if (!u.searchParams.get("hashtags") || u.searchParams.get("hashtags").includes("#")) problems.push("シェアのハッシュタグが無いか # 付き");
+    if (!/\d+ − \d+/.test(t)) problems.push("シェアの文に点数が入らない");
+    if (t.includes("{") || t.includes("rec=")) problems.push("シェアの文に棋譜が入っている");
+    if (await bx.isVisible()) {
+      if (shotDir) await page.locator("#result").screenshot({ path: path.join(shotDir, `${file.replace(/\W+/g, "_")}_result_mobile.png`) });
+      const box = await bx.boundingBox();
+      if (box.width > (page.viewportSize().width - 16)) problems.push("「Xでシェア」が画面幅からはみ出す");
+    } else problems.push("「Xでシェア」が見えない");
+  }
   const go = page.locator("#result .review .rvGo");
   if (!(await page.locator("#result .review").count())) problems.push("終局の欄に振り返りが無い");
   else if (!(await go.count())) problems.push("振り返りに損の大きかった手のボタンが無い");
@@ -617,7 +634,7 @@ async function main() {
         console.log(`${mid.length ? "✗" : "✓"} ${file} 対局の途中 ${MID_TURNS}手 [iPhone SE 320px]`);
         for (const e of mid) console.log(`    ✗ ${e}`);
         failed += mid.length ? 1 : 0;
-        const end = await exerciseEndGame(browser, base, file);
+        const end = await exerciseEndGame(browser, base, file, shotDir);
         console.log(`${end.length ? "✗" : "✓"} ${file} 終局の振り返り [スマホ 390px]`);
         for (const e of end) console.log(`    ✗ ${e}`);
         failed += end.length ? 1 : 0;
