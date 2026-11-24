@@ -222,7 +222,7 @@ def social_head(page: str, lang: str, html: str) -> str:
     def attr(s: str) -> str:
         return _h.escape(_h.unescape(" ".join(s.split())), quote=True)
 
-    t = re.search(r"<title>(.*?)</title>", html, re.S)
+    t = re.search(r"<title>(.*?)</title>", html, re.DOTALL)
     if not t:
         raise SystemExit(f"{page}: <title> がありません")
     d = re.search(r'<meta name="description" content="([^"]*)"', html)
