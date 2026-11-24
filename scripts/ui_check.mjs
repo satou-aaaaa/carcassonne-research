@@ -61,10 +61,28 @@ const TYPES = {
   ".css": "text/css",
 };
 
+// 点検するページ（下のフォルダも見る）。古い URL の転送ページ（meta refresh）は除く
+function listPages(prefix) {
+  const out = [];
+  const walk = (rel) => {
+    for (const e of fs.readdirSync(path.join(DOCS, prefix, rel), { withFileTypes: true })) {
+      const r = rel + e.name;
+      if (e.isDirectory()) {
+        if (r !== "en" && r !== "human_games" && r !== "results") walk(r + "/");
+      } else if (e.name.endsWith(".html")) {
+        const text = fs.readFileSync(path.join(DOCS, prefix, r), "utf8");
+        if (!text.includes('http-equiv="refresh"')) out.push(prefix + r);
+      }
+    }
+  };
+  walk("");
+  return out.sort();
+}
+
 function serve() {
   const server = http.createServer((req, res) => {
     const p = decodeURIComponent(new URL(req.url, "http://x").pathname);
-    const f = path.join(DOCS, p === "/" ? "index.html" : p);
+    const f = path.join(DOCS, p.endsWith("/") ? p + "index.html" : p);
     if (!f.startsWith(DOCS) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) {
       res.writeHead(404).end();
       return;
@@ -395,7 +413,7 @@ async function exerciseEndGame(browser, base, file, shotDir = null) {
   const go = page.locator("#result .review .rvGo");
   if (!(await page.locator("#result .review").count())) problems.push("終局の欄に振り返りが無い");
   else if (!(await go.count())) problems.push("振り返りに損の大きかった手のボタンが無い");
-  else if (!(await page.locator('#result .review a[href="ai_tips.html"]').count())) problems.push("振り返りに学習ページへの案内が無い");
+  else if (!(await page.locator('#result .review a[href$="ai_tips.html"]').count())) problems.push("振り返りに学習ページへの案内が無い");
   else {
     const ply = Number(await go.first().getAttribute("data-ply"));
     await go.first().scrollIntoViewIfNeeded();
@@ -546,8 +564,8 @@ async function main() {
   const pages = only.length
     ? only
     : [
-        ...fs.readdirSync(DOCS).filter((f) => f.endsWith(".html")).sort(),
-        ...fs.readdirSync(path.join(DOCS, "en")).filter((f) => f.endsWith(".html")).sort().map((f) => "en/" + f),
+        ...listPages(""),
+        ...listPages("en/"),
       ];
 
   const { chromium } = loadPlaywright();
@@ -564,11 +582,17 @@ async function main() {
 
   // 言語の自動切り替え（初めて来た人。選んだ言語は localStorage に覚える）
   for (const [locale, from, to] of [
-    ["en-US", "", "en/index.html"],
-    ["en-US", "rules.html", "en/rules.html"],
-    ["ja-JP", "en/quiz.html", "quiz.html"],
+    ["en-US", "", "en/"],
+    ["en-US", "learn/rules.html", "en/learn/rules.html"],
+    ["ja-JP", "en/learn/quiz.html", "learn/quiz.html"],
     ["ja-JP", "index.html", "index.html"],
-    ["fr-FR", "strategy.html", "en/strategy.html"],
+    ["ja-JP", "learn/", "learn/"],
+    ["fr-FR", "learn/strategy.html", "en/learn/strategy.html"],
+    // 古い URL（2026-11-24 に講座 learn/・研究 research/ へ移した）は転送ページで新しい置き場所へ
+    ["ja-JP", "rules.html", "learn/rules.html"],
+    ["ja-JP", "games.html#findings", "research/games.html#findings"],
+    ["en-US", "en/stats.html", "en/research/stats.html"],
+    ["en-US", "quiz.html?x=1#today", "en/learn/quiz.html?x=1#today"],
   ]) {
     const ctx = await browser.newContext({ locale });
     const page = await ctx.newPage();
@@ -582,8 +606,8 @@ async function main() {
       // 「日本語」を押すと日本語版に移り、以後は英語版に移されない
       await page.click('nav.site a[data-lang="ja"]');
       await page.waitForLoadState("load");
-      await page.goto(base + "rules.html", { waitUntil: "load" });
-      const stay = page.url().replace(base, "") === "rules.html";
+      await page.goto(base + "learn/rules.html", { waitUntil: "load" });
+      const stay = page.url().replace(base, "") === "learn/rules.html";
       console.log(`${stay ? "✓" : "✗"} 選んだ言語（日本語）を覚える`);
       if (!stay) failed++;
     }
@@ -616,7 +640,7 @@ async function main() {
       await page.waitForTimeout(300);
       let res = await page.evaluate(inspect, vp.isMobile);
       if (shotDir)
-        await page.screenshot({ path: path.join(shotDir, `${file.replace(".html", "").replace("/", "_")}_${vp.name}.png`), fullPage: true });
+        await page.screenshot({ path: path.join(shotDir, `${file.replace(".html", "").replace(/\//g, "_")}_${vp.name}.png`), fullPage: true });
       if (page.url() !== base + file) problems.push(`別のページに移された: ${page.url().replace(base, "")}`);
       if (file.endsWith("play.html")) {
         try {
@@ -625,7 +649,7 @@ async function main() {
           const r2 = await page.evaluate(inspect, vp.isMobile);
           res = { errors: [...res.errors, ...r2.errors], warns: [...res.warns, ...r2.warns] };
           if (shotDir)
-            await page.screenshot({ path: path.join(shotDir, `${file.replace("play.html", "").replace("/", "_")}play_ingame_${vp.name}.png`), fullPage: true });
+            await page.screenshot({ path: path.join(shotDir, `${file.replace("play.html", "").replace(/\//g, "_")}play_ingame_${vp.name}.png`), fullPage: true });
         } catch (e) {
           problems.push(`対戦ページの操作に失敗: ${String(e).slice(0, 160)}`);
         }

@@ -214,7 +214,7 @@
   </div>
 </div>
 <aside>
-  <div id="home" class="local-only"><nav aria-label="Site pages"><a href="index.html">← Carcassonne Primer</a><a href="rules.html">Rules</a><a href="strategy.html">Strategy</a><a href="ai_tips.html">Lessons from the AI</a><a href="quiz.html">Next-Move Quiz</a><a href="stats.html">By the Numbers</a><a href="games.html">Community Games</a><a class="lang" href="../play.html" hreflang="ja" lang="ja" data-lang="ja" title="日本語に切り替え">日本語</a></nav>The AI thinks inside your browser.<br><a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>&nbsp;Support this site on Ko-fi</a></div>
+  <div id="home" class="local-only"><nav aria-label="Site pages"><a href="./">← Carcassonne Primer</a><a href="learn/">Course</a><a href="research/">Research</a><a href="research/games.html">Community Games</a><a class="lang" href="../play.html" hreflang="ja" lang="ja" data-lang="ja" title="日本語に切り替え">日本語</a></nav>The AI thinks inside your browser.<br><a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>&nbsp;Support this site on Ko-fi</a></div>
   <div class="row" id="newRow">
     <button class="primary" id="btnNew">New game</button>
     <button id="btnRematch" hidden>Rematch, same tiles, seats swapped</button>
@@ -294,7 +294,7 @@
     <p class="note">Games recently finished in this browser (newest first). Tap one to replay it move by move.</p>
     <div id="recList"></div>
     <div class="row" style="margin-top:10px"><button type="button" id="btnRecFile">Open a file</button></div>
-    <p class="note" style="margin-top:12px">Other players' games can be replayed on the <a href="games.html">Community Games</a> page.</p>
+    <p class="note" style="margin-top:12px">Other players' games can be replayed on the <a href="research/games.html">Community Games</a> page.</p>
     <div class="row" style="margin-top:14px;justify-content:flex-end"><button value="close">Close</button></div>
   </form>
 </dialog>
@@ -1296,7 +1296,7 @@ function bragSave() {
 // 手を押すと、その手を置いた直後の盤から再生する（再生欄にAIの最善手が紫の点線で出る）
 const REVIEW_TOP = 3;
 function reviewHtml() {
-  const more = `<div class="learn">Learn more: <a href="ai_tips.html">Strong AI tips</a> · <a href="quiz.html">Next-move quiz</a> · <a href="strategy.html">Strategy guide</a></div>`;
+  const more = `<div class="learn">Learn more: <a href="learn/ai_tips.html">Strong AI tips</a> · <a href="learn/quiz.html">Next-move quiz</a> · <a href="learn/strategy.html">Strategy guide</a></div>`;
   const rv = G.review;
   if (!rv) return `<div class="review"><b>Review</b><br>Use “Replay this game” to have the AI grade each move. Play with beginner mode on and your costliest moves will be listed here.${more}</div>`;
   const scored = rv.filter(r => r.loss !== null);
@@ -1345,7 +1345,7 @@ function shareHtml(sent = sentVia(G && G.record)) {
   }
   const form = REC_FORM ? `<button type="button" class="primary" id="btnFormRec">Agree to the terms and send (no account needed)</button>` : "";
   return again + `<div class="share"><b>If you like, let us use your game for research (optional)</b><br>Games against people help us find the AI's weak spots and train it. Without sending, you can still play and replay as before.` +
-    `<p class="pubnote">Games you send are published on the <a href="games.html" target="_blank" rel="noopener">Community Games</a> page and become data anyone can see and use (CC BY 4.0). No names are shown, but games cannot be removed later. Before sending, please read the <a href="terms.html" target="_blank" rel="noopener">Terms of Use and Data</a>.</p>` +
+    `<p class="pubnote">Games you send are published on the <a href="research/games.html" target="_blank" rel="noopener">Community Games</a> page and become data anyone can see and use (CC BY 4.0). No names are shown, but games cannot be removed later. Before sending, please read the <a href="terms.html" target="_blank" rel="noopener">Terms of Use and Data</a>.</p>` +
     `<div class="row">${form}<button type="button" id="btnSendRec">Agree to the terms and send via GitHub</button><button type="button" id="btnSaveRec">Save as file</button></div>` +
     `Only the tile order, moves, scores and AI level are sent; your name is not included. Check the content on the page that opens, then press its submit button.` +
     (REC_FORM ? ` “Agree to the terms and send” uses a Google Form: no account or email address needed.` : "") +
@@ -1359,7 +1359,7 @@ function recordJson() { return JSON.stringify(G.record); }
 function recordIssueUrl() {
   const r = G.record, h = r.human_seat, a = 1 - h;
   const title = `[Game record] ${r.scores[h]} − ${r.scores[a]} (AI: ${r.level})`;
-  const body = "<!-- carcassonne-game-record -->\nA game record from the play page, for training the AI and finding its weak spots.\nRecords you send are published on the Community Games page (https://satou-aaaaa.github.io/carcassonne-research/en/games.html) as data anyone can use under CC BY 4.0. I send this record agreeing to the terms (https://satou-aaaaa.github.io/carcassonne-research/en/terms.html).\n\n```json\n" + recordJson() + "\n```\n";
+  const body = "<!-- carcassonne-game-record -->\nA game record from the play page, for training the AI and finding its weak spots.\nRecords you send are published on the Community Games page (https://satou-aaaaa.github.io/carcassonne-research/en/research/games.html) as data anyone can use under CC BY 4.0. I send this record agreeing to the terms (https://satou-aaaaa.github.io/carcassonne-research/en/terms.html).\n\n```json\n" + recordJson() + "\n```\n";
   return `${REC_REPO}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
 }
 $("result").addEventListener("click", e => {

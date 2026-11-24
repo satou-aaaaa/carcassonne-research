@@ -4,12 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>カルカソンヌ入門</title>
-<meta name="description" content="ボードゲーム「カルカソンヌ」のルール入門、戦略ガイド、強いAIの対局から学ぶコツ、次の一手クイズ、強いAIとの対戦。">
+<meta name="description" content="ボードゲーム「カルカソンヌ」の講座（ルール入門・戦略ガイド・強いAIのコツ・次の一手クイズ）、対局の研究、強いAIとの対戦。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
 <style>
-/* このファイルは手書き。共通ナビは scripts/site_nav.py と同じ見た目にそろえる。 */
 :root {
   --bg: #f1f3ee; --paper: #ffffff; --ink: #1d2620; --muted: #5c6a60; --line: #d5dccf; --field: #2f6b3a;
   --font-display: "Dela Gothic One", "Zen Kaku Gothic New", "Hiragino Sans", sans-serif;
@@ -22,58 +21,81 @@
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.8; padding-inline: 16px; padding-block: 0 64px; }
 .wrap { max-width: 760px; margin: 0 auto; }
-header { padding-block: 44px 24px; display: grid; gap: 12px; }
+header.hero { padding-block: 40px 20px; display: grid; gap: 12px; }
+.eyebrow { font-size: 13px; letter-spacing: .12em; color: var(--muted); font-weight: 700; margin: 0; }
 h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(32px, 7vw, 48px); line-height: 1.2; margin: 0; }
 h1 span { color: var(--field); }
+h2 { font-family: var(--font-display); font-weight: 400; font-size: 21px; margin: 32px 0 12px; }
 .lede { margin: 0; max-width: 34em; }
-ol.cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; counter-reset: step; }
+.cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+.cta a { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 22px; border-radius: 999px; font-weight: 700; text-decoration: none; border: 1px solid var(--field); }
+.cta a.main { background: var(--field); color: var(--paper); }
+.cta a.sub { background: var(--paper); color: var(--ink); border-color: var(--line); }
+.cta a:hover, .cta a:focus-visible { outline: 2px solid var(--field); outline-offset: 2px; }
+ul.parts { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+ul.parts a { display: grid; gap: 6px; align-content: start; height: 100%; padding: 18px; background: var(--paper); border: 1px solid var(--line); border-top: 4px solid var(--field); border-radius: 8px; color: var(--ink); text-decoration: none; }
+ul.parts a:hover, ul.parts a:focus-visible { border-color: var(--field); outline: none; }
+ul.parts b { font-size: 19px; }
+ul.parts small { color: var(--muted); font-size: 14px; line-height: 1.7; }
+ul.parts .go { color: var(--field); font-weight: 700; font-size: 14px; }
+ol.cards, ul.cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; counter-reset: step; }
 ol.cards li { counter-increment: step; }
-ol.cards a { display: grid; grid-template-columns: 44px 1fr; gap: 4px 14px; padding: 16px 18px; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); text-decoration: none; }
-ol.cards a:hover, ol.cards a:focus-visible { border-color: var(--field); outline: none; }
+ol.cards a, ul.cards a { display: grid; grid-template-columns: 44px 1fr; gap: 4px 14px; padding: 16px 18px; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); text-decoration: none; }
+ul.cards a { grid-template-columns: 1fr; }
+ol.cards a:hover, ol.cards a:focus-visible, ul.cards a:hover, ul.cards a:focus-visible { border-color: var(--field); outline: none; }
 ol.cards a::before { content: counter(step); grid-row: span 2; width: 36px; height: 36px; border-radius: 50%; background: var(--field); color: var(--paper); display: grid; place-items: center; font-weight: 700; }
-ol.cards b { font-size: 18px; }
-ol.cards small { color: var(--muted); font-size: 14px; }
-.more { margin-top: 28px; font-size: 14.5px; color: var(--muted); }
+ol.cards li.finish a::before { content: "★"; }
+ol.cards b, ul.cards b { font-size: 18px; }
+ol.cards small, ul.cards small { color: var(--muted); font-size: 14px; }
+.more { margin-top: 24px; font-size: 14.5px; color: var(--muted); }
 .more a { color: var(--field); }
 
 nav.site { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
-nav.site .home { font-weight: 700; margin-right: 8px; color: var(--ink); text-decoration: none; }
+nav.site .home { font-weight: 700; margin-right: 6px; color: var(--ink); text-decoration: none; }
+nav.site .groups { display: contents; }
 nav.site a.p { color: var(--muted); text-decoration: none; padding: 3px 10px; border-radius: 999px; }
 nav.site a.p:hover, nav.site a.p:focus-visible { color: var(--ink); background: var(--paper); outline: none; }
-nav.site a.p[aria-current="page"] { color: var(--paper); background: var(--field); }
-nav.site a.lang { margin-left: auto; border: 1px solid var(--line); }
+nav.site a.p[aria-current] { color: var(--ink); font-weight: 700; box-shadow: inset 0 -2px 0 var(--field); border-radius: 0; }
+nav.site a.play { margin-left: auto; color: var(--paper); background: var(--field); font-weight: 700; text-decoration: none; padding: 3px 14px; border-radius: 999px; }
+nav.site a.play:hover, nav.site a.play:focus-visible { outline: 2px solid var(--field); outline-offset: 2px; }
+nav.site a.play[aria-current] { outline: 2px solid var(--ink); outline-offset: 2px; }
+nav.site a.lang { border: 1px solid var(--line); border-radius: 999px; }
+nav.site .sub { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px 6px; padding-top: 6px; margin-top: 4px; border-top: 1px dashed var(--line); font-size: 13.5px; }
+nav.site .sub a { color: var(--muted); text-decoration: none; padding: 3px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); }
+nav.site .sub a:hover, nav.site .sub a:focus-visible { color: var(--ink); border-color: var(--field); outline: none; }
+nav.site .sub a[aria-current="page"] { color: var(--paper); background: var(--field); border-color: var(--field); }
 @media (pointer: coarse) { nav.site a { min-height: 44px; display: inline-flex; align-items: center; } }
+@media (max-width: 480px) { nav.site { gap: 4px; } nav.site .home { margin-right: 2px; } nav.site a.p { padding-inline: 6px; } nav.site a.play { padding-inline: 10px; } nav.site a.lang { padding-inline: 8px; font-size: 12.5px; } nav.site .sub { gap: 4px; } nav.site .sub a { padding-inline: 9px; } }
+/* 共通: 見出しを語の切れ目で折り返す・開閉の見出しを押しやすく */
 h1, h2, h3 { word-break: auto-phrase; }
+summary { padding-block: 6px; }
 /* 共通: ページ下の支援リンク（Ko-fi）。目立ちすぎないよう枠線だけのボタンにする */
 .support { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .support a.kofi { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); text-decoration: none; font-weight: 600; }
 .support a.kofi:hover, .support a.kofi:focus-visible { border-color: var(--field); }
-
+.support a.terms { margin-left: auto; color: var(--muted); display: inline-flex; align-items: center; min-height: 44px; }
 </style>
-<meta property="og:type" content="website"><meta property="og:site_name" content="カルカソンヌ入門"><meta property="og:title" content="カルカソンヌ入門"><meta property="og:description" content="ボードゲーム「カルカソンヌ」のルール入門、戦略ガイド、強いAIの対局から学ぶコツ、次の一手クイズ、強いAIとの対戦。"><meta property="og:url" content="https://satou-aaaaa.github.io/carcassonne-research/"><meta property="og:image" content="https://satou-aaaaa.github.io/carcassonne-research/og-card.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:locale" content="ja_JP"><meta name="twitter:card" content="summary_large_image">
+<meta property="og:type" content="website"><meta property="og:site_name" content="カルカソンヌ入門"><meta property="og:title" content="カルカソンヌ入門"><meta property="og:description" content="ボードゲーム「カルカソンヌ」の講座（ルール入門・戦略ガイド・強いAIのコツ・次の一手クイズ）、対局の研究、強いAIとの対戦。"><meta property="og:url" content="https://satou-aaaaa.github.io/carcassonne-research/"><meta property="og:image" content="https://satou-aaaaa.github.io/carcassonne-research/og-card.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:locale" content="ja_JP"><meta name="twitter:card" content="summary_large_image">
 <link rel="alternate" hreflang="ja" href="https://satou-aaaaa.github.io/carcassonne-research/"><link rel="alternate" hreflang="en" href="https://satou-aaaaa.github.io/carcassonne-research/en/"><link rel="alternate" hreflang="x-default" href="https://satou-aaaaa.github.io/carcassonne-research/en/">
-<script>(function(){var K="site-lang",cur="ja",alt="en/index.html",s=null;try{s=localStorage.getItem(K)}catch(e){}if(!/bot|crawl|spider|slurp|lighthouse/i.test(navigator.userAgent)){var l=(navigator.languages&&navigator.languages[0])||navigator.language||'';var want=s||(/^ja\b/i.test(l)?'ja':'en');if(want!==cur){location.replace(alt+location.search+location.hash);return}}document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[data-lang]');if(a)try{localStorage.setItem(K,a.getAttribute('data-lang'))}catch(e){}})})();</script>
+<script>(function(){var K="site-lang",cur="ja",alt="en/",s=null;try{s=localStorage.getItem(K)}catch(e){}if(!/bot|crawl|spider|slurp|lighthouse/i.test(navigator.userAgent)){var l=(navigator.languages&&navigator.languages[0])||navigator.language||'';var want=s||(/^ja\b/i.test(l)?'ja':'en');if(want!==cur){location.replace(alt+location.search+location.hash);return}}document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[data-lang]');if(a)try{localStorage.setItem(K,a.getAttribute('data-lang'))}catch(e){}})})();</script>
 </head>
 <body>
 <div class="wrap">
-<nav class="site" aria-label="サイト内のページ"><a class="home" href="index.html">カルカソンヌ入門</a><a class="p" href="rules.html">ルール入門</a><a class="p" href="strategy.html">戦略ガイド</a><a class="p" href="ai_tips.html">強いAIのコツ</a><a class="p" href="quiz.html">次の一手クイズ</a><a class="p" href="stats.html">データで見る</a><a class="p" href="games.html">みんなの対局</a><a class="p" href="play.html">AIと対戦</a><a class="p lang" href="en/index.html" hreflang="en" lang="en" data-lang="en" title="Switch to English">English</a></nav>
-<header>
+<nav class="site" aria-label="サイト内のページ"><a class="home" href="./">カルカソンヌ入門</a><a class="p" href="learn/">講座</a><a class="p" href="research/">研究</a><a class="play" href="play.html">AIと対戦</a><a class="p lang" href="en/" hreflang="en" lang="en" data-lang="en" title="Switch to English">English</a></nav>
+<header class="hero">
   <h1>はじめての<span>カルカソンヌ</span></h1>
-  <p class="lede">タイルをつなげて地図を作るボードゲーム「カルカソンヌ」を、ルールを知らないところから一歩ずつ。このプロジェクトで作った強いAIの対局をもとにしたコツと練習問題もあります。</p>
+  <p class="lede">タイルをつなげて地図を作るボードゲーム「カルカソンヌ」を、ルールを知らないところから一歩ずつ。このプロジェクトで作った強いAIと対戦でき、その対局から分かったコツと練習問題もあります。</p>
+  <div class="cta"><a class="main" href="play.html">AIと対戦する</a><a class="sub" href="learn/">講座を1章から読む</a></div>
 </header>
-<ol class="cards">
-  <li><a href="rules.html"><b>ルール入門</b><small>手番の流れ、タイルとミープルの置き方、点の数え方を図で説明します。</small></a></li>
-  <li><a href="strategy.html"><b>戦略ガイド</b><small>ルールを覚えたら次はここ。点差で考える土台、タイルの内訳、埋まりにくい穴、序盤・中盤・終盤の方針、よくある失敗、用語集。</small></a></li>
-  <li><a href="ai_tips.html"><b>強いAIに学ぶコツ</b><small>強いAI同士の対局を集計して分かった、初心者がまねしやすい打ち方。</small></a></li>
-  <li><a href="quiz.html"><b>次の一手クイズ</b><small>入門編から実戦編まで。AIならどこに置くかを当てて、解説を読みます。</small></a></li>
-  <li><a href="stats.html"><b>数字で見るカルカソンヌ</b><small>先手はどれくらい有利？ 点はどこから来る？ 強いAI同士の対局から測ったデータと、チェス・囲碁など他のゲームとの比較。</small></a></li>
-  <li><a href="games.html"><b>みんなの対局</b><small>ほかの人がAIと指した対局を、盤面で一手ずつ再生して見られます。</small></a></li>
-  <li><a href="play.html"><b>AIと対戦</b><small>このプロジェクトでいちばん強いAIと1対1で遊べます。初心者モードでは自分の手が何点損だったかも分かります。</small></a></li>
-</ol>
-<p class="more">おすすめの進め方: ルール入門で遊び方を覚えたら、戦略ガイドの「まず覚える5つ」を読み、クイズの入門編を解いてから、AIと対戦（初心者モード）で損した手を振り返ってください。慣れてきたら、強いAIのコツとクイズの実戦編へ。</p>
-<p class="more">AIとの対戦はインストール不要で、AIはお使いのブラウザの中で考えます（最強設定は1手に数秒かかることがあります）。ルールは基本セット（72枚）の現行ルールです。</p>
-<p class="more">対戦ページから送ってもらう棋譜の公開・利用とデータのライセンスは <a href="terms.html">利用規約・データの扱い</a> にまとめています。「カルカソンヌ」は Hans im Glück の商標で、このサイトは非公式のファンサイトです。</p>
-<div class="support">このサイトが役に立ったら、作者を応援できます。<a class="kofi" href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>Ko-fiで応援する</a></div>
+<h2>3つの部</h2>
+<ul class="parts">
+  <li><a href="learn/"><b>講座</b><small>ルール入門・戦略ガイド・強いAIのコツ・次の一手クイズの4章。ルールを知らない人から、上達したい人まで。</small><span class="go">講座の目次へ</span></a></li>
+  <li><a href="research/"><b>研究</b><small>強いAIどうし・人とAIの対局を集計して分かったこと。先手の有利、点の出どころ、人が外しやすい局面。</small><span class="go">研究の目次へ</span></a></li>
+  <li><a href="play.html"><b>AIと対戦</b><small>いちばん強いAIと1対1で遊べます。インストール不要。初心者モードでは自分の手が何点損だったかも分かります。</small><span class="go">対戦をはじめる</span></a></li>
+</ul>
+<p class="more">おすすめの進め方: 講座の1章「ルール入門」で遊び方を覚えたら、2章「戦略ガイド」の「まず覚える5つ」を読み、4章のクイズの入門編を解いてから、AIと対戦（初心者モード）で損した手を振り返ってください。</p>
+<p class="more">AIはお使いのブラウザの中で考えます（最強設定は1手に数秒かかることがあります）。ルールは基本セット（72枚）の現行ルールです。「カルカソンヌ」は Hans im Glück の商標で、このサイトは非公式のファンサイトです。</p>
+<div class="support">このサイトが役に立ったら、作者を応援できます。<a class="kofi" href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>Ko-fiで応援する</a><a class="terms" href="terms.html">利用規約・データの扱い</a></div>
 </div>
 </body>
 </html>

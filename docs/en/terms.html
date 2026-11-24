@@ -49,12 +49,21 @@ a { color: var(--field); }
 code { font-family: var(--font-num); font-size: 14px; }
 
 nav.site { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
-nav.site .home { font-weight: 700; margin-right: 8px; color: var(--ink); text-decoration: none; }
+nav.site .home { font-weight: 700; margin-right: 6px; color: var(--ink); text-decoration: none; }
+nav.site .groups { display: contents; }
 nav.site a.p { color: var(--muted); text-decoration: none; padding: 3px 10px; border-radius: 999px; }
 nav.site a.p:hover, nav.site a.p:focus-visible { color: var(--ink); background: var(--paper); outline: none; }
-nav.site a.p[aria-current="page"] { color: var(--paper); background: var(--field); }
-nav.site a.lang { margin-left: auto; border: 1px solid var(--line); }
+nav.site a.p[aria-current] { color: var(--ink); font-weight: 700; box-shadow: inset 0 -2px 0 var(--field); border-radius: 0; }
+nav.site a.play { margin-left: auto; color: var(--paper); background: var(--field); font-weight: 700; text-decoration: none; padding: 3px 14px; border-radius: 999px; }
+nav.site a.play:hover, nav.site a.play:focus-visible { outline: 2px solid var(--field); outline-offset: 2px; }
+nav.site a.play[aria-current] { outline: 2px solid var(--ink); outline-offset: 2px; }
+nav.site a.lang { border: 1px solid var(--line); border-radius: 999px; }
+nav.site .sub { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px 6px; padding-top: 6px; margin-top: 4px; border-top: 1px dashed var(--line); font-size: 13.5px; }
+nav.site .sub a { color: var(--muted); text-decoration: none; padding: 3px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); }
+nav.site .sub a:hover, nav.site .sub a:focus-visible { color: var(--ink); border-color: var(--field); outline: none; }
+nav.site .sub a[aria-current="page"] { color: var(--paper); background: var(--field); border-color: var(--field); }
 @media (pointer: coarse) { nav.site a { min-height: 44px; display: inline-flex; align-items: center; } }
+@media (max-width: 480px) { nav.site { gap: 4px; } nav.site .home { margin-right: 2px; } nav.site a.p { padding-inline: 6px; } nav.site a.play { padding-inline: 10px; } nav.site a.lang { padding-inline: 8px; font-size: 12.5px; } nav.site .sub { gap: 4px; } nav.site .sub a { padding-inline: 9px; } }
 /* 共通: 見出しを語の切れ目で折り返す・開閉の見出しを押しやすく */
 h1, h2, h3 { word-break: auto-phrase; }
 summary { padding-block: 6px; }
@@ -62,6 +71,7 @@ summary { padding-block: 6px; }
 .support { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .support a.kofi { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); text-decoration: none; font-weight: 600; }
 .support a.kofi:hover, .support a.kofi:focus-visible { border-color: var(--field); }
+.support a.terms { margin-left: auto; color: var(--muted); display: inline-flex; align-items: center; min-height: 44px; }
 
 </style>
 <style id="page-aids">
@@ -90,7 +100,7 @@ nav.nextread a.next { border-color: var(--field); }
 </head>
 <body>
 <div class="wrap">
-<nav class="site" aria-label="Site pages"><a class="home" href="index.html">Carcassonne Primer</a><a class="p" href="rules.html">Rules</a><a class="p" href="strategy.html">Strategy</a><a class="p" href="ai_tips.html">Lessons from the AI</a><a class="p" href="quiz.html">Next-Move Quiz</a><a class="p" href="stats.html">By the Numbers</a><a class="p" href="games.html">Community Games</a><a class="p" href="play.html">Play the AI</a><a class="p lang" href="../terms.html" hreflang="ja" lang="ja" data-lang="ja" title="日本語に切り替え">日本語</a></nav>
+<nav class="site" aria-label="Site pages"><a class="home" href="./">Carcassonne Primer</a><a class="p" href="learn/">Course</a><a class="p" href="research/">Research</a><a class="play" href="play.html">Play the AI</a><a class="p lang" href="../terms.html" hreflang="ja" lang="ja" data-lang="ja" title="日本語に切り替え">日本語</a></nav>
 <header class="hero">
   <div class="eyebrow">TERMS</div>
   <h1>Terms of Use <span class="accent">and Data</span></h1>
@@ -199,8 +209,8 @@ nav.nextread a.next { border-color: var(--field); }
     <li><a href="https://www.hans-im-glueck.de/en/about-us/">About Hans im Glück</a> (publisher)</li>
   </ul>
 </section>
-<nav class="nextread" aria-label="Previous and next pages"><a class="next" href="games.html"><span class="k">Next</span><span class="t">Community Games</span><span class="d">Replay human-vs-AI games and see common mistakes.</span></a></nav>
-<div class="support">If this site helped you, you can support the author.<a class="kofi" href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>Support on Ko-fi</a></div>
+<nav class="nextread" aria-label="Previous and next pages"><a class="next" href="research/games.html"><span class="k">Next</span><span class="t">Community Games</span><span class="d">Replay human-vs-AI games and see common mistakes.</span></a></nav>
+<div class="support">If this site helped you, you can support the author.<a class="kofi" href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>Support on Ko-fi</a><a class="terms" href="terms.html">Terms & data policy</a></div>
 </div>
 <a class="totop" href="#page-toc"><span aria-hidden="true">↑</span>Contents</a><script>(function(){var b=document.querySelector('a.totop');if(!b)return;function f(){b.classList.toggle('on',window.scrollY>window.innerHeight)}addEventListener('scroll',f,{passive:true});f()})()</script></body>
 </html>

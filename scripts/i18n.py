@@ -22,6 +22,7 @@
 from __future__ import annotations
 
 import json
+import posixpath
 import re
 import sys
 from pathlib import Path
@@ -40,17 +41,75 @@ INLINE = {
 }  # fmt: skip
 
 
+# ---------- ページの置き場所（2026-11-24 構造の整理） ----------
+# サイトは「講座」learn/・「研究」research/・「対戦」play.html の3部。組み立てスクリプトとテンプレートは
+# 今までどおり "rules.html" のような論理名で書き、書き出すときに relocate() で実際の置き場所への相対リンクに直す。
+# 古い置き場所（docs/rules.html など）は scripts/build_redirects.py が転送ページにする。
+LOC = {
+    "learn/index.html": "learn/index.html",
+    "rules.html": "learn/rules.html",
+    "strategy.html": "learn/strategy.html",
+    "ai_tips.html": "learn/ai_tips.html",
+    "quiz.html": "learn/quiz.html",
+    "research/index.html": "research/index.html",
+    "stats.html": "research/stats.html",
+    "games.html": "research/games.html",
+}
+MOVED = [k for k, v in LOC.items() if k != v]  # 古い URL に転送ページを置くもの
+LOGICAL = ["index.html", "play.html", "terms.html", *LOC]
+# ページから相対で読むデータ（置き場所が深くなったら ../ を足す）
+ASSETS = ("human_games/", "human_games.json", "human_findings.json")
+_LINK = re.compile(
+    r"(?<=[\"'`])("
+    + "|".join(re.escape(x) for x in sorted(LOGICAL, key=len, reverse=True))
+    + r")(?=[#?\"'`])"
+)
+_ASSET = re.compile(r"(?<=[\"'`])((?:\.\./)*)(" + "|".join(re.escape(x) for x in ASSETS) + ")")
+
+
+def out_path(page: str) -> str:
+    """論理名（"rules.html"）から、言語の根からの置き場所（"learn/rules.html"）。"""
+    return LOC.get(page, page)
+
+
+def _rel(target: str, start_dir: str) -> str:
+    """start_dir（"" か "learn"）から target（"learn/index.html" など）への相対リンク。index.html は省く。"""
+    r = posixpath.relpath(target, start_dir or ".")
+    if r == "index.html":
+        return "./"
+    if r.endswith("/index.html"):
+        return r[: -len("index.html")]
+    return r
+
+
+def page_link(target: str, from_page: str) -> str:
+    """同じ言語の中で、from_page から target（どちらも論理名）への相対リンク。"""
+    return _rel(out_path(target), posixpath.dirname(out_path(from_page)))
+
+
+def relocate(html: str, page: str) -> str:
+    """論理名で書いたページ間リンクとデータの読み込み先を、page の実際の置き場所からの相対リンクに直す。"""
+    html = _LINK.sub(lambda m: page_link(m.group(1), page), html)
+    depth = out_path(page).count("/")
+    if depth:
+        html = _ASSET.sub(lambda m: "../" * depth + m.group(1) + m.group(2), html)
+    return html
+
+
 def page_url(page: str, lang: str) -> str:
-    """公開URL。page は "rules.html" など。"""
-    name = "" if page == "index.html" else page
+    """公開URL。page は "rules.html" などの論理名。"""
+    name = out_path(page)
+    if name == "index.html" or name.endswith("/index.html"):
+        name = name[: -len("index.html")]
     return SITE + ("en/" if lang == "en" else "") + name
 
 
 def rel_href(page: str, from_lang: str, to_lang: str) -> str:
     """from_lang のページから見た、to_lang の同じページへの相対リンク。"""
-    if from_lang == to_lang:
-        return page
-    return f"en/{page}" if to_lang == "en" else f"../{page}"
+    path = out_path(page)
+    here = ("en/" if from_lang == "en" else "") + path
+    there = ("en/" if to_lang == "en" else "") + path
+    return _rel(there, posixpath.dirname(here))
 
 
 def lang_link(page: str, lang: str, cls: str = "") -> str:
@@ -250,16 +309,17 @@ def add_head(html: str, page: str, lang: str) -> str:
 
 
 def write_pair(page: str, html_ja: str, html_en: str) -> None:
-    """docs/<page> と docs/en/<page> を書き出す。"""
+    """docs/<置き場所> と docs/en/<置き場所> を書き出す（置き場所は out_path）。"""
     from site_nav import enhance  # 長いページの目次・「目次へ」・「次に読む」（全ページ共通）
 
     html_ja, html_en = enhance(html_ja, page, "ja"), enhance(html_en, page, "en")
     if leftover(html_en):
         raise SystemExit(f"en/{page} に日本語が残っています: {leftover(html_en)[:5]}")
-    (ROOT / "docs").joinpath(page).write_text(add_head(html_ja, page, "ja"), encoding="utf-8")
-    en = ROOT / "docs" / "en"
-    en.mkdir(exist_ok=True)
-    en.joinpath(page).write_text(add_head(html_en, page, "en"), encoding="utf-8")
+    html_ja, html_en = relocate(html_ja, page), relocate(html_en, page)
+    for root, html, lang in ((ROOT / "docs", html_ja, "ja"), (ROOT / "docs" / "en", html_en, "en")):
+        out = root / out_path(page)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(add_head(html, page, lang), encoding="utf-8")
 
 
 def main() -> None:

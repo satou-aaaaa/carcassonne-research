@@ -1,0 +1,10 @@
+{
+ "カルカソンヌの研究 | カルカソンヌ入門": "Carcassonne Research | Carcassonne Primer",
+ "強いAIどうし・人とAIのカルカソンヌの対局を集計して分かったこと。データ、みんなの対局、研究ノート。": "What we learned from AI-vs-AI and human-vs-AI Carcassonne games: data, community games, and research notes.",
+ "カルカソンヌを<span>研究する</span>": "Researching <span>Carcassonne</span>",
+ "このプロジェクトで作った強いAIどうしの対局と、対戦ページで人がAIと指した対局を集計して分かったことをまとめています。": "Findings from games between the strong AIs built in this project, and from games people played against the AI on the play page.",
+ "<a href=\"stats.html\"><b>データで見る</b><small>先手はどれくらい有利？ 点はどこから来る？ 強いAI同士の対局から測ったデータと、チェス・囲碁など他のゲームとの比較。</small></a>": "<a href=\"stats.html\"><b>By the Numbers</b><small>How big is the first-player edge? Where do points come from? Data from strong AI-vs-AI games, compared with chess, Go and other games.</small></a>",
+ "<a href=\"games.html\"><b>みんなの対局</b><small>ほかの人がAIと指した対局を、盤面で一手ずつ再生して見られます。</small></a>": "<a href=\"games.html\"><b>Community Games</b><small>Replay games other people played against the AI, move by move on the board.</small></a>",
+ "<a href=\"games.html#findings\"><b>研究ノート</b><small>人との対局から分かった、人が外しやすい局面と悪手の傾向。</small></a>": "<a href=\"games.html#findings\"><b>Research notes</b><small>Positions people often get wrong and common mistakes, from human-vs-AI games.</small></a>",
+ "研究の手順と、効かなかった試みも含めた記録は <a href=\"https://github.com/satou-aaaaa/carcassonne-research\">GitHub のリポジトリ</a> にあります。": "How the research is done, including the ideas that did not work, is recorded in the <a href=\"https://github.com/satou-aaaaa/carcassonne-research\">GitHub repository</a>."
+}
