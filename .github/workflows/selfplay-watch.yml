@@ -1,0 +1,70 @@
+name: Selfplay watch
+
+# 自己対戦ループ（selfplay.yml）が止まっていないかを見る（Claude は使わない）。
+# selfplay の「失敗」は ci-failure-issue.yml が知らせるが、「そもそも回っていない」（schedule の抜け・
+# ワークフローの無効化・次の回を起こす鎖が切れた）は失敗の実行が無いので、これまで誰も気づけなかった。
+# 状態ブランチ selfplay-state の最後のコミットが STALE_HOURS より古ければ、
+#  1. 無効になっていれば有効に戻し（手で止めたときはそのまま）、待っている回が無ければ selfplay を起こす（自分で直す）
+#  2. ジョブを失敗にして、ci-failure-issue.yml が「CI失敗: Selfplay watch（main）」の Issue で知らせる。
+#     次に回って新しくなれば、ここが成功してその Issue は自動で閉じる。
+on:
+  schedule:
+    # 6時間ごと（UTC 3:43, 9:43, 15:43, 21:43）。selfplay と同じ時刻を避ける
+    - cron: "43 3-23/6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write # 止まっていたら selfplay を起こす・有効に戻す
+
+concurrency:
+  group: selfplay-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: scripts/gh_retry.sh
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: 自己対戦ループが回っているか確かめる
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # 1回は約5時間。11月の間隔は最大で約16時間だったので、24時間空いたら止まっているとみなす
+          STALE_HOURS: "24"
+        run: |
+          set -euo pipefail
+          source scripts/gh_retry.sh
+          R=$GITHUB_REPOSITORY
+          last=$(ghr gh api "repos/$R/branches/selfplay-state" --jq .commit.commit.committer.date)
+          age=$(( ($(date -u +%s) - $(date -u -d "$last" +%s)) / 3600 ))
+          echo "selfplay-state の最後の保存: $last（${age} 時間前）"
+          if [ "$age" -lt "$STALE_HOURS" ]; then
+            echo "自己対戦ループは回っています（最後の保存 ${age} 時間前）" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+            exit 0
+          fi
+          state=$(ghr gh api "repos/$R/actions/workflows/selfplay.yml" --jq .state)
+          echo "selfplay.yml の状態: $state"
+          if [ "$state" = "disabled_manually" ]; then
+            msg="selfplay.yml は手で無効にされています（${age} 時間止まっています）。止めたままでよければこの Issue を閉じ、回すなら Actions で有効にする"
+          else
+            if [ "$state" != "active" ]; then
+              ghr gh api -X PUT "repos/$R/actions/workflows/selfplay.yml/enable"
+              echo "selfplay.yml を有効に戻しました（$state）"
+            fi
+            busy=$(ghr gh api "repos/$R/actions/workflows/selfplay.yml/runs?per_page=30" \
+              --jq '[.workflow_runs[] | select(.status == "queued" or .status == "pending" or .status == "waiting" or .status == "requested" or .status == "in_progress")] | length')
+            if [ "$busy" -eq 0 ]; then
+              ghr gh workflow run selfplay.yml --ref main
+              echo "selfplay を起こしました"
+            fi
+            msg="自己対戦ループの状態が ${age} 時間更新されていません（最後 $last、selfplay.yml は $state、待ち・実行中 $busy 件）。selfplay を起こしたので、次の保存でこの Issue は閉じます。続くなら selfplay の実行記録を見る"
+          fi
+          echo "## 自己対戦ループが止まっています" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+          echo "$msg" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+          echo "::error title=自己対戦ループが止まっています::$msg"
+          exit 1
