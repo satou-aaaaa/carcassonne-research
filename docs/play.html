@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AIと対戦 | カルカソンヌ入門</title>
+<meta name="description" content="ブラウザで強いAIとカルカソンヌ（2人・基本セット）を対戦。無料・登録なし。初心者モードではAIが1手ずつ採点し、終局後に損の大きかった手を振り返れます。">
 <style>
   .local-only { display:none; }
   :root { --bg:#f4f1ea; --panel:#fff; --ink:#2b2b2b; --muted:#777; --line:#ddd6c7; --p0:#d64541; --p1:#2f6fd6; --accent:#2e7d32; --coach:#8e44ad; }
@@ -191,6 +192,7 @@
     #featInfo { height:54px; min-height:0; overflow-y:auto; font-size:12px; line-height:1.45; }
   }
 </style>
+<meta property="og:type" content="website"><meta property="og:site_name" content="カルカソンヌ入門"><meta property="og:title" content="AIと対戦 | カルカソンヌ入門"><meta property="og:description" content="ブラウザで強いAIとカルカソンヌ（2人・基本セット）を対戦。無料・登録なし。初心者モードではAIが1手ずつ採点し、終局後に損の大きかった手を振り返れます。"><meta property="og:url" content="https://satou-aaaaa.github.io/carcassonne-research/play.html"><meta property="og:image" content="https://satou-aaaaa.github.io/carcassonne-research/og-card.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:locale" content="ja_JP"><meta name="twitter:card" content="summary_large_image">
 <link rel="alternate" hreflang="ja" href="https://satou-aaaaa.github.io/carcassonne-research/play.html"><link rel="alternate" hreflang="en" href="https://satou-aaaaa.github.io/carcassonne-research/en/play.html"><link rel="alternate" hreflang="x-default" href="https://satou-aaaaa.github.io/carcassonne-research/en/play.html">
 <script>(function(){var K="site-lang",cur="ja",alt="en/play.html",s=null;try{s=localStorage.getItem(K)}catch(e){}if(!/bot|crawl|spider|slurp|lighthouse/i.test(navigator.userAgent)){var l=(navigator.languages&&navigator.languages[0])||navigator.language||'';var want=s||(/^ja\b/i.test(l)?'ja':'en');if(want!==cur){location.replace(alt+location.search+location.hash);return}}document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[data-lang]');if(a)try{localStorage.setItem(K,a.getAttribute('data-lang'))}catch(e){}})})();</script>
 </head>
@@ -212,7 +214,7 @@
   </div>
 </div>
 <aside>
-  <div id="home" class="local-only"><nav aria-label="サイト内のページ"><a href="index.html">← カルカソンヌ入門</a><a href="rules.html">ルール入門</a><a href="strategy.html">戦略ガイド</a><a href="ai_tips.html">強いAIのコツ</a><a href="quiz.html">次の一手クイズ</a><a href="stats.html">データで見る</a><a href="games.html">みんなの対局</a><a class="lang" href="en/play.html" hreflang="en" lang="en" data-lang="en" title="Switch to English">English</a></nav>AIはこのブラウザの中で考えます。<br><a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>&nbsp;Ko-fiでこのサイトを応援する</a></div>
+  <div id="home" class="local-only"><nav aria-label="サイト内のページ"><a href="./">← カルカソンヌ入門</a><a href="learn/">講座</a><a href="research/">研究</a><a href="research/games.html">みんなの対局</a><a class="lang" href="en/play.html" hreflang="en" lang="en" data-lang="en" title="Switch to English">English</a></nav>AIはこのブラウザの中で考えます。<br><a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>&nbsp;Ko-fiでこのサイトを応援する</a></div>
   <div class="row" id="newRow">
     <button class="primary" id="btnNew">新しい対局</button>
     <button id="btnRematch" hidden>同じ山札で席替え再戦</button>
@@ -292,7 +294,7 @@
     <p class="note">このブラウザで最近終わった対局（新しい順）。押すと一手ずつ再生できます。</p>
     <div id="recList"></div>
     <div class="row" style="margin-top:10px"><button type="button" id="btnRecFile">ファイルから開く</button></div>
-    <p class="note" style="margin-top:12px">ほかの人の対局は <a href="games.html">みんなの対局</a> のページから再生できます。</p>
+    <p class="note" style="margin-top:12px">ほかの人の対局は <a href="research/games.html">みんなの対局</a> のページから再生できます。</p>
     <div class="row" style="margin-top:14px;justify-content:flex-end"><button value="close">閉じる</button></div>
   </form>
 </dialog>
@@ -1235,16 +1237,66 @@ const BRAG_TAG = "カルカソンヌ";
 function bragXUrl() {
   return `https://x.com/intent/tweet?text=${encodeURIComponent(bragText())}&url=${encodeURIComponent(SITE_PLAY)}&hashtags=${encodeURIComponent(BRAG_TAG)}`;
 }
+// リンクを貼ると、サイト共通のカード（docs/og-card.png、<head> の og:・twitter: は scripts/i18n.py の social_head）が出る。
+// X の投稿リンクには画像を付けられない（項目は text・url・hashtags など）ので、この対局の最終盤面は「盤面の画像を保存」で渡す
+let bragImg = null;  // {id, url}: 対局ごとに1回だけ描く
+function bragCanvas() {
+  const r = G.record, h = r.human_seat, me = r.scores[h], ai = r.scores[1 - h];
+  const xs = G.board.map(b => b.x), ys = G.board.map(b => b.y);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const cols = x1 - x0 + 1, rows = y1 - y0 + 1;
+  const S = Math.max(28, Math.min(80, Math.floor(1000 / Math.max(cols, rows))));
+  const pad = 28, head = 116, foot = 48, W = Math.max(720, cols * S + pad * 2), H = head + rows * S + foot;
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const g = c.getContext("2d"), font = (px, b = "bold ") => `${b}${px}px system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif`;
+  g.fillStyle = "#f4efe4"; g.fillRect(0, 0, W, H);
+  g.fillStyle = "#444"; g.font = font(24); g.textBaseline = "alphabetic";
+  g.fillText(`カルカソンヌ AIと対戦（AI: ${levelShort(r.level)}）`, pad, 42);
+  const verdict = me > ai ? "あなたの勝ち" : me < ai ? "AIの勝ち" : "引き分け";
+  let x = pad;
+  const put = (t, col, px) => { g.font = font(px); g.fillStyle = col; g.fillText(t, x, 92); x += g.measureText(t).width; };
+  put("あなた ", PCOL[h], 30); put(String(me), PCOL[h], 44); put(" − ", "#444", 44); put(String(ai), PCOL[1 - h], 44); put(" AI", PCOL[1 - h], 30);
+  put(`   ${verdict}`, "#444", 26);
+  const ox = Math.round((W - cols * S) / 2), oy = head;
+  for (const b of G.board) g.drawImage(tileCanvas(b.t, b.v), ox + (b.x - x0) * S, oy + (y1 - b.y) * S, S, S);
+  // ミープルは盤と同じ形（meepleGlyph は ctx に描くので、一時的にこの画像へ向ける）
+  const ms = G.end_meeples && G.end_meeples.length ? G.end_meeples : G.meeples, keep = ctx;
+  ctx = g;
+  try {
+    for (const m of ms) {
+      const b = G.board.find(q => q.x === m.x && q.y === m.y); if (!b) continue;
+      const [ax, ay] = anchors(b.t, b.v)[m.piece];
+      meepleGlyph(ox + (m.x - x0 + ax) * S, oy + (y1 - m.y + ay) * S, Math.max(12, S * .3), PCOL[m.player], LIB[b.t].variants[b.v].pieces[m.piece].kind === "F");
+    }
+  } finally { ctx = keep; }
+  g.fillStyle = "#666"; g.font = font(18, ""); g.fillText(SITE_PLAY.replace("https://", ""), pad, H - 18);
+  return c;
+}
+function bragImage() {
+  const id = recordId(G.record);
+  if (!bragImg || bragImg.id !== id) bragImg = {id, url: bragCanvas().toDataURL("image/png")};
+  return bragImg;
+}
+const BRAG_FILE = "carcassonne-result.png";
 function bragHtml() {
   const sheet = navigator.share ? `<button type="button" id="btnBragShare">ほかのアプリで共有</button>` : "";
-  return `<div class="brag"><b>結果をシェアする</b><div class="row"><a class="btnlike" id="btnBragX" href="${bragXUrl()}" target="_blank" rel="noopener">Xでシェア</a>${sheet}</div>` +
-    `投稿画面が開くだけで、押すまで投稿されません。入るのは点数・AIの強さ・このページのURLだけです。</div>`;
+  return `<div class="brag"><b>結果をシェアする</b><div class="row"><a class="btnlike" id="btnBragX" href="${bragXUrl()}" target="_blank" rel="noopener">Xでシェア</a>${sheet}` +
+    `<button type="button" id="btnBragSave">盤面の画像を保存</button></div>` +
+    `投稿画面が開くだけで、押すまで投稿されません。入るのは点数・AIの強さ・このページのURLだけです。最終盤面も載せたいときは、保存した画像を投稿に添付してください。</div>`;
+}
+function bragShare() {
+  navigator.share({text: bragText() + " #" + BRAG_TAG, url: SITE_PLAY}).catch(() => {});  // 閉じただけなら何もしない
+}
+function bragSave() {
+  const link = document.createElement("a");
+  link.href = bragImage().url; link.download = BRAG_FILE;
+  document.body.appendChild(link); link.click(); link.remove();
 }
 // 終局の振り返り: 初心者モードの採点（G.review）から、いい手の数・損の合計・損の大きかった手を出す。
 // 手を押すと、その手を置いた直後の盤から再生する（再生欄にAIの最善手が紫の点線で出る）
 const REVIEW_TOP = 3;
 function reviewHtml() {
-  const more = `<div class="learn">もっと学ぶ: <a href="ai_tips.html">強いAIのコツ</a> ・ <a href="quiz.html">次の一手クイズ</a> ・ <a href="strategy.html">戦略ガイド</a></div>`;
+  const more = `<div class="learn">もっと学ぶ: <a href="learn/ai_tips.html">強いAIのコツ</a> ・ <a href="learn/quiz.html">次の一手クイズ</a> ・ <a href="learn/strategy.html">戦略ガイド</a></div>`;
   const rv = G.review;
   if (!rv) return `<div class="review"><b>振り返り</b><br>この対局は「この対局を再生」で1手ずつAIに採点してもらえます。初心者モードで対局すると、ここに損の大きかった手が並びます。${more}</div>`;
   const scored = rv.filter(r => r.loss !== null);
@@ -1293,7 +1345,7 @@ function shareHtml(sent = sentVia(G && G.record)) {
   }
   const form = REC_FORM ? `<button type="button" class="primary" id="btnFormRec">規約に同意して送る（アカウント不要）</button>` : "";
   return again + `<div class="share"><b>よければ、棋譜を研究に使わせてください（任意）</b><br>人との対局から、AIの弱点を探して学習に使います。送らなくても、対戦や再生はこれまでどおり使えます。` +
-    `<p class="pubnote">送った棋譜は <a href="games.html" target="_blank" rel="noopener">みんなの対局</a> のページで公開され、誰でも見て使えるデータ（CC BY 4.0）になります。名前は出ませんが、あとから消すことはできません。送る前に <a href="terms.html" target="_blank" rel="noopener">利用規約・データの扱い</a>を読んでください。</p>` +
+    `<p class="pubnote">送った棋譜は <a href="research/games.html" target="_blank" rel="noopener">みんなの対局</a> のページで公開され、誰でも見て使えるデータ（CC BY 4.0）になります。名前は出ませんが、あとから消すことはできません。送る前に <a href="terms.html" target="_blank" rel="noopener">利用規約・データの扱い</a>を読んでください。</p>` +
     `<div class="row">${form}<button type="button" id="btnSendRec">規約に同意してGitHubで送る</button><button type="button" id="btnSaveRec">ファイルに保存</button></div>` +
     `送るのは山札・指し手・得点・AIの強さだけで、名前は入りません。開いた画面で内容を確かめ、送信ボタンを押すと届きます。` +
     (REC_FORM ? `「規約に同意して送る」は Google フォームで、アカウントもメールアドレスも要りません。` : "") +
@@ -1307,7 +1359,7 @@ function recordJson() { return JSON.stringify(G.record); }
 function recordIssueUrl() {
   const r = G.record, h = r.human_seat, a = 1 - h;
   const title = `[棋譜] ${r.scores[h]} − ${r.scores[a]}（AI: ${r.level}）`;
-  const body = "<!-- carcassonne-game-record -->\n対戦ページで指した対局の棋譜です。AIの学習と弱点探しに使ってください。\n送った棋譜は「みんなの対局」ページ（https://satou-aaaaa.github.io/carcassonne-research/games.html）で公開され、CC BY 4.0 で誰でも使えるデータになります。利用規約（https://satou-aaaaa.github.io/carcassonne-research/terms.html）に同意して送ります。\n\n```json\n" + recordJson() + "\n```\n";
+  const body = "<!-- carcassonne-game-record -->\n対戦ページで指した対局の棋譜です。AIの学習と弱点探しに使ってください。\n送った棋譜は「みんなの対局」ページ（https://satou-aaaaa.github.io/carcassonne-research/research/games.html）で公開され、CC BY 4.0 で誰でも使えるデータになります。利用規約（https://satou-aaaaa.github.io/carcassonne-research/terms.html）に同意して送ります。\n\n```json\n" + recordJson() + "\n```\n";
   return `${REC_REPO}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
 }
 $("result").addEventListener("click", e => {
@@ -1322,9 +1374,8 @@ $("result").addEventListener("click", e => {
   }
   // 再生は盤の上で見るので、スマホ（盤がページの上にある）では上まで戻す
   const toBoard = () => window.scrollTo({ top: 0, behavior: "smooth" });
-  if (e.target.id === "btnBragShare") {
-    navigator.share({text: bragText() + " #" + BRAG_TAG, url: SITE_PLAY}).catch(() => {});
-  }
+  if (e.target.id === "btnBragShare") bragShare();
+  if (e.target.id === "btnBragSave") bragSave();
   if (e.target.id === "btnReplayThis") { replayOpen(G.record, 0); toBoard(); }
   if (e.target.classList.contains("rvGo")) { replayOpen(G.record, +e.target.dataset.ply); toBoard(); }
   if (e.target.id === "btnLinkThis") copyReplayLink(G.record, e.target);

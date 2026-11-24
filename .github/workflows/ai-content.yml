@@ -1,6 +1,6 @@
 name: AI content
 
-# 学習ページ（コツ集 docs/ai_tips.html・次の一手クイズ docs/quiz.html）を、最新AI（チャンピオン）で作り直す。
+# 学習ページ（コツ集 docs/learn/ai_tips.html・次の一手クイズ docs/learn/quiz.html）を、最新AI（チャンピオン）で作り直す。
 # 対戦ページのAIが差し替わったら（selfplay.yml がこのワークフローを起動する）、それに合わせて
 # 最新AI同士の対局を取り直し、クイズの答えを確かめ直して、PR を作ってすぐマージする（scripts/refresh_ai_content.py、
 # main は PR 必須なので scripts/merge_via_pr.sh を使う）。
@@ -117,7 +117,7 @@ jobs:
           python - > body.md <<'EOF'
           import json
           b = json.load(open("data/tips_blocked.json", encoding="utf-8"))
-          print(f"最新AI {b['ai']['name']} で48局を集計し直したら、コツ集（docs/ai_tips.html）の言い切りのうち次が成り立ちませんでした。")
+          print(f"最新AI {b['ai']['name']} で48局を集計し直したら、コツ集（docs/learn/ai_tips.html）の言い切りのうち次が成り立ちませんでした。")
           print("コツ集は前の版のまま公開しています（クイズ・対戦ページは最新AIにしました）。\n")
           for m in b["failed_claims"]:
               print(f"- {m}")

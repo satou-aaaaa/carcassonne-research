@@ -18,20 +18,45 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from i18n import leftover, page_url
+from i18n import LOGICAL, MOVED, leftover, out_path, page_url
 
 DOCS = ROOT / "docs"
-JA_PAGES = sorted(p.name for p in DOCS.glob("*.html"))
-EN_PAGES = sorted(p.name for p in (DOCS / "en").glob("*.html"))
+# ページは論理名（"rules.html"）で数え、置き場所は out_path（"learn/rules.html"）で引く
+JA_PAGES = sorted(LOGICAL)
+EN_PAGES = JA_PAGES
+
+
+def _html_files(root: Path) -> list[str]:
+    skip = {"en", "human_games", "results"}
+    return sorted(
+        str(p.relative_to(root))
+        for p in root.rglob("*.html")
+        if p.relative_to(root).parts[0] not in skip
+    )
 
 
 def test_every_page_has_english_version():
-    assert JA_PAGES == EN_PAGES
+    assert _html_files(DOCS) == _html_files(DOCS / "en")
+
+
+def test_every_html_file_is_a_page_or_redirect():
+    """docs/ の HTML は、LOGICAL のページか、古い置き場所の転送ページのどちらか（入れ忘れを防ぐ）。"""
+    known = {out_path(p) for p in LOGICAL} | set(MOVED)
+    assert set(_html_files(DOCS)) == known
+
+
+@pytest.mark.parametrize("page", MOVED)
+def test_old_urls_redirect(page):
+    for d in (DOCS, DOCS / "en"):
+        html = (d / page).read_text(encoding="utf-8")
+        target = out_path(page)
+        assert f'content="0; url={target}"' in html, (d, page)
+        assert (d / target).exists(), (d, target)
 
 
 @pytest.mark.parametrize("page", JA_PAGES)
 def test_hreflang_reciprocal(page):
-    for lang, path in (("ja", DOCS / page), ("en", DOCS / "en" / page)):
+    for lang, path in (("ja", DOCS / out_path(page)), ("en", DOCS / "en" / out_path(page))):
         html = path.read_text(encoding="utf-8")
         assert f'<html lang="{lang}">' in html, path
         for lg in ("ja", "en"):
@@ -40,9 +65,26 @@ def test_hreflang_reciprocal(page):
         assert 'data-lang="' in html, f"{path}: 言語の切り替えリンクがない"
 
 
+@pytest.mark.parametrize("page", JA_PAGES)
+def test_social_card(page):
+    """SNS にリンクを貼るとカードが出る（全ページ・日英。画像は scripts/make_og_card.mjs）。"""
+    for lang, path in (("ja", DOCS / out_path(page)), ("en", DOCS / "en" / out_path(page))):
+        html = path.read_text(encoding="utf-8")
+        assert '<meta name="twitter:card" content="summary_large_image">' in html, path
+        assert f'<meta property="og:url" content="{page_url(page, lang)}">' in html, path
+        img = re.search(r'<meta property="og:image" content="([^"]+)">', html)
+        assert img, path
+        local = DOCS / img.group(1).split("/carcassonne-research/", 1)[1]
+        assert local.exists() and local.stat().st_size < 5_000_000, (path, local)
+        title = re.search(r'<meta property="og:title" content="([^"]+)">', html)
+        assert title and title.group(1).strip(), path
+        if lang == "en":
+            assert leftover(title.group(1)) == [], path
+
+
 @pytest.mark.parametrize("page", EN_PAGES)
 def test_no_japanese_left(page):
-    assert leftover((DOCS / "en" / page).read_text(encoding="utf-8")) == []
+    assert leftover((DOCS / "en" / out_path(page)).read_text(encoding="utf-8")) == []
 
 
 def test_no_japanese_left_in_english_scripts():
@@ -53,7 +95,7 @@ def test_no_japanese_left_in_english_scripts():
 @pytest.mark.skipif(shutil.which("node") is None, reason="node が無い")
 @pytest.mark.parametrize("page", EN_PAGES)
 def test_english_scripts_parse(page, tmp_path):
-    html = (DOCS / "en" / page).read_text(encoding="utf-8")
+    html = (DOCS / "en" / out_path(page)).read_text(encoding="utf-8")
     scripts = re.findall(
         r"<script\b([^>]*)>(.*?)</script\b[^>]*>", html, flags=re.DOTALL | re.IGNORECASE
     )

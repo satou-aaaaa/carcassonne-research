@@ -4,7 +4,7 @@
     py scripts/refresh_ai_content.py              # 古くなっていれば作り直す（--force で必ず）
 
 対戦ページのAIは models/eval_champion.npy（scripts/update_champion.py が差し替える）。
-コツ集（docs/ai_tips.html）とクイズ（docs/quiz.html）は、そのAIの対局や解析から作るので、
+コツ集（docs/learn/ai_tips.html）とクイズ（docs/learn/quiz.html）は、そのAIの対局や解析から作るので、
 チャンピオンが変わったら次をやり直す（.github/workflows/ai-content.yml が自動で行う）。
 
 1. 最新AI同士で48局指して記録する（scripts/record_habits.py）。

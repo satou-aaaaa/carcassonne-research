@@ -201,7 +201,7 @@ def x_posts(s: dict) -> list[str]:
             f"人の手を最強AIで採点。1局の悪手は平均{s['bad_per_game']}手、"
             f"多いのは「{CAT_JA[top_cat(s)]}」、出やすいのは{PHASE_JA[top_phase(s)]}。{extra}\n"
             "棋譜を送ってくださった皆さん、ありがとうございます！\n"
-            f"{SITE}games.html#findings\n#カルカソンヌ"
+            f"{SITE}research/games.html#findings\n#カルカソンヌ"
         )
 
     posts = [note(lead) if x_weight(note(lead)) <= 280 else note("")]
@@ -231,7 +231,7 @@ def x_issue_body(s: dict) -> str:
         parts += [f"### 下書き {i}（{x_weight(p)}/280）", "", "```", p, "```", ""]
     parts += [
         "画像の案:",
-        f"- 下書き1: みんなの対局ページの研究ノート欄（{SITE}games.html#findings）のスクリーンショット",
+        f"- 下書き1: みんなの対局ページの研究ノート欄（{SITE}research/games.html#findings）のスクリーンショット",
         "- 下書き2: リンク先の盤面（引いたタイルが見える状態）のスクリーンショット。答えは画像に入れない",
         "",
         "投稿したら、この Issue を閉じてください。",

@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Play the AI | Carcassonne Primer</title>
+<meta name="description" content="Play two-player Carcassonne (base game) against a strong AI in your browser. Free, no sign-up. In beginner mode the AI grades each move, and after the game you can review your costliest moves.">
 <style>
   .local-only { display:none; }
   :root { --bg:#f4f1ea; --panel:#fff; --ink:#2b2b2b; --muted:#777; --line:#ddd6c7; --p0:#d64541; --p1:#2f6fd6; --accent:#2e7d32; --coach:#8e44ad; }
@@ -191,6 +192,7 @@
     #featInfo { height:54px; min-height:0; overflow-y:auto; font-size:12px; line-height:1.45; }
   }
 </style>
+<meta property="og:type" content="website"><meta property="og:site_name" content="Carcassonne Primer"><meta property="og:title" content="Play the AI | Carcassonne Primer"><meta property="og:description" content="Play two-player Carcassonne (base game) against a strong AI in your browser. Free, no sign-up. In beginner mode the AI grades each move, and after the game you can review your costliest moves."><meta property="og:url" content="https://satou-aaaaa.github.io/carcassonne-research/en/play.html"><meta property="og:image" content="https://satou-aaaaa.github.io/carcassonne-research/en/og-card.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:locale" content="en_US"><meta name="twitter:card" content="summary_large_image">
 <link rel="alternate" hreflang="ja" href="https://satou-aaaaa.github.io/carcassonne-research/play.html"><link rel="alternate" hreflang="en" href="https://satou-aaaaa.github.io/carcassonne-research/en/play.html"><link rel="alternate" hreflang="x-default" href="https://satou-aaaaa.github.io/carcassonne-research/en/play.html">
 <script>(function(){var K="site-lang",cur="en",alt="../play.html",s=null;try{s=localStorage.getItem(K)}catch(e){}if(!/bot|crawl|spider|slurp|lighthouse/i.test(navigator.userAgent)){var l=(navigator.languages&&navigator.languages[0])||navigator.language||'';var want=s||(/^ja\b/i.test(l)?'ja':'en');if(want!==cur){location.replace(alt+location.search+location.hash);return}}document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[data-lang]');if(a)try{localStorage.setItem(K,a.getAttribute('data-lang'))}catch(e){}})})();</script>
 </head>
@@ -212,7 +214,7 @@
   </div>
 </div>
 <aside>
-  <div id="home" class="local-only"><nav aria-label="Site pages"><a href="index.html">← Carcassonne Primer</a><a href="rules.html">Rules</a><a href="strategy.html">Strategy</a><a href="ai_tips.html">Lessons from the AI</a><a href="quiz.html">Next-Move Quiz</a><a href="stats.html">By the Numbers</a><a href="games.html">Community Games</a><a class="lang" href="../play.html" hreflang="ja" lang="ja" data-lang="ja" title="日本語に切り替え">日本語</a></nav>The AI thinks inside your browser.<br><a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>&nbsp;Support this site on Ko-fi</a></div>
+  <div id="home" class="local-only"><nav aria-label="Site pages"><a href="./">← Carcassonne Primer</a><a href="learn/">Course</a><a href="research/">Research</a><a href="research/games.html">Community Games</a><a class="lang" href="../play.html" hreflang="ja" lang="ja" data-lang="ja" title="日本語に切り替え">日本語</a></nav>The AI thinks inside your browser.<br><a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>&nbsp;Support this site on Ko-fi</a></div>
   <div class="row" id="newRow">
     <button class="primary" id="btnNew">New game</button>
     <button id="btnRematch" hidden>Rematch, same tiles, seats swapped</button>
@@ -292,7 +294,7 @@
     <p class="note">Games recently finished in this browser (newest first). Tap one to replay it move by move.</p>
     <div id="recList"></div>
     <div class="row" style="margin-top:10px"><button type="button" id="btnRecFile">Open a file</button></div>
-    <p class="note" style="margin-top:12px">Other players' games can be replayed on the <a href="games.html">Community Games</a> page.</p>
+    <p class="note" style="margin-top:12px">Other players' games can be replayed on the <a href="research/games.html">Community Games</a> page.</p>
     <div class="row" style="margin-top:14px;justify-content:flex-end"><button value="close">Close</button></div>
   </form>
 </dialog>
@@ -1235,16 +1237,66 @@ const BRAG_TAG = "Carcassonne";
 function bragXUrl() {
   return `https://x.com/intent/tweet?text=${encodeURIComponent(bragText())}&url=${encodeURIComponent(SITE_PLAY)}&hashtags=${encodeURIComponent(BRAG_TAG)}`;
 }
+// リンクを貼ると、サイト共通のカード（docs/og-card.png、<head> の og:・twitter: は scripts/i18n.py の social_head）が出る。
+// X の投稿リンクには画像を付けられない（項目は text・url・hashtags など）ので、この対局の最終盤面は「Save board image」で渡す
+let bragImg = null;  // {id, url}: 対局ごとに1回だけ描く
+function bragCanvas() {
+  const r = G.record, h = r.human_seat, me = r.scores[h], ai = r.scores[1 - h];
+  const xs = G.board.map(b => b.x), ys = G.board.map(b => b.y);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const cols = x1 - x0 + 1, rows = y1 - y0 + 1;
+  const S = Math.max(28, Math.min(80, Math.floor(1000 / Math.max(cols, rows))));
+  const pad = 28, head = 116, foot = 48, W = Math.max(720, cols * S + pad * 2), H = head + rows * S + foot;
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const g = c.getContext("2d"), font = (px, b = "bold ") => `${b}${px}px system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif`;
+  g.fillStyle = "#f4efe4"; g.fillRect(0, 0, W, H);
+  g.fillStyle = "#444"; g.font = font(24); g.textBaseline = "alphabetic";
+  g.fillText(`Carcassonne vs AI (AI: ${levelShort(r.level)})`, pad, 42);
+  const verdict = me > ai ? "You win" : me < ai ? "AI wins" : "Draw";
+  let x = pad;
+  const put = (t, col, px) => { g.font = font(px); g.fillStyle = col; g.fillText(t, x, 92); x += g.measureText(t).width; };
+  put("You ", PCOL[h], 30); put(String(me), PCOL[h], 44); put(" − ", "#444", 44); put(String(ai), PCOL[1 - h], 44); put(" AI", PCOL[1 - h], 30);
+  put(`   ${verdict}`, "#444", 26);
+  const ox = Math.round((W - cols * S) / 2), oy = head;
+  for (const b of G.board) g.drawImage(tileCanvas(b.t, b.v), ox + (b.x - x0) * S, oy + (y1 - b.y) * S, S, S);
+  // ミープルは盤と同じ形（meepleGlyph は ctx に描くので、一時的にこの画像へ向ける）
+  const ms = G.end_meeples && G.end_meeples.length ? G.end_meeples : G.meeples, keep = ctx;
+  ctx = g;
+  try {
+    for (const m of ms) {
+      const b = G.board.find(q => q.x === m.x && q.y === m.y); if (!b) continue;
+      const [ax, ay] = anchors(b.t, b.v)[m.piece];
+      meepleGlyph(ox + (m.x - x0 + ax) * S, oy + (y1 - m.y + ay) * S, Math.max(12, S * .3), PCOL[m.player], LIB[b.t].variants[b.v].pieces[m.piece].kind === "F");
+    }
+  } finally { ctx = keep; }
+  g.fillStyle = "#666"; g.font = font(18, ""); g.fillText(SITE_PLAY.replace("https://", ""), pad, H - 18);
+  return c;
+}
+function bragImage() {
+  const id = recordId(G.record);
+  if (!bragImg || bragImg.id !== id) bragImg = {id, url: bragCanvas().toDataURL("image/png")};
+  return bragImg;
+}
+const BRAG_FILE = "carcassonne-result.png";
 function bragHtml() {
   const sheet = navigator.share ? `<button type="button" id="btnBragShare">Share via app</button>` : "";
-  return `<div class="brag"><b>Share your result</b><div class="row"><a class="btnlike" id="btnBragX" href="${bragXUrl()}" target="_blank" rel="noopener">Share on X</a>${sheet}</div>` +
-    `This only opens the post screen; nothing is posted until you press Post. It includes just the score, the AI strength and this page’s URL.</div>`;
+  return `<div class="brag"><b>Share your result</b><div class="row"><a class="btnlike" id="btnBragX" href="${bragXUrl()}" target="_blank" rel="noopener">Share on X</a>${sheet}` +
+    `<button type="button" id="btnBragSave">Save board image</button></div>` +
+    `This only opens the post screen; nothing is posted until you press Post. It includes just the score, the AI strength and this page’s URL. To show your final board too, attach the saved image to your post.</div>`;
+}
+function bragShare() {
+  navigator.share({text: bragText() + " #" + BRAG_TAG, url: SITE_PLAY}).catch(() => {});  // 閉じただけなら何もしない
+}
+function bragSave() {
+  const link = document.createElement("a");
+  link.href = bragImage().url; link.download = BRAG_FILE;
+  document.body.appendChild(link); link.click(); link.remove();
 }
 // 終局の振り返り: 初心者モードの採点（G.review）から、いい手の数・損のTotal・損の大きかった手を出す。
 // 手を押すと、その手を置いた直後の盤から再生する（再生欄にAIの最善手が紫の点線で出る）
 const REVIEW_TOP = 3;
 function reviewHtml() {
-  const more = `<div class="learn">Learn more: <a href="ai_tips.html">Strong AI tips</a> · <a href="quiz.html">Next-move quiz</a> · <a href="strategy.html">Strategy guide</a></div>`;
+  const more = `<div class="learn">Learn more: <a href="learn/ai_tips.html">Strong AI tips</a> · <a href="learn/quiz.html">Next-move quiz</a> · <a href="learn/strategy.html">Strategy guide</a></div>`;
   const rv = G.review;
   if (!rv) return `<div class="review"><b>Review</b><br>Use “Replay this game” to have the AI grade each move. Play with beginner mode on and your costliest moves will be listed here.${more}</div>`;
   const scored = rv.filter(r => r.loss !== null);
@@ -1293,7 +1345,7 @@ function shareHtml(sent = sentVia(G && G.record)) {
   }
   const form = REC_FORM ? `<button type="button" class="primary" id="btnFormRec">Agree to the terms and send (no account needed)</button>` : "";
   return again + `<div class="share"><b>If you like, let us use your game for research (optional)</b><br>Games against people help us find the AI's weak spots and train it. Without sending, you can still play and replay as before.` +
-    `<p class="pubnote">Games you send are published on the <a href="games.html" target="_blank" rel="noopener">Community Games</a> page and become data anyone can see and use (CC BY 4.0). No names are shown, but games cannot be removed later. Before sending, please read the <a href="terms.html" target="_blank" rel="noopener">Terms of Use and Data</a>.</p>` +
+    `<p class="pubnote">Games you send are published on the <a href="research/games.html" target="_blank" rel="noopener">Community Games</a> page and become data anyone can see and use (CC BY 4.0). No names are shown, but games cannot be removed later. Before sending, please read the <a href="terms.html" target="_blank" rel="noopener">Terms of Use and Data</a>.</p>` +
     `<div class="row">${form}<button type="button" id="btnSendRec">Agree to the terms and send via GitHub</button><button type="button" id="btnSaveRec">Save as file</button></div>` +
     `Only the tile order, moves, scores and AI level are sent; your name is not included. Check the content on the page that opens, then press its submit button.` +
     (REC_FORM ? ` “Agree to the terms and send” uses a Google Form: no account or email address needed.` : "") +
@@ -1307,7 +1359,7 @@ function recordJson() { return JSON.stringify(G.record); }
 function recordIssueUrl() {
   const r = G.record, h = r.human_seat, a = 1 - h;
   const title = `[Game record] ${r.scores[h]} − ${r.scores[a]} (AI: ${r.level})`;
-  const body = "<!-- carcassonne-game-record -->\nA game record from the play page, for training the AI and finding its weak spots.\nRecords you send are published on the Community Games page (https://satou-aaaaa.github.io/carcassonne-research/en/games.html) as data anyone can use under CC BY 4.0. I send this record agreeing to the terms (https://satou-aaaaa.github.io/carcassonne-research/en/terms.html).\n\n```json\n" + recordJson() + "\n```\n";
+  const body = "<!-- carcassonne-game-record -->\nA game record from the play page, for training the AI and finding its weak spots.\nRecords you send are published on the Community Games page (https://satou-aaaaa.github.io/carcassonne-research/en/research/games.html) as data anyone can use under CC BY 4.0. I send this record agreeing to the terms (https://satou-aaaaa.github.io/carcassonne-research/en/terms.html).\n\n```json\n" + recordJson() + "\n```\n";
   return `${REC_REPO}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
 }
 $("result").addEventListener("click", e => {
@@ -1322,9 +1374,8 @@ $("result").addEventListener("click", e => {
   }
   // 再生は盤の上で見るので、スマホ（盤がページの上にある）では上まで戻す
   const toBoard = () => window.scrollTo({ top: 0, behavior: "smooth" });
-  if (e.target.id === "btnBragShare") {
-    navigator.share({text: bragText() + " #" + BRAG_TAG, url: SITE_PLAY}).catch(() => {});
-  }
+  if (e.target.id === "btnBragShare") bragShare();
+  if (e.target.id === "btnBragSave") bragSave();
   if (e.target.id === "btnReplayThis") { replayOpen(G.record, 0); toBoard(); }
   if (e.target.classList.contains("rvGo")) { replayOpen(G.record, +e.target.dataset.ply); toBoard(); }
   if (e.target.id === "btnLinkThis") copyReplayLink(G.record, e.target);

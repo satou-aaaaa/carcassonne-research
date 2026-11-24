@@ -1,0 +1,12 @@
+{
+ "カルカソンヌ講座 | カルカソンヌ入門": "Carcassonne Course | Carcassonne Primer",
+ "ボードゲーム「カルカソンヌ」を4章で学ぶ講座。ルール入門、戦略ガイド、強いAIに学ぶコツ、次の一手クイズ。": "A four-chapter course on the board game Carcassonne: rules, strategy, lessons from a strong AI, and a next-move quiz.",
+ "カルカソンヌ<span>講座</span>": "Carcassonne <span>Course</span>",
+ "ルールを知らないところから、強いAIのような打ち方まで、4つの章で順に進みます。各章の終わりに次の章へのリンクがあります。": "Four chapters take you from not knowing the rules to playing like a strong AI. Each chapter ends with a link to the next.",
+ "<a href=\"rules.html\"><b>1章 ルール入門</b><small>手番の流れ、タイルとミープルの置き方、点の数え方を図で説明します。</small></a>": "<a href=\"rules.html\"><b>Chapter 1: Rules</b><small>How a turn works, placing tiles and meeples, and scoring, explained with diagrams.</small></a>",
+ "<a href=\"strategy.html\"><b>2章 戦略ガイド</b><small>ルールを覚えたら次はここ。点差で考える土台、タイルの内訳、埋まりにくい穴、序盤・中盤・終盤の方針、よくある失敗、用語集。</small></a>": "<a href=\"strategy.html\"><b>Chapter 2: Strategy</b><small>Once you know the rules, come here: thinking in point margins, the tile mix, hard-to-fill holes, plans for each phase, common mistakes, and a glossary.</small></a>",
+ "<a href=\"ai_tips.html\"><b>3章 強いAIに学ぶコツ</b><small>強いAI同士の対局を集計して分かった、初心者がまねしやすい打ち方。</small></a>": "<a href=\"ai_tips.html\"><b>Chapter 3: Lessons from the AI</b><small>Habits from the strong AI's games that beginners can easily copy, backed by numbers.</small></a>",
+ "<a href=\"quiz.html\"><b>4章 次の一手クイズ</b><small>入門編から実戦編まで。AIならどこに置くかを当てて、解説を読みます。</small></a>": "<a href=\"quiz.html\"><b>Chapter 4: Next-Move Quiz</b><small>From beginner to advanced. Guess where the AI would place the tile, then read the explanation.</small></a>",
+ "<a href=\"play.html\"><b>仕上げ AIと対戦</b><small>初心者モードで対戦すると、自分の手のあとにAIならどこに置いたかと何点損したかが出ます。</small></a>": "<a href=\"play.html\"><b>Final step: Play the AI</b><small>In beginner mode, after each of your moves you see where the AI would have placed and how many points you lost.</small></a>",
+ "急ぐ人は、1章のあと2章の「まず覚える5つ」だけ読んで、4章の入門編に進んでもかまいません。慣れてきたら3章と4章の実戦編へ。": "In a hurry? After chapter 1, read only \"Five things to learn first\" in chapter 2 and go to the beginner set in chapter 4. Come back to chapter 3 and the advanced quiz later."
+}

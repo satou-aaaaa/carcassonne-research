@@ -280,7 +280,7 @@ def replay_url(game: int, ply: int | None = None) -> str:
 
 
 REPORT_LIST = 50  # レポートに並べる対局の数（新しい順。全部は「みんなの対局」ページで見る）
-GAMES_URL = "https://satou-aaaaa.github.io/carcassonne-research/games.html"
+GAMES_URL = "https://satou-aaaaa.github.io/carcassonne-research/research/games.html"
 
 
 def report_md(fast: Fast, games: list[dict], w: np.ndarray, sw: list[dict] | None = None) -> str:

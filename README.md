@@ -23,13 +23,23 @@
 
 | ページ | 内容 | 作り方 |
 |---|---|---|
-| [docs/index.html](docs/index.html) | トップ（各ページへの入口） | 手書き |
-| [docs/rules.html](docs/rules.html) | ルール入門（図と点数はエンジンで検算） | `scripts/build_rules_page.py` |
-| [docs/strategy.html](docs/strategy.html) | 戦略ガイド（考え方、タイルの内訳、穴の埋まりやすさ、序盤〜終盤、失敗例、用語集） | `scripts/build_strategy_page.py` |
-| [docs/ai_tips.html](docs/ai_tips.html) | 強いAIの対局から学ぶコツ | `scripts/build_tips_page.py`（集計は `docs/results/`） |
-| [docs/quiz.html](docs/quiz.html) | 次の一手クイズ（入門編・実戦編） | `scripts/build_puzzles.py` |
+サイトは「講座」「研究」「対戦」の3部（2026-11-24 に整理。古い URL の `docs/rules.html` などは新しい置き場所への転送ページ）。
+
+| ページ | 内容 | 作り方 |
+|---|---|---|
+| [docs/index.html](docs/index.html) | トップ（3つの部への入口） | `scripts/build_hubs.py` |
+| [docs/learn/](docs/learn/index.html) | 講座の目次 | `scripts/build_hubs.py` |
+| [docs/learn/rules.html](docs/learn/rules.html) | 1章 ルール入門（図と点数はエンジンで検算） | `scripts/build_rules_page.py` |
+| [docs/learn/strategy.html](docs/learn/strategy.html) | 2章 戦略ガイド（考え方、タイルの内訳、穴の埋まりやすさ、序盤〜終盤、失敗例、用語集） | `scripts/build_strategy_page.py` |
+| [docs/learn/ai_tips.html](docs/learn/ai_tips.html) | 3章 強いAIの対局から学ぶコツ | `scripts/build_tips_page.py`（集計は `docs/results/`） |
+| [docs/learn/quiz.html](docs/learn/quiz.html) | 4章 次の一手クイズ（入門編・実戦編） | `scripts/build_puzzles.py` |
+| [docs/research/](docs/research/index.html) | 研究の目次 | `scripts/build_hubs.py` |
+| [docs/research/stats.html](docs/research/stats.html) | データで見る | `scripts/build_stats_page.py` |
+| [docs/research/games.html](docs/research/games.html) | みんなの対局・研究ノート | `scripts/build_games_page.py` |
 | [docs/play.html](docs/play.html) | AIと対戦（AIはブラウザの中で計算。サーバー不要） | `scripts/build_play_page.py` |
 
+ページの置き場所は `scripts/i18n.py` の `LOC` で決める。組み立てスクリプトとテンプレートはページ間のリンクを
+`"rules.html"` のような論理名で書き、書き出すときに置き場所からの相対リンクに直る（`i18n.relocate`）。
 共通のナビゲーションは `scripts/site_nav.py`。データやテンプレート（`web/*_template.html`）を直したら
 `scripts/build_pages.py` で作り直して `docs/` もコミットする（CI が作り直して差分がないか確かめる）。
 
@@ -102,8 +112,8 @@ AI（自己対戦ループの最新チャンピオンの評価関数＋MCTS 1200
 ブラウザの中で考える。ルールと特徴量は Python 版と毎手一致することを `tests/test_play_js.py` で確かめている（node が必要）。
 評価関数は `models/eval_champion.npy`（世代名は `models/eval_champion.json`）。自己対戦ループで新しいチャンピオンが採用されると、
 `.github/workflows/selfplay.yml` が `scripts/update_champion.py` で差し替えて公開ページを作り直し、PR を作ってすぐマージする（main は PR 必須。`scripts/merge_via_pr.sh`）。
-学習ページ（[強いAIに学ぶコツ](https://satou-aaaaa.github.io/carcassonne-research/ai_tips.html)・
-[次の一手クイズ](https://satou-aaaaa.github.io/carcassonne-research/quiz.html)）も同じAIで作る。差し替えのたびに
+学習ページ（[強いAIに学ぶコツ](https://satou-aaaaa.github.io/carcassonne-research/learn/ai_tips.html)・
+[次の一手クイズ](https://satou-aaaaa.github.io/carcassonne-research/learn/quiz.html)）も同じAIで作る。差し替えのたびに
 `.github/workflows/ai-content.yml` が `scripts/refresh_ai_content.py` で最新AI同士の対局を取り直し、クイズの答えを確かめ直す
 （答えが変わった問題はページから外して Issue 1件で知らせ、無くなれば閉じる。本文の言い切りが新しい集計と合わなければ止まって Issue になる）。
 ブラウザ版の対局は記録されない。記録を取る人間評価は、次のローカル版で行う。
@@ -143,11 +153,11 @@ python scripts/selfplay_loop.py status --root /mnt/project-files/carcassonne-run
 ## 練習問題「次の一手」
 
 AIの自己対戦から「この局面ならどこに置く？」形式の初心者向け問題を作り、AIの評価と解説つきの
-1ファイルのページ `docs/quiz.html` にまとめている（ブラウザで直接開ける）。`"level": "入門"` の問題は先頭に入門編として出る。
+1ファイルのページ `docs/learn/quiz.html` にまとめている（ブラウザで直接開ける）。`"level": "入門"` の問題は先頭に入門編として出る。
 
 ```bash
 .venv\Scripts\python scripts/make_puzzles.py --seeds 0-23 --workers 4   # 候補局面を runs/puzzles/ に集める
-.venv\Scripts\python scripts/build_puzzles.py                            # data/puzzles.json から docs/quiz.html を作る
+.venv\Scripts\python scripts/build_puzzles.py                            # data/puzzles.json から docs/learn/quiz.html を作る
 ```
 
 採用する局面と解説は `data/puzzles.json` に手で書く。AIの評価は、根の候補手ごとの平均報酬を予想最終点差に

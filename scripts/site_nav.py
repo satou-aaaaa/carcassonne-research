@@ -10,6 +10,8 @@ from i18n import lang_link
 
 PAGES = [
     ("index.html", "トップ"),
+    ("learn/index.html", "講座"),
+    ("research/index.html", "研究"),
     ("rules.html", "ルール入門"),
     ("strategy.html", "戦略ガイド"),
     ("ai_tips.html", "強いAIのコツ"),
@@ -21,6 +23,8 @@ PAGES = [
 HOME = {"ja": "カルカソンヌ入門", "en": "Carcassonne Primer"}
 PAGES_EN = [
     ("index.html", "Home"),
+    ("learn/index.html", "Course"),
+    ("research/index.html", "Research"),
     ("rules.html", "Rules"),
     ("strategy.html", "Strategy"),
     ("ai_tips.html", "Lessons from the AI"),
@@ -32,12 +36,21 @@ PAGES_EN = [
 
 NAV_CSS = """
 nav.site { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
-nav.site .home { font-weight: 700; margin-right: 8px; color: var(--ink); text-decoration: none; }
+nav.site .home { font-weight: 700; margin-right: 6px; color: var(--ink); text-decoration: none; }
+nav.site .groups { display: contents; }
 nav.site a.p { color: var(--muted); text-decoration: none; padding: 3px 10px; border-radius: 999px; }
 nav.site a.p:hover, nav.site a.p:focus-visible { color: var(--ink); background: var(--paper); outline: none; }
-nav.site a.p[aria-current="page"] { color: var(--paper); background: var(--field); }
-nav.site a.lang { margin-left: auto; border: 1px solid var(--line); }
+nav.site a.p[aria-current] { color: var(--ink); font-weight: 700; box-shadow: inset 0 -2px 0 var(--field); border-radius: 0; }
+nav.site a.play { margin-left: auto; color: var(--paper); background: var(--field); font-weight: 700; text-decoration: none; padding: 3px 14px; border-radius: 999px; }
+nav.site a.play:hover, nav.site a.play:focus-visible { outline: 2px solid var(--field); outline-offset: 2px; }
+nav.site a.play[aria-current] { outline: 2px solid var(--ink); outline-offset: 2px; }
+nav.site a.lang { border: 1px solid var(--line); border-radius: 999px; }
+nav.site .sub { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px 6px; padding-top: 6px; margin-top: 4px; border-top: 1px dashed var(--line); font-size: 13.5px; }
+nav.site .sub a { color: var(--muted); text-decoration: none; padding: 3px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); }
+nav.site .sub a:hover, nav.site .sub a:focus-visible { color: var(--ink); border-color: var(--field); outline: none; }
+nav.site .sub a[aria-current="page"] { color: var(--paper); background: var(--field); border-color: var(--field); }
 @media (pointer: coarse) { nav.site a { min-height: 44px; display: inline-flex; align-items: center; } }
+@media (max-width: 480px) { nav.site { gap: 4px; } nav.site .home { margin-right: 2px; } nav.site a.p { padding-inline: 6px; } nav.site a.play { padding-inline: 10px; } nav.site a.lang { padding-inline: 8px; font-size: 12.5px; } nav.site .sub { gap: 4px; } nav.site .sub a { padding-inline: 9px; } }
 /* 共通: 見出しを語の切れ目で折り返す・開閉の見出しを押しやすく */
 h1, h2, h3 { word-break: auto-phrase; }
 summary { padding-block: 6px; }
@@ -45,41 +58,84 @@ summary { padding-block: 6px; }
 .support { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .support a.kofi { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); text-decoration: none; font-weight: 600; }
 .support a.kofi:hover, .support a.kofi:focus-visible { border-color: var(--field); }
+.support a.terms { margin-left: auto; color: var(--muted); display: inline-flex; align-items: center; min-height: 44px; }
 """
 
 # 作者の Ko-fi ページ（2026-11-03 satou さん設定）。外部スクリプト・外部画像は読み込まない
 KOFI_URL = "https://ko-fi.com/satouaaaaa"
 
 
+# 上のナビ（2026-11-24 整理）: サイトを「講座」「研究」「対戦」の3部にし、上のナビは
+# 講座・研究と、目立つ「AIと対戦」ボタンだけにする。講座・研究のページでは2段目に、その部のページの切り替えを出す。
+# 参考: NN/g「Hamburger Menus and Hidden Navigation」（スマホでは大事な4〜5項目だけ見せる）
+#   https://www.nngroup.com/articles/hamburger-menus/ 、階層は1〜2段まで（NN/g IA Study Guide）
+GROUPS = [
+    ("learn/index.html", ["rules.html", "strategy.html", "ai_tips.html", "quiz.html"]),
+    ("research/index.html", ["stats.html", "games.html"]),
+]
+# 2段目の短い名前（講座は章の番号つき）
+SUB = {
+    "ja": {"learn/index.html": "目次", "rules.html": "1 ルール", "strategy.html": "2 戦略",
+           "ai_tips.html": "3 AIのコツ", "quiz.html": "4 クイズ",
+           "research/index.html": "目次", "stats.html": "データで見る", "games.html": "みんなの対局"},
+    "en": {"learn/index.html": "Contents", "rules.html": "1 Rules", "strategy.html": "2 Strategy",
+           "ai_tips.html": "3 AI lessons", "quiz.html": "4 Quiz",
+           "research/index.html": "Contents", "stats.html": "By the Numbers", "games.html": "Community Games"},
+}  # fmt: skip
+PLAY = "play.html"
+_CUR = ' aria-current="page"'
+
+
+def group_of(page: str) -> str | None:
+    for hub, pages in GROUPS:
+        if page == hub or page in pages:
+            return hub
+    return None
+
+
 def nav_html(current: str, lang: str = "ja") -> str:
-    """current はそのページのファイル名（例 "rules.html"）。lang は "ja" か "en"。
-    最後に、もう一方の言語の同じページへのリンクを置く。"""
-    pages = PAGES if lang == "ja" else PAGES_EN
+    """current はそのページの論理名（例 "rules.html"）。lang は "ja" か "en"。
+    リンクは論理名で書く（i18n.relocate が置き場所に合わせて直す）。最後に、もう一方の言語へのリンク。"""
     aria = "サイト内のページ" if lang == "ja" else "Site pages"
+    sub_aria = "この部のページ" if lang == "ja" else "Pages in this section"
+    cur_group = group_of(current)
     links = []
-    for href, label in pages[1:]:
-        cur = ' aria-current="page"' if href == current else ""
-        links.append(f'<a class="p" href="{href}"{cur}>{label}</a>')
+    for hub, _ in GROUPS:
+        cur = ' aria-current="true"' if hub == cur_group else ""
+        links.append(f'<a class="p" href="{hub}"{cur}>{_title(hub, lang)}</a>')
+    cur = _CUR if current == PLAY else ""
+    play = f'<a class="play" href="{PLAY}"{cur}>{_title(PLAY, lang)}</a>'
+    sub = ""
+    if cur_group:
+        tabs = "".join(
+            f'<a href="{pg}"{_CUR if pg == current else ""}>{SUB[lang][pg]}</a>'
+            for pg in [cur_group, *dict(GROUPS)[cur_group]]
+        )
+        sub = f'<div class="sub" role="group" aria-label="{sub_aria}">{tabs}</div>'
     return (
         f'<nav class="site" aria-label="{aria}">'
         f'<a class="home" href="index.html">{HOME[lang]}</a>'
         + "".join(links)
+        + play
         + lang_link(current, lang, "p lang")
+        + sub
         + "</nav>"
     )
 
 
 def support_html(lang: str = "ja") -> str:
-    """ページ下に置く支援リンク。全ページで同じものを使う（docs/index.html・web/play.html は手で合わせる）。"""
+    """ページ下に置く支援リンク。全ページで同じものを使う（web/play.html は手で合わせる）。"""
     text, label = (
         ("このサイトが役に立ったら、作者を応援できます。", "Ko-fiで応援する")
         if lang == "ja"
         else ("If this site helped you, you can support the author.", "Support on Ko-fi")
     )
+    terms = "利用規約・データの扱い" if lang == "ja" else "Terms & data policy"
     return (
         f'<div class="support">{text}'
         f'<a class="kofi" href="{KOFI_URL}" target="_blank" rel="noopener">'
-        f'<span aria-hidden="true">☕</span>{label}</a></div>'
+        f'<span aria-hidden="true">☕</span>{label}</a>'
+        f'<a class="terms" href="terms.html">{terms}</a></div>'
     )
 
 
@@ -99,7 +155,13 @@ NO_ENHANCE = {"play.html", "index.html"}  # 対戦ページは画面そのもの
 
 # 学ぶ順（前後のリンク）。ほかのページはおすすめの次のページだけ出す
 PATH = ["rules.html", "strategy.html", "ai_tips.html", "quiz.html", "play.html"]
-NEXT_EXTRA = {"stats.html": "games.html", "games.html": "play.html", "terms.html": "games.html"}
+NEXT_EXTRA = {
+    "stats.html": "games.html",
+    "games.html": "play.html",
+    "terms.html": "games.html",
+    "learn/index.html": "rules.html",
+    "research/index.html": "stats.html",
+}
 BLURB = {
     "ja": {
         "rules.html": "手番の流れと点の数え方を、図で順に覚える。",
