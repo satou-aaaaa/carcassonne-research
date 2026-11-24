@@ -131,3 +131,23 @@ jobs:
             # 作ったらすぐ閉じる（2026-11-20 satou さん「issueが増えているようです」）
             ghr gh issue close "$url" --comment "知らせのみ（対応は不要）なので閉じます。"
           fi
+      - name: 次の回をすぐ起こす
+        # GitHub の schedule は混むと数時間遅れたり抜けたりする（公式: 「High load times... may be delayed... may be dropped」
+        # https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule ）。
+        # 10月は1日4回回っていたのが、11月は約12時間おきの1日2回に減っていた（2026-11-24 点検）。
+        # 終わったら次の回を workflow_dispatch で起こして、cron の遅れに左右されず回し続ける（GITHUB_TOKEN でも
+        # workflow_dispatch は新しい実行を起こせる）。もう待っている回があれば起こさない（concurrency で2つは同時に回らない）。
+        # cron はこの鎖が切れたときの控えとして残す。止まったら selfplay-watch.yml が知らせる。
+        if: success() && steps.state.outputs.exists == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          source scripts/gh_retry.sh
+          waiting=$(ghr gh api "repos/$GITHUB_REPOSITORY/actions/workflows/selfplay.yml/runs?per_page=30" \
+            --jq "[.workflow_runs[] | select(.id != $GITHUB_RUN_ID) | select(.status == \"queued\" or .status == \"pending\" or .status == \"waiting\" or .status == \"requested\" or .status == \"in_progress\")] | length")
+          if [ "$waiting" -gt 0 ]; then
+            echo "次の回はもう待っています（$waiting 件）。起こしません"
+            exit 0
+          fi
+          ghr gh workflow run selfplay.yml --ref main
+          echo "次の回を起こしました"

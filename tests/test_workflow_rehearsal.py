@@ -29,7 +29,9 @@ REHEARSED = {
     "selfplay.yml": [
         "学習ページ（コツ集・クイズ）を最新チャンピオンで作り直す",
         "新しく採用が出たら Issue で知らせる",
+        "次の回をすぐ起こす",
     ],
+    "selfplay-watch.yml": ["自己対戦ループが回っているか確かめる"],
     "ai-content.yml": [
         "答えが変わったクイズを Issue で知らせる",
         "言い切りが合わずコツ集を前の版で残したら Issue で知らせる",
@@ -91,6 +93,12 @@ case "$1 $2" in
     # 閉じたものも含めて同じ題の Issue の数（X の下書き）。FAKE_SEEN の題だけあることにする
     jq=""; for ((i = 0; i < ${#args[@]}; i++)); do [ "${args[i]}" = --jq ] && jq=${args[i+1]}; done
     if [ -n "${FAKE_SEEN:-}" ] && [[ "$jq" == *"$FAKE_SEEN"* ]]; then echo 1; else echo 0; fi ;;
+  # 自己対戦ループの実行（--jq 済みの数）。FAKE_BUSY は待ち・実行中の回の数
+  "api repos/o/r/actions/workflows/selfplay.yml/runs?per_page=30") echo "${FAKE_BUSY:-0}" ;;
+  "api repos/o/r/actions/workflows/selfplay.yml") echo "${FAKE_WF_STATE:-active}" ;;
+  "api -X") [ "$3" = PUT ] && [ "$4" = repos/o/r/actions/workflows/selfplay.yml/enable ] || { echo "知らない gh の呼び方: $*" >&2; exit 2; }
+    write_once enable ;;
+  "api repos/o/r/branches/selfplay-state") echo "${FAKE_STATE_DATE:?}" ;;  # 最後の保存の時刻（--jq 済み）
   "api repos/o/r/issues/"[0-9]*) echo '{"issue": {"number": 12, "body": "棋譜"}}' ;;  # 1件の Issue（--jq 済みの形）
   *) echo "知らない gh の呼び方: $*" >&2; exit 2 ;;
 esac
@@ -392,3 +400,69 @@ def test_human_games_x_draft_skips(tmp_path: Path, title: str, seen: str) -> Non
     )
     assert r.returncode == 0, r.stdout + r.stderr
     assert "issue create" not in log, log
+
+
+@pytest.mark.parametrize("busy", ["0", "1"])
+def test_selfplay_chains_next_run(tmp_path: Path, busy: str) -> None:
+    """終わったら次の回を起こす（cron の遅れ・抜けで回数が減らないように、2026-11-24）。待っている回があれば起こさない。"""
+    r, log = rehearse(
+        tmp_path, "selfplay.yml", "次の回をすぐ起こす", FAKE_BUSY=busy, GITHUB_RUN_ID="123"
+    )
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "select(.id != 123)" in log, log  # 自分の実行は数えない
+    if busy == "0":
+        assert log.count("gh workflow run selfplay.yml --ref main") == 2, log  # 504 を1回やり直す
+    else:
+        assert "workflow run" not in log, log
+
+
+def _hours_ago(h: int) -> str:
+    import datetime as dt
+
+    t = dt.datetime.now(dt.UTC) - dt.timedelta(hours=h)
+    return t.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def test_selfplay_watch_quiet_while_running(tmp_path: Path) -> None:
+    r, log = rehearse(
+        tmp_path,
+        "selfplay-watch.yml",
+        "自己対戦ループが回っているか確かめる",
+        FAKE_STATE_DATE=_hours_ago(5),
+        STALE_HOURS="24",
+    )
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "workflow run" not in log and "enable" not in log, log
+
+
+@pytest.mark.parametrize(
+    ("wf_state", "busy", "enable", "dispatch"),
+    [
+        ("active", "0", False, True),
+        ("active", "1", False, False),
+        ("disabled_inactivity", "0", True, True),
+        (
+            "disabled_manually",
+            "0",
+            False,
+            False,
+        ),  # 手で止めたものは勝手に動かさない（知らせるだけ）
+    ],
+)
+def test_selfplay_watch_alerts_and_restarts(
+    tmp_path: Path, wf_state: str, busy: str, enable: bool, dispatch: bool
+) -> None:
+    """状態が24時間以上古ければ失敗にして（→ CI失敗 Issue）、止まった理由に応じて自分で起こし直す。"""
+    r, log = rehearse(
+        tmp_path,
+        "selfplay-watch.yml",
+        "自己対戦ループが回っているか確かめる",
+        FAKE_STATE_DATE=_hours_ago(30),
+        FAKE_WF_STATE=wf_state,
+        FAKE_BUSY=busy,
+        STALE_HOURS="24",
+    )
+    assert r.returncode == 1, r.stdout + r.stderr
+    assert "自己対戦ループが止まっています" in r.stdout, r.stdout
+    assert ("actions/workflows/selfplay.yml/enable" in log) is enable, log
+    assert ("gh workflow run selfplay.yml" in log) is dispatch, log
