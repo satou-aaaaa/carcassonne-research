@@ -1,0 +1,2 @@
+A=fmcts:sims=2000,eval=models/eval_champion.npy,eg=3,rsel=0.8,rk=6,rr=2,rb=1  B=fmcts:sims=2000,eval=models/eval_champion.npy,eg=3,rsel=0.5,rk=6,rr=2,rb=1
+200局 Aの勝率 0.455 [0.387, 0.524] 平均得点差 -0.63±1.42
