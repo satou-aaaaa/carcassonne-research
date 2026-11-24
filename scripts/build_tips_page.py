@@ -353,6 +353,26 @@ def check_claims(s: dict, g: dict, lead: dict) -> None:
         )
 
 
+def drop_missing_figures(tpl: str, ex: dict) -> str:
+    """実戦の例が見つからなかった図版（{{svg_X}}）を、図ごとページから外す。
+
+    pick_examples.py は AI が変わると条件に合う局面を見つけられないことがある
+    （2026-11-24 gen1518 で「あえて置かない」が無く、未定義キー svg_skip で AI content が落ちた）。
+    例が無いだけでページ全体を止めず、その図だけ省く。
+    """
+
+    def sub(m: re.Match) -> str:
+        key = m.group(1)
+        return m.group(0) if key in ex else ""
+
+    return re.sub(
+        r"\n[ \t]*<figure>\s*<div class=\"board\">\{\{svg_(\w+)\}\}</div>.*?</figure>",
+        sub,
+        tpl,
+        flags=re.DOTALL,
+    )
+
+
 def _load(name: str) -> dict:
     for d in (ROOT / "runs", ROOT / "docs" / "results"):
         if (d / name).exists():
@@ -488,7 +508,9 @@ def main() -> None:
     nums.update(charts("ja"))
     nums["site_nav"] = nav_html("ai_tips.html")
     nums["site_support"] = support_html()
-    tpl = (ROOT / "web" / "ai_tips_template.html").read_text(encoding="utf-8")
+    tpl = drop_missing_figures(
+        (ROOT / "web" / "ai_tips_template.html").read_text(encoding="utf-8"), ex
+    )
 
     def fill(text: str, values: dict) -> str:
         def sub(m):

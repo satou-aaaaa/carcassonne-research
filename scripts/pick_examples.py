@@ -49,6 +49,39 @@ def render_before(game, ply, radius=2):
     return st, meeples, (x, y)
 
 
+def _pick_skip(games: list, ex: dict, min_left: int, min_supply: int) -> None:
+    """あえて置かない: 同じ場所に置くが、貪欲法なら道か都市に置くミープルを置かない手。"""
+    for g in games:
+        for m in g["moves"]:
+            if (
+                m["left"] > min_left
+                and m["meeple"] is None
+                and m["same_place_as_greedy"]
+                and m["supply"][0] >= min_supply
+            ):
+                st, _meeples, pos = render_before(g, m["ply"])
+                gm = GreedyAgent().act(st, __import__("random").Random(0))
+                if gm.piece is None or (gm.x, gm.y, gm.variant) != pos + (
+                    g["history"][m["ply"]][3],
+                ):
+                    continue
+                kind = st.ts.types[st.current].variants[gm.variant].pieces[gm.piece].kind
+                if kind not in ("R", "C"):
+                    continue
+                ex["skip"] = {
+                    "svg": render_after(g, m["ply"]),
+                    "seed": g["seed"],
+                    "ply": m["ply"],
+                    "left": m["left"],
+                    "mover": m["player"],
+                    "greedy_kind": kind,
+                    "supply": m["supply"],
+                }
+                break
+        if "skip" in ex:
+            return
+
+
 def pick(games):
     ex = {}
     # 1. 都市の封鎖: 相手のミープル付き都市の隣に、残りタイルでは埋まらない穴を作った
@@ -113,33 +146,10 @@ def pick(games):
         if "merge" in ex:
             break
     # 3. あえて置かない: 序盤、同じ場所に置くが、貪欲法なら置くミープルを置かない
-    for g in games:
-        for m in g["moves"]:
-            if (
-                m["left"] > 40
-                and m["meeple"] is None
-                and m["same_place_as_greedy"]
-                and m["supply"][0] >= 4
-            ):
-                st, meeples, pos = render_before(g, m["ply"])
-                gm = GreedyAgent().act(st, __import__("random").Random(0))
-                if gm.piece is None or (gm.x, gm.y, gm.variant) != pos + (
-                    g["history"][m["ply"]][3],
-                ):
-                    continue
-                kind = st.ts.types[st.current].variants[gm.variant].pieces[gm.piece].kind
-                if kind not in ("R", "C"):
-                    continue
-                ex["skip"] = {
-                    "svg": render_after(g, m["ply"]),
-                    "seed": g["seed"],
-                    "ply": m["ply"],
-                    "left": m["left"],
-                    "mover": m["player"],
-                    "greedy_kind": kind,
-                    "supply": m["supply"],
-                }
-                break
+    # AI が変わると序盤の「置かない」場面が見つからないことがある（2026-11-24 gen1518）。まず序盤・手持ち4個以上で探し、
+    # 無ければ中盤・手持ち2個以上まで広げる（それでも無ければ build_tips_page.py が図を省く）
+    for min_left, min_supply in ((40, 4), (20, 2)):
+        _pick_skip(games, ex, min_left, min_supply)
         if "skip" in ex:
             break
     # 4. 農民: 終盤、完成都市2つ以上に接する草原へ
