@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Community Games</title>
+<meta name="description" content="Records of human-vs-AI games that players sent in for research. Tap one to replay the board move by move.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+:root {
+  --bg: #f1f3ee; --paper: #ffffff; --ink: #1d2620; --muted: #5c6a60; --line: #d5dccf;
+  --field: #2f6b3a; --city: #9a6436; --red: #d64541; --blue: #2f6fd6; --board-bg: #e6e2d6;
+  --bar: #2f6b3a; --bar2: #a8c9ae; --draw: #b9c0b5;
+  --font-display: "Dela Gothic One", "Zen Kaku Gothic New", "Hiragino Sans", sans-serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+  --font-num: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141a16; --paper: #1c241f; --ink: #e6ece6; --muted: #9aa89d; --line: #2e3a32;
+    --field: #7cc48a; --city: #d9a571; --red: #f06a62; --blue: #6c9cf0; --board-bg: #2a312c;
+    --bar: #6fbf7e; --bar2: #35583d; --draw: #56635a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141a16; --paper: #1c241f; --ink: #e6ece6; --muted: #9aa89d; --line: #2e3a32;
+  --field: #7cc48a; --city: #d9a571; --red: #f06a62; --blue: #6c9cf0; --board-bg: #2a312c;
+  --bar: #6fbf7e; --bar2: #35583d; --draw: #56635a; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.85; padding-inline: 16px; padding-block: 0 64px; }
+.wrap { max-width: 760px; margin: 0 auto; }
+header.hero { padding-block: 40px 20px; display: grid; gap: 12px; }
+.eyebrow { font-size: 13px; letter-spacing: .12em; color: var(--muted); font-weight: 700; }
+h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 6vw, 44px); line-height: 1.25; margin: 0; }
+h1 .accent { color: var(--field); }
+.lede { margin: 0; max-width: 38em; }
+section { padding-block: 28px 4px; border-top: 1px solid var(--line); margin-top: 20px; display: grid; gap: 14px; }
+h2 { font-family: var(--font-display); font-weight: 400; font-size: 22px; margin: 0; }
+p { margin: 0; max-width: 38em; }
+.num { font-family: var(--font-num); font-weight: 500; }
+.tiles-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.stat { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; display: grid; gap: 2px; }
+.stat b { font-family: var(--font-num); font-weight: 500; font-size: 26px; line-height: 1.2; }
+.stat span { font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+.note { font-size: 14px; color: var(--muted); }
+.tools { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.tools label { font-size: 14px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+.tools select { font: inherit; font-size: 15px; min-height: 44px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--ink); }
+ol.games { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+ol.games a { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 14px; align-items: center; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; color: var(--ink); text-decoration: none; min-height: 44px; }
+ol.games a:hover, ol.games a:focus-visible { border-color: var(--field); outline: none; }
+ol.games .no { font-family: var(--font-num); color: var(--muted); font-size: 14px; min-width: 5ch; }
+ol.games .sc { font-family: var(--font-num); font-weight: 500; font-size: 18px; }
+ol.games .sc .h { color: var(--red); }
+ol.games .sc .a { color: var(--blue); }
+ol.games .meta { font-size: 13.5px; color: var(--muted); grid-column: 2; }
+ol.games .res { font-size: 14px; font-weight: 700; grid-row: 1 / span 2; grid-column: 3; }
+ol.games .res.win { color: var(--field); }
+ol.games .go { color: var(--field); white-space: nowrap; }
+p a { color: var(--field); }
+.thanks { font-weight: 700; color: var(--field); }
+h3 { font-size: 17px; margin: 8px 0 0; }
+.tools input { font: inherit; font-size: 15px; width: 6em; min-height: 44px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--ink); }
+.tools button { font: inherit; font-size: 15px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); cursor: pointer; }
+.pager { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.pager button { font: inherit; font-size: 15px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); cursor: pointer; }
+.pager button:disabled { opacity: .4; cursor: default; }
+.pager .num { font-size: 14px; color: var(--muted); white-space: nowrap; }
+.empty { background: var(--paper); border: 1px dashed var(--line); border-radius: 6px; padding: 16px; }
+.next { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.next a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 999px; background: var(--field); color: var(--paper); text-decoration: none; font-weight: 700; }
+.next a.sub { background: var(--paper); color: var(--ink); border: 1px solid var(--line); }
+.bars { display: grid; gap: 6px; }
+.bar { display: grid; grid-template-columns: minmax(0, 15em) 1fr auto; gap: 10px; align-items: center; font-size: 14.5px; }
+.bar .track { display: block; height: 12px; background: var(--line); border-radius: 999px; overflow: hidden; }
+.bar .fill { display: block; height: 100%; background: var(--bar); border-radius: 999px; }
+.bar .v { font-family: var(--font-num); font-size: 14px; min-width: 4.5em; text-align: right; }
+.lead { font-weight: 700; }
+@media (max-width: 520px) { .bar { grid-template-columns: 1fr auto; } .bar .track { grid-column: 1 / -1; grid-row: 2; } }
+
+nav.site { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+nav.site .home { font-weight: 700; margin-right: 6px; color: var(--ink); text-decoration: none; }
+nav.site .groups { display: contents; }
+nav.site a.p { color: var(--muted); text-decoration: none; padding: 3px 10px; border-radius: 999px; }
+nav.site a.p:hover, nav.site a.p:focus-visible { color: var(--ink); background: var(--paper); outline: none; }
+nav.site a.p[aria-current] { color: var(--ink); font-weight: 700; box-shadow: inset 0 -2px 0 var(--field); border-radius: 0; }
+nav.site a.play { margin-left: auto; color: var(--paper); background: var(--field); font-weight: 700; text-decoration: none; padding: 3px 14px; border-radius: 999px; }
+nav.site a.play:hover, nav.site a.play:focus-visible { outline: 2px solid var(--field); outline-offset: 2px; }
+nav.site a.play[aria-current] { outline: 2px solid var(--ink); outline-offset: 2px; }
+nav.site a.lang { border: 1px solid var(--line); border-radius: 999px; }
+nav.site .sub { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px 6px; padding-top: 6px; margin-top: 4px; border-top: 1px dashed var(--line); font-size: 13.5px; }
+nav.site .sub a { color: var(--muted); text-decoration: none; padding: 3px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); }
+nav.site .sub a:hover, nav.site .sub a:focus-visible { color: var(--ink); border-color: var(--field); outline: none; }
+nav.site .sub a[aria-current="page"] { color: var(--paper); background: var(--field); border-color: var(--field); }
+@media (pointer: coarse) { nav.site a { min-height: 44px; display: inline-flex; align-items: center; } }
+@media (max-width: 480px) { nav.site { gap: 4px; } nav.site .home { margin-right: 2px; } nav.site a.p { padding-inline: 6px; } nav.site a.play { padding-inline: 10px; } nav.site a.lang { padding-inline: 8px; font-size: 12.5px; } nav.site .sub { gap: 4px; } nav.site .sub a { padding-inline: 9px; } }
+/* 共通: 見出しを語の切れ目で折り返す・開閉の見出しを押しやすく */
+h1, h2, h3 { word-break: auto-phrase; }
+summary { padding-block: 6px; }
+/* 共通: ページ下の支援リンク（Ko-fi）。目立ちすぎないよう枠線だけのボタンにする */
+.support { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.support a.kofi { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); text-decoration: none; font-weight: 600; }
+.support a.kofi:hover, .support a.kofi:focus-visible { border-color: var(--field); }
+.support a.terms { margin-left: auto; color: var(--muted); display: inline-flex; align-items: center; min-height: 44px; }
+
+</style>
+<style id="page-aids">
+nav.pagetoc { margin: 18px 0 8px; padding: 12px 0; border-block: 1px solid var(--line); }
+nav.pagetoc .h { font-size: 12.5px; font-weight: 700; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; }
+nav.pagetoc ol { display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 0; padding: 0; list-style: none; font-size: 14px; }
+nav.pagetoc a { display: inline-flex; align-items: center; min-height: 32px; padding: 2px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); text-decoration: none; }
+nav.pagetoc a:hover, nav.pagetoc a:focus-visible { border-color: var(--field); outline: none; }
+@media (pointer: coarse) { nav.pagetoc a { min-height: 44px; } }
+section[id], [id="page-toc"] { scroll-margin-top: 12px; }
+a.totop { position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); z-index: 50; display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); font-size: 14px; font-weight: 600; text-decoration: none; box-shadow: 0 2px 10px rgba(0,0,0,.15); opacity: 0; visibility: hidden; transform: translateY(8px); transition: opacity .2s, transform .2s, visibility .2s; }
+a.totop.on { opacity: 1; visibility: visible; transform: none; }
+a.totop:hover, a.totop:focus-visible { border-color: var(--field); outline: none; }
+@media print { a.totop { display: none; } }
+@media (prefers-reduced-motion: reduce) { a.totop { transition: none; } html { scroll-behavior: auto; } }
+nav.nextread { margin-top: 40px; display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+nav.nextread a { display: block; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); color: var(--ink); text-decoration: none; }
+nav.nextread a:hover, nav.nextread a:focus-visible { border-color: var(--field); outline: none; }
+nav.nextread .k { display: block; font-size: 12.5px; font-weight: 700; letter-spacing: .06em; color: var(--muted); }
+nav.nextread .t { display: block; font-size: 17px; font-weight: 700; margin: 2px 0 4px; }
+nav.nextread .d { display: block; font-size: 14px; color: var(--muted); }
+nav.nextread a.next { border-color: var(--field); }
+</style><link rel="alternate" hreflang="ja" href="https://satou-aaaaa.github.io/carcassonne-research/research/games.html"><link rel="alternate" hreflang="en" href="https://satou-aaaaa.github.io/carcassonne-research/en/research/games.html"><link rel="alternate" hreflang="x-default" href="https://satou-aaaaa.github.io/carcassonne-research/en/research/games.html">
+<script>(function(){var K="site-lang",cur="en",alt="../../research/games.html",s=null;try{s=localStorage.getItem(K)}catch(e){}if(!/bot|crawl|spider|slurp|lighthouse/i.test(navigator.userAgent)){var l=(navigator.languages&&navigator.languages[0])||navigator.language||'';var want=s||(/^ja\b/i.test(l)?'ja':'en');if(want!==cur){location.replace(alt+location.search+location.hash);return}}document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[data-lang]');if(a)try{localStorage.setItem(K,a.getAttribute('data-lang'))}catch(e){}})})();</script>
+</head>
+<body>
+<div class="wrap">
+<nav class="site" aria-label="Site pages"><a class="home" href="../">Carcassonne Primer</a><a class="p" href="../learn/">Course</a><a class="p" href="./" aria-current="true">Research</a><a class="play" href="../play.html">Play the AI</a><a class="p lang" href="../../research/games.html" hreflang="ja" lang="ja" data-lang="ja" title="日本語に切り替え">日本語</a><div class="sub" role="group" aria-label="Pages in this section"><a href="./">Contents</a><a href="stats.html">By the Numbers</a><a href="games.html" aria-current="page">Community Games</a></div></nav>
+<header class="hero">
+  <div class="eyebrow">COMMUNITY GAMES</div>
+  <h1>Community <span class="accent">Games</span></h1>
+  <p class="lede">Games against the AI that players sent in for research. Tap one to open it on the play page and step through the board with ◀ ▶, or press “⏵ Auto” to play it through. No names or other personal information are included.</p>
+  <p class="thanks">To everyone who sent in their games: thank you for helping the research.</p>
+</header>
+<nav class="pagetoc" id="page-toc" aria-labelledby="page-toc-h"><p class="h" id="page-toc-h">On this page</p><ol><li><a href="#summary">Summary</a></li><li><a href="#findings">Research notes: what the games have shown so far</a></li><li><a href="#list">All games</a></li><li><a href="#use">How your games are used</a></li><li><a href="#data">Download and use the data</a></li><li><a href="#how">Sending a game, and replaying your own</a></li></ol></nav>
+
+<section id="summary">
+  <h2>Summary</h2>
+  <div class="tiles-row" id="stats"></div>
+</section>
+
+<section id="findings">
+  <h2>Research notes: what the games have shown so far</h2>
+  <p>Every human move in the games received is scored by the strongest AI, the same way as the hints on the play page. A move that loses <span class="num">3</span> or more points by the AI's estimate counts as a mistake, and the notes below show where points tend to slip away. They are recounted automatically whenever a new game arrives. The AI's estimates are not exact either, so treat the points for a single move as a rough guide.</p>
+  <p class="note" id="fNote"></p>
+  <p class="lead" id="fLead"></p>
+  <div class="tiles-row" id="fStats"></div>
+  <div id="fBody">
+  <h3>Kinds of mistakes (how the move differed from the AI's best move)</h3>
+  <div class="bars" id="fCats"></div>
+  <h3>Share of mistakes by stage of the game</h3>
+  <div class="bars" id="fPhases"></div>
+  <h3>Most costly moves (tap to replay from just before the move)</h3>
+  <ol class="games" id="fWorst"></ol>
+  <h3>Looking for the AI's weak spots</h3>
+  <p id="fAi"></p>
+  <ol class="games" id="fMis"></ol>
+  </div>
+  <p class="note" id="fMeta"></p>
+</section>
+
+<section id="list">
+  <h2>All games</h2>
+  <div class="tools">
+    <label>AI level <select id="fLevel"><option value="">All</option></select></label>
+    <label>Result <select id="fRes"><option value="">All</option><option value="win">Human wins</option><option value="loss">AI wins</option><option value="draw">Draw</option></select></label>
+    <label>Sort <select id="fSort"><option value="new">Newest first</option><option value="old">Oldest first</option><option value="diff">Best for the human first</option></select></label>
+  </div>
+  <form class="tools" id="jump"><label>Open game # <input id="jumpNo" type="number" min="1" inputmode="numeric"></label><button type="submit">Replay</button></form>
+  <p class="note" id="count" aria-live="polite"></p>
+  <ol class="games" id="games"></ol>
+  <nav class="pager" id="pager" aria-label="Pages of the game list" hidden>
+    <button type="button" id="pgPrev">← Previous 30</button>
+    <span class="num" id="pgNow"></span>
+    <button type="button" id="pgNext">Next 30 →</button>
+  </nav>
+  <p class="empty" id="empty" hidden>No games have arrived yet. Play a game on the play page and send it with "Send game record" when it ends.</p>
+  <p class="note" id="loadErr" hidden>Could not load the game list. Please try again later.</p>
+</section>
+
+<section id="use">
+  <h2>How your games are used</h2>
+  <div class="tiles-row" id="useStats"></div>
+  <p>People play differently from the AI, so their games show it positions it has not learned yet. The positions from every game received are mixed into each round of self-play training. Moves after which the AI's own estimate dropped sharply (moves it had not seen coming) are collected in the <a href="https://github.com/satou-aaaaa/carcassonne-research/blob/main/docs/results/human_games.md">weakness report</a> (GitHub, Japanese) and used as clues to improve it.</p>
+</section>
+
+<section id="data">
+  <h2>Download and use the data</h2>
+  <p>Anyone can download the collected game records and use them for research or learning. The license is <a href="https://creativecommons.org/licenses/by/4.0/deed.en">CC BY 4.0</a> (you may use them commercially and adapt them as long as you give attribution; for example "carcassonne-research human-vs-AI game data (CC BY 4.0)" with a link to this site).</p>
+  <div class="next">
+    <a href="../../human_games.json" download>Download all games (JSON)</a>
+    <a class="sub" href="https://github.com/satou-aaaaa/carcassonne-research/blob/main/data/human_games.jsonl">Source file (GitHub, one game per line)</a>
+  </div>
+  <p class="note">Format of one game: <code>v</code> version (1), <code>deck</code> deck order (the 71 tiles of the base game other than the start tile, as tile type numbers), <code>moves</code> moves [x, y, rotation, meeple spot (−1 for none)], <code>human_seat</code> the human's seat (0 first, 1 second), <code>level</code> AI level, <code>ai</code> AI version, <code>coach</code> beginner mode, <code>hints</code> number of hints, <code>undos</code> number of undos, <code>scores</code> final scores [first, second]. Tile type numbers follow the order in <a href="https://github.com/satou-aaaaa/carcassonne-research/blob/main/data/tiles.json">data/tiles.json</a> (from 0). Records are never deleted, and a weekly backup is also kept elsewhere (a GitHub Release).</p>
+  <p class="note">Please read the <a href="../terms.html">Terms of Use and Data</a> before sending. Games you send are published and cannot be removed later.</p>
+</section>
+
+<section id="how">
+  <h2>Sending a game, and replaying your own</h2>
+  <p>When you finish a game on the play page, the result panel shows a button to send the game record (no account needed). Records are checked against the rules and added to this list every morning. Only the deck, the moves, the scores and the AI level are sent; no names.</p>
+  <p>Sending is entirely up to you. Without sending anything, you can still play and replay your own games as before.</p>
+  <p>You can replay your own games without sending them, from "Replay a game" on the play page (this browser keeps your last 20 games). Use "Copy replay link" to show a game to a friend.</p>
+  <div class="next">
+    <a href="../play.html">Play the AI</a>
+    <a class="sub" href="../learn/ai_tips.html">Lessons from the AI</a>
+  </div>
+</section>
+<nav class="nextread" aria-label="Previous and next pages"><a class="next" href="../play.html"><span class="k">Next</span><span class="t">Play the AI</span><span class="d">Play the strong AI right in your browser.</span></a></nav>
+<div class="support">If this site helped you, you can support the author.<a class="kofi" href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>Support on Ko-fi</a><a class="terms" href="../terms.html">Terms & data policy</a></div>
+</div>
+<script>
+// 送ってもらった棋譜の一覧（scripts/human_games.py report が docs/human_games/index.json に書く軽い表。1局1行で
+// [強さ, 人の席, 人の得点, AIの得点, 手数, ヒント等あり]）。何千局になっても重くならないよう、30局ずつ並べる。
+// 英語版（docs/en/）からは一つ上を読む。Replayは対戦ページ（play.html#replay=番号、1始まり）が、その局の入ったファイルだけ読む
+(() => {
+  const EN = document.documentElement.lang === "en";
+  const SRC = EN ? "../../human_games/index.json" : "../human_games/index.json";
+  const LEVELS = {strong: "Strongest", standard: "Standard", greedy: "Easy"};
+  const PAGE = 30;
+  const $ = id => document.getElementById(id);
+  const stat = (big, label) => `<div class="stat"><b>${big}</b><span>${label}</span></div>`;
+  const fmt = n => n.toLocaleString(EN ? "en-US" : "ja-JP");
+  let games = [], page = 0;
+  const diff = r => r[2] - r[3];
+  const resOf = r => diff(r) > 0 ? "win" : diff(r) < 0 ? "loss" : "draw";
+  function draw(keepPage) {
+    const lv = $("fLevel").value, rs = $("fRes").value, sort = $("fSort").value;
+    let list = [];
+    for (let i = 0; i < games.length; i++) {
+      const r = games[i];
+      if ((!lv || r[0] === lv) && (!rs || resOf(r) === rs)) list.push(i);
+    }
+    if (sort === "new") list.reverse();
+    else if (sort === "diff") list.sort((a, b) => diff(games[b]) - diff(games[a]) || b - a);
+    const pages = Math.max(1, Math.ceil(list.length / PAGE));
+    if (!keepPage) page = 0;
+    page = Math.min(Math.max(page, 0), pages - 1);
+    const from = page * PAGE, shown = list.slice(from, from + PAGE);
+    const html = [];
+    for (const i of shown) {
+      const r = games[i], d = diff(r);
+      const res = d > 0 ? "Human wins" : d < 0 ? "AI wins" : "Draw";
+      const seat = r[1] === 0 ? "human first" : "human second";
+      html.push(`<li><a href="../play.html#replay=${i + 1}"><span class="no">#${i + 1}</span>` +
+        `<span class="sc"><span class="h">Human ${r[2]}</span> − <span class="a">AI ${r[3]}</span></span>` +
+        `<span class="res${d > 0 ? " win" : ""}">${res}</span>` +
+        `<span class="meta">AI: ${LEVELS[r[0]] || r[0]} · ${seat} · ${r[4]} moves <span class="go">▶ Replay</span></span></a></li>`);
+    }
+    $("games").innerHTML = html.join("");
+    $("count").textContent = !games.length ? "" : !list.length ? "No games match these filters." :
+      `Showing ${fmt(from + 1)}–${fmt(from + shown.length)} of ${fmt(list.length)} games`;
+    $("pager").hidden = pages <= 1;
+    $("pgNow").textContent = `${page + 1} / ${pages}`;
+    $("pgPrev").disabled = page === 0; $("pgNext").disabled = page >= pages - 1;
+    $("empty").hidden = games.length > 0;
+    $("jump").hidden = games.length === 0;
+  }
+  function go(step) {
+    page += step; draw(true);
+    $("list").scrollIntoView({block: "start"});
+  }
+  $("pgPrev").onclick = () => go(-1); $("pgNext").onclick = () => go(1);
+  $("jump").onsubmit = e => {
+    e.preventDefault();
+    const n = parseInt($("jumpNo").value, 10);
+    if (!(n >= 1 && n <= games.length)) { $("jumpNo").setCustomValidity(`Enter a number from 1 to ${games.length}`); $("jumpNo").reportValidity(); return; }
+    location.href = `../play.html#replay=${n}`;
+  };
+  $("jumpNo").oninput = e => e.target.setCustomValidity("");
+  function summary() {
+    const n = games.length;
+    const win = games.filter(r => diff(r) > 0).length;
+    const avg = n ? games.reduce((s, r) => s + diff(r), 0) / n : 0;
+    $("stats").innerHTML = stat(fmt(n), "Games received") + stat(n ? Math.round(100 * win / n) + "%" : "−", "Human win rate") +
+      stat(n ? (avg > 0 ? "+" : "") + avg.toFixed(1) : "−", "Average margin for the human");
+    const pos = games.reduce((s, r) => s + r[4], 0);
+    $("useStats").innerHTML = stat(fmt(pos), "Positions used in training") + stat(fmt(n), "Games used to find weak spots");
+    $("jumpNo").max = n;
+    for (const k of Object.keys(LEVELS)) if (games.some(r => r[0] === k)) {
+      const o = document.createElement("option"); o.value = k; o.textContent = LEVELS[k]; $("fLevel").appendChild(o);
+    }
+  }
+  $("fLevel").onchange = $("fRes").onchange = $("fSort").onchange = () => draw();
+  // 研究ノート: scripts/human_games.py report が docs/human_findings.json に書く集計（src/carcassonne/human_findings.py）
+  const KIND = {C: "city", R: "road", F: "field", M: "monastery"};
+  const CAT = {
+    no_meeple: "No meeple placed (the AI would place one)",
+    extra_meeple: "Meeple placed (the AI would keep it)",
+    other_feature: "Meeple on a different kind of feature",
+    placement: "Tile placed elsewhere or turned differently",
+    unexplored: "A move the AI barely considered",
+  };
+  const PHASE = {early: "Opening (moves 1–24)", middle: "Middle game (moves 25–48)", late: "Endgame (move 49 on)"};
+  const meeple = k => k ? KIND[k] + " meeple" : "no meeple";
+  const bar = (label, v, max, text) => `<div class="bar"><span>${label}</span><span class="track"><span class="fill" style="width:${max ? Math.round(100 * v / max) : 0}%"></span></span><span class="v">${text}</span></div>`;
+  const item = (href, no, main, meta) => `<li><a href="${href}"><span class="no">${no}</span><span class="sc">${main}</span><span class="meta">${meta} <span class="go">▶ Replay</span></span></a></li>`;
+  function findings(s) {
+    const n = s.games;
+    if (!n) { $("fNote").textContent = s.pending ? "The AI is still scoring the games that arrived. The findings will appear here once scoring is done." : "No games have arrived yet, so there are no findings so far."; $("fBody").hidden = true; return; }
+    $("fNote").textContent = s.trend ? `Based on ${n} games.` :
+      `Only ${n} game(s) so far, so read this as an example of what happened in these games, not as a trend. Trends will be summarized once 10 games have arrived.`;
+    $("fLead").textContent = s.loss_small_per_game > s.loss_bad_per_game ?
+      "Most of the lost points came not from obvious mistakes but from small losses adding up move after move." :
+      "Most of the lost points came from a few big mistakes.";
+    $("fStats").innerHTML = stat(s.bad_per_game, "Mistakes per game") + stat(s.mean_loss, "Average loss per move (points)") +
+      stat(s.loss_bad_per_game, "Points lost to mistakes (per game)") + stat(s.loss_small_per_game, "Small losses added up (per game)");
+    const cmax = Math.max(...Object.values(s.by_cat));
+    $("fCats").innerHTML = Object.entries(s.by_cat).map(([k, v]) => bar(CAT[k], v, cmax, `${v}`)).join("");
+    const rate = p => p.moves ? p.bad / p.moves : 0;
+    const pmax = Math.max(...Object.values(s.by_phase).map(rate));
+    $("fPhases").innerHTML = Object.entries(s.by_phase).map(([k, p]) =>
+      bar(PHASE[k], rate(p), pmax, `${p.bad}/${p.moves} moves`)).join("");
+    $("fWorst").innerHTML = s.worst.map(w => item(`../play.html#replay=${w.game}&ply=${w.ply - 1}`, `#${w.game}`,
+      `about ${w.loss} points lost`, `move ${w.ply} · ${CAT[w.cat]} (human: ${meeple(w.mine)} / AI: ${meeple(w.best)})`)).join("");
+    $("fAi").textContent = `Human wins: ${s.human_wins} of ${n} games. Positions where the AI's estimate dropped sharply after a human move are candidates where the AI undervalued that move. This is where we look for the AI's weak spots.`;
+    $("fMis").innerHTML = s.ai_misreads.map(m => item(`../play.html#replay=${m.game}&ply=${m.ply - 1}`, `#${m.game}`,
+      `estimate dropped ${m.drop} points`, `after the human's move ${m.ply}`)).join("");
+    $("fMeta").textContent = `Scored by AI: ${s.ai.join(", ")} · updated ${s.updated}` +
+      (s.pending ? ` · waiting to be scored: ${fmt(s.pending)} games (scored a few at a time, oldest first)` : "");
+  }
+  fetch(EN ? "../../human_findings.json" : "../human_findings.json").then(r => r.json()).then(findings)
+    .catch(() => { $("fNote").textContent = "Could not load the research notes. Please try again later."; $("fBody").hidden = true; });
+  fetch(SRC).then(r => r.ok ? r.json() : Promise.reject(r.status)).then(g => { games = Array.isArray(g) ? g : []; summary(); draw(); })
+    .catch(() => { $("loadErr").hidden = false; summary(); });
+})();
+</script>
+<a class="totop" href="#page-toc"><span aria-hidden="true">↑</span>Contents</a><script>(function(){var b=document.querySelector('a.totop');if(!b)return;function f(){b.classList.toggle('on',window.scrollY>window.innerHeight)}addEventListener('scroll',f,{passive:true});f()})()</script></body>
+</html>

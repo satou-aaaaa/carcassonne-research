@@ -39,8 +39,8 @@ node scripts/ui_check.mjs play.html          # 1ページだけ
 
 ## 3. 直し方
 - `docs/*.html` は手で直さない。元（`web/*_template.html`, `web/play.html`, `scripts/build_*.py`,
-  `scripts/site_nav.py`）を直して `python scripts/build_pages.py`。`docs/index.html` だけ手書き（共通ナビの CSS を手で合わせる）。
-- 全ページに効かせたい CSS は `scripts/site_nav.py` の `NAV_CSS`（index.html と play.html には手で合わせる）。
+  `scripts/site_nav.py`）を直して `python scripts/build_pages.py`。トップ・講座と研究の目次は `scripts/build_hubs.py`。
+- 全ページに効かせたい CSS は `scripts/site_nav.py` の `NAV_CSS`（play.html には手で合わせる）。
 - 直したらもう一度 1. を回し、スクリーンショットで前後を見比べる。
 
 ## 4. 報告

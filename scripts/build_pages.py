@@ -1,9 +1,9 @@
-"""公開ページ（docs/ の rules・strategy・ai_tips・quiz・play・stats・games）をまとめて作り直す。
+"""公開ページ（docs/ のトップ・講座 learn/・研究 research/・対戦 play.html ほか）をまとめて作り直す。
 
     py scripts/build_pages.py           # 作り直す
     py scripts/build_pages.py --check   # 作り直した結果がコミット済みの docs/ と同じか確かめる（CI用）
 
-docs/index.html は手書き（英語版 docs/en/index.html は build_index_en.py が作る）。
+ページの置き場所は scripts/i18n.py の LOC（組み立てスクリプトは "rules.html" などの論理名で書く）。
 """
 
 from __future__ import annotations
@@ -23,7 +23,8 @@ BUILDERS = [
     "build_stats_page.py",
     "build_games_page.py",
     "build_terms_page.py",
-    "build_index_en.py",  # 手書きの docs/index.html から英語版を作る
+    "build_hubs.py",  # トップ・講座の目次（learn/）・研究の目次（research/）
+    "build_redirects.py",  # 古い置き場所（docs/rules.html など）の転送ページ
 ]
 
 

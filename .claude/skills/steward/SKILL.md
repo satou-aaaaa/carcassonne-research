@@ -13,10 +13,10 @@ description: このリポジトリでPRを作る・直す・CIを通す・マー
    - エンジン（`src/carcassonne/fast*.py`, `state.py`, `mcts.py`）を触ったときは `--quick` を付けずに全テストを回す。
 2. `data/`、`web/*_template.html`、`scripts/build_*.py`、`scripts/site_nav.py`、`scripts/board_svg.py` を
    変えたら `python scripts/build_pages.py` で `docs/` を作り直し、同じコミットに入れる。
-   `docs/*.html` は手で直さない（`docs/index.html` だけは手書き）。
+   `docs/` の HTML は手で直さない（トップ・講座と研究の目次も `scripts/build_hubs.py` が作る）。
 3. 公開ページ（docs/）やその元を変えたら、`.claude/skills/ui-check/SKILL.md` の手順でスマホ幅・PC幅の
    UI 点検をする（`node scripts/ui_check.mjs --shots ui-shots` と、スクリーンショットの目視）。
-4. 本文に数値を書くページ（`docs/rules.html` など）は、組み立てスクリプトがエンジンで検算する。
+4. 本文に数値を書くページ（`docs/learn/rules.html` など）は、組み立てスクリプトがエンジンで検算する。
    検算で止まったら、数値か局面を直す。検算を外さない。
 
 ## CI

@@ -20,4 +20,4 @@ jobs:
     uses: satou-aaaaa/shared-workflows/.github/workflows/site-watch.yml@main
     with:
       # 公開URLからの相対パス（空白区切り）。トップページは常に見る
-      paths: index.html play.html rules.html strategy.html quiz.html ai_tips.html carcassonne_engine.js
+      paths: index.html play.html learn/ learn/rules.html learn/strategy.html learn/quiz.html learn/ai_tips.html research/ research/games.html rules.html carcassonne_engine.js

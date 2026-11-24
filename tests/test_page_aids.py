@@ -13,18 +13,19 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
+from i18n import LOGICAL, out_path
 from site_nav import NEXT_EXTRA, NO_ENHANCE, PATH, TOC_MIN, enhance, page_sections
 
 PAGES = [
-    p
+    (page, d / out_path(page))
     for d in (ROOT / "docs", ROOT / "docs" / "en")
-    for p in sorted(d.glob("*.html"))
-    if p.name not in NO_ENHANCE
+    for page in sorted(LOGICAL)
+    if page not in NO_ENHANCE
 ]
 
 
-@pytest.mark.parametrize("path", PAGES, ids=lambda p: str(p.relative_to(ROOT / "docs")))
-def test_long_page_has_toc_and_links(path):
+@pytest.mark.parametrize("page,path", PAGES, ids=lambda x: str(x).split("docs/")[-1])
+def test_long_page_has_toc_and_links(page, path):
     html = path.read_text(encoding="utf-8")
     ids = set(re.findall(r'\bid="([^"]+)"', html))
     if len(page_sections(html)) >= TOC_MIN:
@@ -33,13 +34,16 @@ def test_long_page_has_toc_and_links(path):
     for href in re.findall(r'<nav class="pagetoc".*?</nav>', html, re.DOTALL):
         for a in re.findall(r'href="#([^"]+)"', href):
             assert a in ids, f"{path.name}: 目次の飛び先 #{a} がない"
-    if path.name in PATH or path.name in NEXT_EXTRA:
+    if page in PATH or page in NEXT_EXTRA:
         assert 'class="nextread"' in html, f"{path.name}: 前後のページへのリンクがない"
         for a in re.findall(r'<nav class="nextread".*?</nav>', html, re.DOTALL):
             for href in re.findall(r'href="([^"#]+)"', a):
-                assert (path.parent / href).exists(), f"{path.name}: {href} がない"
+                t = path.parent / href
+                assert (t / "index.html" if href.endswith("/") else t).exists(), (
+                    f"{path}: {href} がない"
+                )
 
 
 def test_enhance_is_idempotent():
-    html = (ROOT / "docs" / "stats.html").read_text(encoding="utf-8")
+    html = (ROOT / "docs" / out_path("stats.html")).read_text(encoding="utf-8")
     assert enhance(html, "stats.html", "ja") == html

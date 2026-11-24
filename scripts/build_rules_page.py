@@ -164,7 +164,7 @@ __NAV_CSS__
 __NAV__
 <header class="hero">
   <span class="eyebrow">カルカソンヌ ・ 基本ルール ・ 2〜5人</span>
-  <h1>はじめての<span class="accent">カルカソンヌ</span></h1>
+  <h1>カルカソンヌの<span class="accent">ルール</span></h1>
   <p class="lede">タイルを1枚ずつつなげて地図を広げ、できあがった都市や道に置いた自分のコマ（ミープル）で点を取るゲームです。このページでは、遊ぶのに必要なルールを図つきで説明します。</p>
 </header>
 

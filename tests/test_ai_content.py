@@ -31,7 +31,7 @@ def test_tips_and_quiz_name_the_ai_they_were_made_with():
     assert summ["ai"]["name"]
     puzzles = json.loads((ROOT / "data/puzzles.json").read_text(encoding="utf-8"))
     assert all(p.get("checked_by", {}).get("name") for p in puzzles)
-    html = (ROOT / "docs/ai_tips.html").read_text(encoding="utf-8")
+    html = (ROOT / "docs/learn/ai_tips.html").read_text(encoding="utf-8")
     assert summ["ai"]["name"] in html
 
 
@@ -205,7 +205,7 @@ def test_retired_puzzles_stay_off_the_page_and_do_not_make_content_stale():
         if (ROOT / "web/puzzles.json").exists()
         else ""
     )
-    html = (ROOT / "docs/quiz.html").read_text(encoding="utf-8")
+    html = (ROOT / "docs/learn/quiz.html").read_text(encoding="utf-8")
     for pid in gone:
         assert f'"{pid}"' not in html and f'"{pid}"' not in page
     # 外した問題の checked_by は古いままでも、作り直しの判定（最新AIかどうか）に入れない
