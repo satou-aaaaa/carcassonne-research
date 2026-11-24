@@ -2,15 +2,16 @@
 
 対戦ページから送ってもらった棋譜（data/human_games.jsonl）の集計。`python scripts/human_games.py report` で作り直す。
 
-受け取った対局: 39局
+受け取った対局: 40局
 
 | AIの強さ | 局数 | 人の勝ち | 引き分け | 人から見た平均得点差 | うちヒント等あり |
 |---|---:|---:|---:|---:|---:|
-| strong | 30 | 12 | 1 | -3.7 | 29 |
+| strong | 31 | 13 | 1 | -3.1 | 30 |
 | standard | 9 | 6 | 1 | +4.4 | 9 |
 
 ## 対局の一覧（押すと一手ずつ再生）
 
+- [40局目](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=40): 人（先手）92 − AI 77（strong、71手）
 - [39局目](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=39): 人（先手）108 − AI 105（strong、71手）
 - [38局目](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=38): 人（先手）96 − AI 97（strong、71手）
 - [37局目](https://satou-aaaaa.github.io/carcassonne-research/play.html#replay=37): 人（先手）90 − AI 110（strong、71手）
