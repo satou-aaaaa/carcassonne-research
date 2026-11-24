@@ -272,10 +272,40 @@ def to_english_page(html: str, page: str, name: str, nav_ja: str = "", nav_en: s
     return translate(html, name)
 
 
+def social_head(page: str, lang: str, html: str) -> str:
+    """<head> に入れる: SNS にリンクを貼ったときのカード（Open Graph と X のカード）。
+    題と説明はページの <title>・<meta name="description"> から取る。画像は scripts/make_og_card.mjs が作る。
+    X のカード: https://developer.x.com/en/docs/x-for-websites/cards/overview/markup"""
+    import html as _h
+
+    def attr(s: str) -> str:
+        return _h.escape(_h.unescape(" ".join(s.split())), quote=True)
+
+    t = re.search(r"<title>(.*?)</title>", html, re.DOTALL)
+    if not t:
+        raise SystemExit(f"{page}: <title> がありません")
+    d = re.search(r'<meta name="description" content="([^"]*)"', html)
+    tags = [
+        ("property", "og:type", "website"),
+        ("property", "og:site_name", "カルカソンヌ入門" if lang == "ja" else "Carcassonne Primer"),
+        ("property", "og:title", attr(t.group(1))),
+        ("property", "og:url", page_url(page, lang)),
+        ("property", "og:image", SITE + ("en/" if lang == "en" else "") + "og-card.png"),
+        ("property", "og:image:width", "1200"),
+        ("property", "og:image:height", "630"),
+        ("property", "og:locale", "ja_JP" if lang == "ja" else "en_US"),
+        ("name", "twitter:card", "summary_large_image"),
+    ]
+    if d:
+        tags.insert(3, ("property", "og:description", attr(d.group(1))))
+    return "".join(f'<meta {k}="{n}" content="{v}">' for k, n, v in tags) + "\n"
+
+
 def add_head(html: str, page: str, lang: str) -> str:
     if html.count("</head>") != 1:
         raise SystemExit(f"{page}: </head> が1つではありません")
-    return html.replace("</head>", lang_head(page, lang) + "</head>", 1)
+    head = social_head(page, lang, html) + lang_head(page, lang)
+    return html.replace("</head>", head + "</head>", 1)
 
 
 def write_pair(page: str, html_ja: str, html_en: str) -> None:

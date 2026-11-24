@@ -65,6 +65,23 @@ def test_hreflang_reciprocal(page):
         assert 'data-lang="' in html, f"{path}: 言語の切り替えリンクがない"
 
 
+@pytest.mark.parametrize("page", JA_PAGES)
+def test_social_card(page):
+    """SNS にリンクを貼るとカードが出る（全ページ・日英。画像は scripts/make_og_card.mjs）。"""
+    for lang, path in (("ja", DOCS / out_path(page)), ("en", DOCS / "en" / out_path(page))):
+        html = path.read_text(encoding="utf-8")
+        assert '<meta name="twitter:card" content="summary_large_image">' in html, path
+        assert f'<meta property="og:url" content="{page_url(page, lang)}">' in html, path
+        img = re.search(r'<meta property="og:image" content="([^"]+)">', html)
+        assert img, path
+        local = DOCS / img.group(1).split("/carcassonne-research/", 1)[1]
+        assert local.exists() and local.stat().st_size < 5_000_000, (path, local)
+        title = re.search(r'<meta property="og:title" content="([^"]+)">', html)
+        assert title and title.group(1).strip(), path
+        if lang == "en":
+            assert leftover(title.group(1)) == [], path
+
+
 @pytest.mark.parametrize("page", EN_PAGES)
 def test_no_japanese_left(page):
     assert leftover((DOCS / "en" / out_path(page)).read_text(encoding="utf-8")) == []

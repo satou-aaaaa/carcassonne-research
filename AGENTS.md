@@ -25,6 +25,7 @@ python scripts/check.py --quick   # ruff・整形・公開ページ・slow 以�
 - GitHub Pages は `main` の `/docs` を公開する。`docs/` の HTML はすべて `scripts/build_pages.py` で作り直す（手で直さない）。
 - サイトは「講座」`docs/learn/`・「研究」`docs/research/`・「対戦」`docs/play.html` の3部。置き場所は `scripts/i18n.py` の `LOC`、リンクは論理名（`rules.html`）で書けば置き場所に合わせて直る。古いURLは転送ページ（`scripts/build_redirects.py`）。新しいページは `LOC`・`site_nav.GROUPS` に足す。
 - 英語版は `docs/en/`（同じファイル名）。日本語の文を変えたら、対訳表 `web/i18n/en/<ページ>.json`（クイズの問題は `data/puzzles.json` の `"en"`）も直す。訳し漏れ・古い訳があると `build_pages.py` が止まる（`py scripts/i18n.py todo <名前> <ファイル>` でひな形が出る）。言語はブラウザの設定で自動で選び、切り替えリンクで選んだ言語を覚える（`scripts/i18n.py`）。
+- SNS にリンクを貼ったときのカード（og:・twitter:）は `scripts/i18n.py` の social_head が全ページに入れる（`i18n.write_pair` の add_head）。画像 `docs/og-card.png`・`docs/en/og-card.png` は `node scripts/make_og_card.mjs` で作り直す。
 - ページを変えたら毎回、スマホ幅とPC幅で UI を点検して直す（`node scripts/ui_check.mjs --shots ui-shots`、手順は `.claude/skills/ui-check/SKILL.md`）。CI の test.yml `ui` ジョブも同じ点検をする。
 - 対戦ページ・コツ集・クイズのAIは、いつも最新チャンピオン（`models/eval_champion.npy`）。チャンピオンが変わると `selfplay.yml` と `ai-content.yml` が自動で作り直す。AIの成績や判断例を本文に手で書かない（集計値から組み立て、`build_tips_page.py` の check_claims で確かめる）。
 
