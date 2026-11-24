@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from i18n import lang_head, to_english_page
+from i18n import lang_head, social_head, to_english_page
 from site_nav import nav_html
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,10 +24,20 @@ def main() -> None:
         raise SystemExit(
             "docs/index.html の </head> の直前に、次の言語切り替えを入れてください:\n" + head_ja
         )
+    # SNS のカード（scripts/i18n.py の social_head）も手書きのページに同じものを入れておく
+    social_ja = social_head(PAGE, "ja", html)
+    if social_ja not in html:
+        raise SystemExit(
+            "docs/index.html の言語切り替えの直前に、次の SNS カードを入れてください:\n" + social_ja
+        )
     en = to_english_page(
-        html.replace(head_ja, ""), PAGE, "index", nav_html(PAGE), nav_html(PAGE, "en")
+        html.replace(social_ja + head_ja, "").replace(head_ja, ""),
+        PAGE,
+        "index",
+        nav_html(PAGE),
+        nav_html(PAGE, "en"),
     )
-    en = en.replace("</head>", head_en + "</head>", 1)
+    en = en.replace("</head>", social_head(PAGE, "en", en) + head_en + "</head>", 1)
     out = ROOT / "docs" / "en" / PAGE
     out.parent.mkdir(exist_ok=True)
     out.write_text(en, encoding="utf-8")
