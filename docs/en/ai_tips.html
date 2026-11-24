@@ -144,7 +144,27 @@ summary { padding-block: 6px; }
 .support a.kofi:hover, .support a.kofi:focus-visible { border-color: var(--field); }
 
 </style>
-<link rel="alternate" hreflang="ja" href="https://satou-aaaaa.github.io/carcassonne-research/ai_tips.html"><link rel="alternate" hreflang="en" href="https://satou-aaaaa.github.io/carcassonne-research/en/ai_tips.html"><link rel="alternate" hreflang="x-default" href="https://satou-aaaaa.github.io/carcassonne-research/en/ai_tips.html">
+<style id="page-aids">
+nav.pagetoc { margin: 18px 0 8px; padding: 12px 0; border-block: 1px solid var(--line); }
+nav.pagetoc .h { font-size: 12.5px; font-weight: 700; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; }
+nav.pagetoc ol { display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 0; padding: 0; list-style: none; font-size: 14px; }
+nav.pagetoc a { display: inline-flex; align-items: center; min-height: 32px; padding: 2px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); text-decoration: none; }
+nav.pagetoc a:hover, nav.pagetoc a:focus-visible { border-color: var(--field); outline: none; }
+@media (pointer: coarse) { nav.pagetoc a { min-height: 44px; } }
+section[id], [id="page-toc"] { scroll-margin-top: 12px; }
+a.totop { position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); z-index: 50; display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); font-size: 14px; font-weight: 600; text-decoration: none; box-shadow: 0 2px 10px rgba(0,0,0,.15); opacity: 0; visibility: hidden; transform: translateY(8px); transition: opacity .2s, transform .2s, visibility .2s; }
+a.totop.on { opacity: 1; visibility: visible; transform: none; }
+a.totop:hover, a.totop:focus-visible { border-color: var(--field); outline: none; }
+@media print { a.totop { display: none; } }
+@media (prefers-reduced-motion: reduce) { a.totop { transition: none; } html { scroll-behavior: auto; } }
+nav.nextread { margin-top: 40px; display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+nav.nextread a { display: block; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); color: var(--ink); text-decoration: none; }
+nav.nextread a:hover, nav.nextread a:focus-visible { border-color: var(--field); outline: none; }
+nav.nextread .k { display: block; font-size: 12.5px; font-weight: 700; letter-spacing: .06em; color: var(--muted); }
+nav.nextread .t { display: block; font-size: 17px; font-weight: 700; margin: 2px 0 4px; }
+nav.nextread .d { display: block; font-size: 14px; color: var(--muted); }
+nav.nextread a.next { border-color: var(--field); }
+</style><link rel="alternate" hreflang="ja" href="https://satou-aaaaa.github.io/carcassonne-research/ai_tips.html"><link rel="alternate" hreflang="en" href="https://satou-aaaaa.github.io/carcassonne-research/en/ai_tips.html"><link rel="alternate" hreflang="x-default" href="https://satou-aaaaa.github.io/carcassonne-research/en/ai_tips.html">
 <script>(function(){var K="site-lang",cur="en",alt="../ai_tips.html",s=null;try{s=localStorage.getItem(K)}catch(e){}if(!/bot|crawl|spider|slurp|lighthouse/i.test(navigator.userAgent)){var l=(navigator.languages&&navigator.languages[0])||navigator.language||'';var want=s||(/^ja\b/i.test(l)?'ja':'en');if(want!==cur){location.replace(alt+location.search+location.hash);return}}document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[data-lang]');if(a)try{localStorage.setItem(K,a.getAttribute('data-lang'))}catch(e){}})})();</script>
 </head>
 <body>
@@ -162,7 +182,7 @@ summary { padding-block: 6px; }
   </ul>
 </header>
 
-<nav class="toc" aria-label="Contents">
+<nav class="toc" id="page-toc" aria-label="Contents">
   <ol>
     <li><span class="grp">Meeples</span><br><a href="#keep">Don't use them all up early</a><br><a href="#road">Only roads that end soon</a><br><a href="#city">Start your own new cities</a><br><a href="#farm">Few farmers, well placed</a><br><a href="#last">Use them up in the last six turns</a></li>
     <li><span class="grp">Tiles</span><br><a href="#merge">Join your opponent's city and share it</a><br><a href="#block">Make your opponent's city uncompletable (advanced)</a><br><a href="#monastery">Fill around your monastery yourself</a></li>
@@ -324,7 +344,8 @@ summary { padding-block: 6px; }
     <li>To reproduce: record with <code>scripts/record_habits.py</code>, aggregate with <code>scripts/summarize_habits.py</code>, and build this page with <code>scripts/pick_examples.py</code> and <code>scripts/build_tips_page.py</code>.</li>
   </ul>
 </aside>
+<nav class="nextread" aria-label="Previous and next pages"><a class="prev" href="strategy.html"><span class="k">Previous</span><span class="t">Strategy</span><span class="d">What to think about: plans for each phase and common mistakes.</span></a><a class="next" href="quiz.html"><span class="k">Next</span><span class="t">Next-Move Quiz</span><span class="d">Where would you place it? Practice positions with the AI's answer.</span></a></nav>
 <div class="support">If this site helped you, you can support the author.<a class="kofi" href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>Support on Ko-fi</a></div>
 </div>
-</body>
+<a class="totop" href="#page-toc"><span aria-hidden="true">↑</span>Contents</a><script>(function(){var b=document.querySelector('a.totop');if(!b)return;function f(){b.classList.toggle('on',window.scrollY>window.innerHeight)}addEventListener('scroll',f,{passive:true});f()})()</script></body>
 </html>
