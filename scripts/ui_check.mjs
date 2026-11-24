@@ -366,6 +366,26 @@ async function exerciseEndGame(browser, base, file, shotDir = null) {
     if (!u.searchParams.get("hashtags") || u.searchParams.get("hashtags").includes("#")) problems.push("シェアのハッシュタグが無いか # 付き");
     if (!/\d+ − \d+/.test(t)) problems.push("シェアの文に点数が入らない");
     if (t.includes("{") || t.includes("rec=")) problems.push("シェアの文に棋譜が入っている");
+    // 最終盤面の画像（X の投稿リンクには画像を付けられないので「盤面の画像を保存」で渡す）
+    const img = await page.evaluate(async () => {
+      const el = new Image();
+      el.src = bragImage().url;
+      await el.decode();
+      return { w: el.naturalWidth, h: el.naturalHeight, src: el.src };
+    });
+    if (!(await page.locator("#btnBragSave").count())) problems.push("盤面の画像を保存するボタンが無い");
+    if (img.w < 600 || img.h < 300) problems.push(`盤面の画像が小さい（${img.w}×${img.h}px）`);
+    if (img.w > 2000 || img.h > 2000) problems.push(`盤面の画像が大きすぎる（${img.w}×${img.h}px）`);
+    // 共有シート: リンク（カードが出る対戦ページ）とハッシュタグ入りの文を渡す
+    const sh = await page.evaluate(() => {
+      const keep = navigator.share;
+      let got = null;
+      navigator.share = async (d) => { got = d; };
+      try { bragShare(); } finally { navigator.share = keep; }
+      return got;
+    });
+    if (!sh || !/play\.html$/.test(sh.url || "") || !/#/.test(sh.text || "")) problems.push("共有シートに対戦ページのURLかハッシュタグを渡さない");
+    if (shotDir) fs.writeFileSync(path.join(shotDir, `${file.replace(/\W+/g, "_")}_brag.png`), Buffer.from(img.src.split(",")[1], "base64"));
     if (await bx.isVisible()) {
       if (shotDir) await page.locator("#result").screenshot({ path: path.join(shotDir, `${file.replace(/\W+/g, "_")}_result_mobile.png`) });
       const box = await bx.boundingBox();

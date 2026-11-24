@@ -199,5 +199,8 @@
  "ほかのアプリで共有": "Share via app",
  "結果をシェアする": "Share your result",
  "Xでシェア": "Share on X",
- "投稿画面が開くだけで、押すまで投稿されません。入るのは点数・AIの強さ・このページのURLだけです。": "This only opens the post screen; nothing is posted until you press Post. It includes just the score, the AI strength and this page’s URL."
+ "カルカソンヌ AIと対戦（AI: ${levelShort(r.level)}）": "Carcassonne vs AI (AI: ${levelShort(r.level)})",
+ "ブラウザで強いAIとカルカソンヌ（2人・基本セット）を対戦。無料・登録なし。初心者モードではAIが1手ずつ採点し、終局後に損の大きかった手を振り返れます。": "Play two-player Carcassonne (base game) against a strong AI in your browser. Free, no sign-up. In beginner mode the AI grades each move, and after the game you can review your costliest moves.",
+ "盤面の画像を保存": "Save board image",
+ "投稿画面が開くだけで、押すまで投稿されません。入るのは点数・AIの強さ・このページのURLだけです。最終盤面も載せたいときは、保存した画像を投稿に添付してください。": "This only opens the post screen; nothing is posted until you press Post. It includes just the score, the AI strength and this page’s URL. To show your final board too, attach the saved image to your post."
 }
