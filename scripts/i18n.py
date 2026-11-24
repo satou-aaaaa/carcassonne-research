@@ -221,6 +221,9 @@ def add_head(html: str, page: str, lang: str) -> str:
 
 def write_pair(page: str, html_ja: str, html_en: str) -> None:
     """docs/<page> と docs/en/<page> を書き出す。"""
+    from site_nav import enhance  # 長いページの目次・「目次へ」・「次に読む」（全ページ共通）
+
+    html_ja, html_en = enhance(html_ja, page, "ja"), enhance(html_en, page, "en")
     if leftover(html_en):
         raise SystemExit(f"en/{page} に日本語が残っています: {leftover(html_en)[:5]}")
     (ROOT / "docs").joinpath(page).write_text(add_head(html_ja, page, "ja"), encoding="utf-8")

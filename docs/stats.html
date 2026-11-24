@@ -132,7 +132,27 @@ summary { padding-block: 6px; }
 .support a.kofi:hover, .support a.kofi:focus-visible { border-color: var(--field); }
 
 </style>
-<link rel="alternate" hreflang="ja" href="https://satou-aaaaa.github.io/carcassonne-research/stats.html"><link rel="alternate" hreflang="en" href="https://satou-aaaaa.github.io/carcassonne-research/en/stats.html"><link rel="alternate" hreflang="x-default" href="https://satou-aaaaa.github.io/carcassonne-research/en/stats.html">
+<style id="page-aids">
+nav.pagetoc { margin: 18px 0 8px; padding: 12px 0; border-block: 1px solid var(--line); }
+nav.pagetoc .h { font-size: 12.5px; font-weight: 700; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; }
+nav.pagetoc ol { display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 0; padding: 0; list-style: none; font-size: 14px; }
+nav.pagetoc a { display: inline-flex; align-items: center; min-height: 32px; padding: 2px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); text-decoration: none; }
+nav.pagetoc a:hover, nav.pagetoc a:focus-visible { border-color: var(--field); outline: none; }
+@media (pointer: coarse) { nav.pagetoc a { min-height: 44px; } }
+section[id], [id="page-toc"] { scroll-margin-top: 12px; }
+a.totop { position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); z-index: 50; display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); font-size: 14px; font-weight: 600; text-decoration: none; box-shadow: 0 2px 10px rgba(0,0,0,.15); opacity: 0; visibility: hidden; transform: translateY(8px); transition: opacity .2s, transform .2s, visibility .2s; }
+a.totop.on { opacity: 1; visibility: visible; transform: none; }
+a.totop:hover, a.totop:focus-visible { border-color: var(--field); outline: none; }
+@media print { a.totop { display: none; } }
+@media (prefers-reduced-motion: reduce) { a.totop { transition: none; } html { scroll-behavior: auto; } }
+nav.nextread { margin-top: 40px; display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+nav.nextread a { display: block; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); color: var(--ink); text-decoration: none; }
+nav.nextread a:hover, nav.nextread a:focus-visible { border-color: var(--field); outline: none; }
+nav.nextread .k { display: block; font-size: 12.5px; font-weight: 700; letter-spacing: .06em; color: var(--muted); }
+nav.nextread .t { display: block; font-size: 17px; font-weight: 700; margin: 2px 0 4px; }
+nav.nextread .d { display: block; font-size: 14px; color: var(--muted); }
+nav.nextread a.next { border-color: var(--field); }
+</style><link rel="alternate" hreflang="ja" href="https://satou-aaaaa.github.io/carcassonne-research/stats.html"><link rel="alternate" hreflang="en" href="https://satou-aaaaa.github.io/carcassonne-research/en/stats.html"><link rel="alternate" hreflang="x-default" href="https://satou-aaaaa.github.io/carcassonne-research/en/stats.html">
 <script>(function(){var K="site-lang",cur="ja",alt="en/stats.html",s=null;try{s=localStorage.getItem(K)}catch(e){}if(!/bot|crawl|spider|slurp|lighthouse/i.test(navigator.userAgent)){var l=(navigator.languages&&navigator.languages[0])||navigator.language||'';var want=s||(/^ja\b/i.test(l)?'ja':'en');if(want!==cur){location.replace(alt+location.search+location.hash);return}}document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[data-lang]');if(a)try{localStorage.setItem(K,a.getAttribute('data-lang'))}catch(e){}})})();</script>
 </head>
 <body>
@@ -143,6 +163,7 @@ summary { padding-block: 6px; }
   <h1>数字で見る<span class="accent">カルカソンヌ</span></h1>
   <p class="lede">カルカソンヌは、チェスや囲碁に比べて研究がほとんど進んでいないゲームです。このページでは、このサイトでいちばん強いAI同士に<b class="num">2,000</b>局を指させて、先手の有利さ、点の取れ方、逆転の起きやすさ、タイルの価値などを測りました。チェス・囲碁・将棋など、ほかのゲームとも比べます。</p>
 </header>
+<nav class="pagetoc" id="page-toc" aria-labelledby="page-toc-h"><p class="h" id="page-toc-h">このページの目次</p><ol><li><a href="#first">1. 先手はどれくらい有利？</a></li><li><a href="#scores">2. 点数と点差</a></li><li><a href="#sources">3. 点はどこから来る？</a></li><li><a href="#lead">4. 点の推移と逆転</a></li><li><a href="#meeple">5. ミープルの使い方</a></li><li><a href="#tiles">6. タイルの価値</a></li><li><a href="#luck">7. 運と実力</a></li><li><a href="#compare">8. ほかのゲームと比べる</a></li><li><a href="#fair">9. 先手の有利をなくすには</a></li><li><a href="#endgame">10. 終盤を読み切ると</a></li><li><a href="#method">測り方について</a></li></ol></nav>
 
 <div class="tiles-row" aria-label="このページの要点">
   <div class="stat"><b>57.1%</b><span>先手の勝率（引き分けは0.5勝）</span></div>
@@ -294,7 +315,8 @@ summary { padding-block: 6px; }
     <a class="sub" href="play.html">AIと対戦する</a>
   </div>
 </section>
+<nav class="nextread" aria-label="前後のページ"><a class="next" href="games.html"><span class="k">次へ</span><span class="t">みんなの対局</span><span class="d">人とAIの対局を再生して、悪手の傾向を見る。</span></a></nav>
 <div class="support">このサイトが役に立ったら、作者を応援できます。<a class="kofi" href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>Ko-fiで応援する</a></div>
 </div>
-</body>
+<a class="totop" href="#page-toc"><span aria-hidden="true">↑</span>目次へ</a><script>(function(){var b=document.querySelector('a.totop');if(!b)return;function f(){b.classList.toggle('on',window.scrollY>window.innerHeight)}addEventListener('scroll',f,{passive:true});f()})()</script></body>
 </html>

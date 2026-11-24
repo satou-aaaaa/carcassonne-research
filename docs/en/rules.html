@@ -78,7 +78,27 @@ summary { padding-block: 6px; }
 .support a.kofi:hover, .support a.kofi:focus-visible { border-color: var(--field); }
 
 </style>
-<link rel="alternate" hreflang="ja" href="https://satou-aaaaa.github.io/carcassonne-research/rules.html"><link rel="alternate" hreflang="en" href="https://satou-aaaaa.github.io/carcassonne-research/en/rules.html"><link rel="alternate" hreflang="x-default" href="https://satou-aaaaa.github.io/carcassonne-research/en/rules.html">
+<style id="page-aids">
+nav.pagetoc { margin: 18px 0 8px; padding: 12px 0; border-block: 1px solid var(--line); }
+nav.pagetoc .h { font-size: 12.5px; font-weight: 700; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; }
+nav.pagetoc ol { display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 0; padding: 0; list-style: none; font-size: 14px; }
+nav.pagetoc a { display: inline-flex; align-items: center; min-height: 32px; padding: 2px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); text-decoration: none; }
+nav.pagetoc a:hover, nav.pagetoc a:focus-visible { border-color: var(--field); outline: none; }
+@media (pointer: coarse) { nav.pagetoc a { min-height: 44px; } }
+section[id], [id="page-toc"] { scroll-margin-top: 12px; }
+a.totop { position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); z-index: 50; display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); font-size: 14px; font-weight: 600; text-decoration: none; box-shadow: 0 2px 10px rgba(0,0,0,.15); opacity: 0; visibility: hidden; transform: translateY(8px); transition: opacity .2s, transform .2s, visibility .2s; }
+a.totop.on { opacity: 1; visibility: visible; transform: none; }
+a.totop:hover, a.totop:focus-visible { border-color: var(--field); outline: none; }
+@media print { a.totop { display: none; } }
+@media (prefers-reduced-motion: reduce) { a.totop { transition: none; } html { scroll-behavior: auto; } }
+nav.nextread { margin-top: 40px; display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+nav.nextread a { display: block; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); color: var(--ink); text-decoration: none; }
+nav.nextread a:hover, nav.nextread a:focus-visible { border-color: var(--field); outline: none; }
+nav.nextread .k { display: block; font-size: 12.5px; font-weight: 700; letter-spacing: .06em; color: var(--muted); }
+nav.nextread .t { display: block; font-size: 17px; font-weight: 700; margin: 2px 0 4px; }
+nav.nextread .d { display: block; font-size: 14px; color: var(--muted); }
+nav.nextread a.next { border-color: var(--field); }
+</style><link rel="alternate" hreflang="ja" href="https://satou-aaaaa.github.io/carcassonne-research/rules.html"><link rel="alternate" hreflang="en" href="https://satou-aaaaa.github.io/carcassonne-research/en/rules.html"><link rel="alternate" hreflang="x-default" href="https://satou-aaaaa.github.io/carcassonne-research/en/rules.html">
 <script>(function(){var K="site-lang",cur="en",alt="../rules.html",s=null;try{s=localStorage.getItem(K)}catch(e){}if(!/bot|crawl|spider|slurp|lighthouse/i.test(navigator.userAgent)){var l=(navigator.languages&&navigator.languages[0])||navigator.language||'';var want=s||(/^ja\b/i.test(l)?'ja':'en');if(want!==cur){location.replace(alt+location.search+location.hash);return}}document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[data-lang]');if(a)try{localStorage.setItem(K,a.getAttribute('data-lang'))}catch(e){}})})();</script>
 </head>
 <body>
@@ -89,6 +109,7 @@ summary { padding-block: 6px; }
   <h1>Your first game of <span class="accent">Carcassonne</span></h1>
   <p class="lede">Players add tiles one at a time to grow a shared map, and score with the pieces (meeples) they place on the cities and roads they build. This page explains, with diagrams, all the rules you need to play.</p>
 </header>
+<nav class="pagetoc" id="page-toc" aria-labelledby="page-toc-h"><p class="h" id="page-toc-h">On this page</p><ol><li><a href="#flow">1. What you do on your turn</a></li><li><a href="#place">2. Placing tiles</a></li><li><a href="#meeple">3. Placing meeples</a></li><li><a href="#score">4. Scoring</a></li><li><a href="#end">5. End of the game</a></li><li><a href="#first">6. Tips for beginners</a></li><li><a href="#notes">About the rules on this page</a></li></ol></nav>
 
 <section id="flow">
   <h2><span class="no">1</span>What you do on your turn</h2>
@@ -178,7 +199,8 @@ summary { padding-block: 6px; }
   <h2>About the rules on this page</h2>
   <p style="font-size:14.5px;color:var(--muted)">These are the current rules of the base game (72 tiles). Farmers score 3 points per completed city (older editions counted differently). The diagrams are real positions played with this project's rules engine, and the points in the text are checked against the engine's scoring (<code>scripts/build_rules_page.py</code>). The examples assume two players, but 2–5 players use the same rules.</p>
 </section>
+<nav class="nextread" aria-label="Previous and next pages"><a class="next" href="strategy.html"><span class="k">Next</span><span class="t">Strategy</span><span class="d">What to think about: plans for each phase and common mistakes.</span></a></nav>
 <div class="support">If this site helped you, you can support the author.<a class="kofi" href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener"><span aria-hidden="true">☕</span>Support on Ko-fi</a></div>
 </div>
-</body>
+<a class="totop" href="#page-toc"><span aria-hidden="true">↑</span>Contents</a><script>(function(){var b=document.querySelector('a.totop');if(!b)return;function f(){b.classList.toggle('on',window.scrollY>window.innerHeight)}addEventListener('scroll',f,{passive:true});f()})()</script></body>
 </html>
