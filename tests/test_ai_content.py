@@ -42,6 +42,39 @@ def test_captions_cover_every_example():
     assert all("実戦の例" in c for c in caps.values())
 
 
+EXAMPLE_KINDS = ["skip", "farm", "merge", "block", "monastery"]
+
+
+@pytest.mark.parametrize("missing", EXAMPLE_KINDS)
+def test_tips_page_builds_when_an_example_is_missing(missing, monkeypatch):
+    """AI が変わって pick_examples.py が例を見つけられなくても、その図だけ省いてページを作る。
+
+    2026-11-24 gen1518 で「あえて置かない」の例が無く、未定義キー svg_skip で AI content が落ちた。
+    """
+    real = build_tips_page._load
+    ex = real("habits_examples.json")
+    assert set(ex) == set(EXAMPLE_KINDS), "例の種類が変わったら EXAMPLE_KINDS も直す"
+    ex.pop(missing)
+    monkeypatch.setattr(
+        build_tips_page, "_load", lambda n: ex if n == "habits_examples.json" else real(n)
+    )
+    out = {}
+    monkeypatch.setattr(
+        build_tips_page, "write_pair", lambda page, ja, en: out.update(ja=ja, en=en)
+    )
+    build_tips_page.main()
+    for html in out.values():
+        assert f"cap_{missing}" not in html and "{{" not in html
+        assert html.count("<figure>") == len(EXAMPLE_KINDS) - 1
+
+
+def test_every_example_kind_has_a_figure_in_the_template():
+    tpl = (ROOT / "web" / "ai_tips_template.html").read_text(encoding="utf-8")
+    for k in EXAMPLE_KINDS:
+        assert f"{{{{svg_{k}}}}}" in tpl
+    assert build_tips_page.drop_missing_figures(tpl, {}).count("<figure>") == 0
+
+
 def test_claims_stop_the_build_when_the_trend_flips():
     summ = json.loads((ROOT / "docs/results/habits_summary.json").read_text(encoding="utf-8"))
     s, g = summ["habits_strong"], summ["habits_greedy"]
