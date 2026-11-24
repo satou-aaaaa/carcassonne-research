@@ -1072,6 +1072,7 @@ class FastMCTSAgent:
         rollout_farm: bool = True,
         rollout_reshuffle: bool = False,
         reselect: float = 0.0,
+        reselect_late: float = -1.0,
         reselect_k: int = 6,
         reselect_reply: int = 0,
         reply_beam: int = 3,
@@ -1098,6 +1099,9 @@ class FastMCTSAgent:
         # 0より大きいと、探索の上位 reselect_k 候補を「次に相手が引くタイルで平均した評価値」と
         # この重みで混ぜて選び直す（`choose_reselect`）。評価関数があるときだけ
         self.reselect = reselect if eval_path else 0.0
+        # 0以上なら、選び直しの重みを山札の残りで変える: 最初は reselect、山札が尽きるころ reselect_late（間は線形）。
+        # 負なら reselect のまま（R-022）
+        self.reselect_late = float(reselect_late)
         self.reselect_k = max(1, int(reselect_k))
         # True なら選び直しの1手先評価を、相手の一番良い返し手まで読んだ値にする（`next_tile_reply_value`）
         # 2 なら相手の返し手のあと自分の次の手まで読む（`next_tile_reply2_value`、相手の返し手は上位 reply_beam 手）
@@ -1153,6 +1157,7 @@ class FastMCTSAgent:
             + ("" if rollout_farm else ",rf=0")
             + (",rs=1" if rollout_reshuffle else "")
             + (f",rsel={reselect:g},rk={reselect_k}" if self.reselect > 0 else "")
+            + (f",rsl={reselect_late:g}" if self.reselect > 0 and reselect_late >= 0 else "")
             + (f",rr={self.reselect_reply}" if self.reselect > 0 and self.reselect_reply else "")
             + (f",rb={self.reply_beam}" if self.reselect > 0 and self.reselect_reply >= 2 else "")
             + (
@@ -1181,6 +1186,14 @@ class FastMCTSAgent:
         for x, y, ti, vi, piece in state.history:
             self.fast.apply(S, x, y, ti, vi, piece)
         return S
+
+    def reselect_weight(self, S) -> float:
+        """この局面の選び直しの重み（先読みの値をどれだけ信じるか）。"""
+        if self.reselect_late < 0:
+            return self.reselect
+        sc = S[10]
+        frac = max(0, int(sc[SC_END]) - int(sc[SC_DRAW]) + 1) / (NT - 1)
+        return self.reselect_late + (self.reselect - self.reselect_late) * min(1.0, frac)
 
     def scale_for(self, S) -> float:
         """この局面で使う報酬の尺度（負なら勝敗報酬）。"""
@@ -1279,7 +1292,8 @@ class FastMCTSAgent:
         q = w2[ks, qs] / a2[ks, qs]
         dm = scale * np.arctanh(np.clip(2 * q - 1, -0.999, 0.999))
         dn = np.where(np.isnan(val), dm, val)
-        b = int(np.argmax((1 - self.reselect) * dm + self.reselect * dn))
+        w = self.reselect_weight(S)
+        b = int(np.argmax((1 - w) * dm + w * dn))
         return int(cells[ks[b]]), int(gs[ks[b]]), int(qs[b]) - 1
 
     def root_allow(self, S) -> np.ndarray:

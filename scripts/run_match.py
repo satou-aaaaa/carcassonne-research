@@ -56,6 +56,7 @@ FLOAT_KEYS = {
     "mp": "meeple_prob",
     "fpu": "fpu",
     "rsel": "reselect",
+    "rsl": "reselect_late",
     "sd": "scale_decay",
     "smin": "scale_min",
     "puct": "puct",

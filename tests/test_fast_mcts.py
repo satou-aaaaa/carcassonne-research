@@ -339,3 +339,20 @@ def test_puct_is_off_without_eval():
     a = FastMCTSAgent(n_sims=200, puct=1.0).act(st, random.Random(3))
     b = FastMCTSAgent(n_sims=200).act(st, random.Random(3))
     assert a == b
+
+
+def test_reselect_weight_moves_with_remaining_tiles():
+    """R-022: rsl を与えると、選び直しの重みは序盤 reselect、山札が尽きるころ reselect_late に近づく。"""
+    from carcassonne.fast import SC_DRAW, SC_END
+
+    a = FastMCTSAgent(n_sims=20, eval_path=EVAL, reselect=0.6, reselect_late=1.0)
+    b = FastMCTSAgent(n_sims=20, eval_path=EVAL, reselect=0.6)
+    S = a.to_fast(State.new_game(28))
+    end = int(S[10][SC_END])
+    S[10][SC_DRAW] = 1
+    early = a.reselect_weight(S)
+    S[10][SC_DRAW] = end
+    late = a.reselect_weight(S)
+    assert abs(early - 0.6) < 0.02 and abs(late - 1.0) < 0.05, (early, late)
+    assert b.reselect_weight(S) == 0.6
+    assert "rsl=1" in a.name
