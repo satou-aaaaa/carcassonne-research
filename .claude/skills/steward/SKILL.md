@@ -32,6 +32,7 @@ description: このリポジトリでPRを作る・直す・CIを通す・マー
 - CI から gh を呼ぶときは `source scripts/gh_retry.sh` して `ghr gh ...`（5xx をやり直す）。Issue を作るのは `gh_issue_create_once`。
 - selfplay・AI content に gh を呼ぶ手順を足したら、`tests/test_workflow_rehearsal.py` の REHEARSED に足し、にせものの gh（本物の上限・1回目は 504）で通しで動かす。本番でしか動かない手順は、ここで動かさないと数時間後に初めて落ちる（#92・#110・#118）。ワークフローは CI の actionlint も見る。
 - コツ集の言い切りが新しい集計と合わないと `data/tips_blocked.json` と Issue ができる。直し方は Issue に書いてある。
+- AI が変わると、集計や実戦の例（`pick_examples.py`）が見つからない・形が変わることがある。生成物の組み立ては、欠けたときにも作れるように書き（例が無い図は省く `drop_missing_figures`）、欠けた場合のテストを足す（`tests/test_ai_content.py` の test_tips_page_builds_when_an_example_is_missing）。今のデータでしか試さないと、チャンピオンが変わった本番で初めて落ちる（#282）。
 
 ## マージ
 - 共通の手順（`routines/pr.md`）どおり、CI が緑で未解決のレビューが無ければ squash マージしてよい（satou さん 2026-10-10 にマージを任されている）。
