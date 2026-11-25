@@ -1,0 +1,105 @@
+seed 7000 対局 1/1 済み
+seed 7002 対局 1/1 済み
+seed 7003 対局 1/1 済み
+seed 7001 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-6-20261125/d6.npz: 4局 284局面 兄弟つき 284局面 1019秒
+seed 7006 対局 1/1 済み
+seed 7007 対局 1/1 済み
+seed 7004 対局 1/1 済み
+seed 7005 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-6-20261125/d6.npz: 8局 568局面 兄弟つき 567局面 1850秒
+seed 7009 対局 1/1 済み
+seed 7010 対局 1/1 済み
+seed 7008 対局 1/1 済み
+seed 7011 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-6-20261125/d6.npz: 12局 852局面 兄弟つき 851局面 2710秒
+seed 7014 対局 1/1 済み
+seed 7015 対局 1/1 済み
+seed 7013 対局 1/1 済み
+seed 7012 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-6-20261125/d6.npz: 16局 1136局面 兄弟つき 1134局面 3632秒
+seed 7016 対局 1/1 済み
+seed 7018 対局 1/1 済み
+seed 7017 対局 1/1 済み
+seed 7019 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-6-20261125/d6.npz: 20局 1420局面 兄弟つき 1418局面 4401秒
+seed 7020 対局 1/1 済み
+seed 7021 対局 1/1 済み
+seed 7023 対局 1/1 済み
+seed 7022 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-6-20261125/d6.npz: 24局 1704局面 兄弟つき 1702局面 5254秒
+seed 7026 対局 1/1 済み
+seed 7025 対局 1/1 済み
+seed 7027 対局 1/1 済み
+seed 7024 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-6-20261125/d6.npz: 28局 1988局面 兄弟つき 1986局面 6264秒
+seed 7031 対局 1/1 済み
+seed 7029 対局 1/1 済み
+seed 7030 対局 1/1 済み
+seed 7028 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-6-20261125/d6.npz: 32局 2272局面 兄弟つき 2270局面 7061秒
+seed 7035 対局 1/1 済み
+seed 7033 対局 1/1 済み
+seed 7032 対局 1/1 済み
+seed 7034 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-6-20261125/d6.npz: 36局 2556局面 兄弟つき 2554局面 7997秒
+seed 7038 対局 1/1 済み
+seed 7037 対局 1/1 済み
+seed 7039 対局 1/1 済み
+seed 7036 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-6-20261125/d6.npz: 40局 2840局面 兄弟つき 2838局面 8854秒
+seed 7041 対局 1/1 済み
+seed 7040 対局 1/1 済み
+seed 7042 対局 1/1 済み
+seed 7043 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-6-20261125/d6.npz: 44局 3124局面 兄弟つき 3122局面 9797秒
+seed 7045 対局 1/1 済み
+seed 7047 対局 1/1 済み
+seed 7044 対局 1/1 済み
+seed 7046 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-6-20261125/d6.npz: 48局 3408局面 兄弟つき 3406局面 10661秒
+seed 7049 対局 1/1 済み
+seed 7048 対局 1/1 済み
+seed 7051 対局 1/1 済み
+seed 7050 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-6-20261125/d6.npz: 52局 3692局面 兄弟つき 3689局面 11645秒
+seed 7055 対局 1/1 済み
+seed 7054 対局 1/1 済み
+seed 7052 対局 1/1 済み
+seed 7053 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-6-20261125/d6.npz: 56局 3976局面 兄弟つき 3971局面 12613秒
+seed 7058 対局 1/1 済み
+seed 7056 対局 1/1 済み
+seed 7059 対局 1/1 済み
+seed 7057 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-6-20261125/d6.npz: 60局 4260局面 兄弟つき 4255局面 13502秒
+seed 7060 対局 1/1 済み
+seed 7061 対局 1/1 済み
+seed 7063 対局 1/1 済み
+seed 7062 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-6-20261125/d6.npz: 64局 4544局面 兄弟つき 4539局面 14550秒
+seed 7066 対局 1/1 済み
+seed 7067 対局 1/1 済み
+seed 7065 対局 1/1 済み
+seed 7064 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-6-20261125/d6.npz: 68局 4828局面 兄弟つき 4823局面 15434秒
+seed 7068 対局 1/1 済み
+seed 7069 対局 1/1 済み
+seed 7071 対局 1/1 済み
+seed 7070 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-6-20261125/d6.npz: 72局 5112局面 兄弟つき 5106局面 16284秒
+seed 7073 対局 1/1 済み
+seed 7072 対局 1/1 済み
+seed 7075 対局 1/1 済み
+seed 7074 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-6-20261125/d6.npz: 76局 5395局面 兄弟つき 5389局面 17114秒
+seed 7078 対局 1/1 済み
+seed 7079 対局 1/1 済み
+seed 7077 対局 1/1 済み
+seed 7076 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-6-20261125/d6.npz: 80局 5679局面 兄弟つき 5672局面 17951秒
+seed 7083 対局 1/1 済み
+seed 7081 対局 1/1 済み
+seed 7080 対局 1/1 済み
+seed 7082 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-6-20261125/d6.npz: 84局 5963局面 兄弟つき 5955局面 18736秒
