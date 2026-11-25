@@ -1,0 +1,5 @@
+finished: 2026-11-25T14:10Z
+exit_code: 0
+commit: 1f154c7b8d12f23f7e35446592a5ba1a5598f8dd
+run: https://github.com/satou-aaaaa/carcassonne-research/actions/runs/45589224324
+command: BASE=standard A=eval=models/rank_r024.npy,rsel=0.5,rk=6,rr=2,rb=1 B=rsel=0.5,rk=6,rr=2,rb=1 START=19100 SEEDS=100 bash scripts/sweeps/r019.sh
