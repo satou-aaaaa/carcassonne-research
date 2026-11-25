@@ -1,0 +1,5 @@
+finished: 2026-11-25T08:59Z
+exit_code: 0
+commit: 0a4af16f3f65071050d9502a1f91a962ee485ae0
+run: https://github.com/satou-aaaaa/carcassonne-research/actions/runs/45542185460
+command: python scripts/rank_learn.py gen --level strong --games 400 --minutes 300 --seed 8 --out $RESEARCH_OUT/d7.npz
