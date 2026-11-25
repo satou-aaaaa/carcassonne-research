@@ -1,0 +1,120 @@
+seed 6001 対局 1/1 済み
+seed 6000 対局 1/1 済み
+seed 6002 対局 1/1 済み
+seed 6003 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-5-20261125/d5.npz: 4局 284局面 兄弟つき 284局面 752秒
+seed 6005 対局 1/1 済み
+seed 6004 対局 1/1 済み
+seed 6007 対局 1/1 済み
+seed 6006 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-5-20261125/d5.npz: 8局 568局面 兄弟つき 568局面 1522秒
+seed 6008 対局 1/1 済み
+seed 6011 対局 1/1 済み
+seed 6009 対局 1/1 済み
+seed 6010 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-5-20261125/d5.npz: 12局 852局面 兄弟つき 850局面 2307秒
+seed 6014 対局 1/1 済み
+seed 6015 対局 1/1 済み
+seed 6012 対局 1/1 済み
+seed 6013 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-5-20261125/d5.npz: 16局 1136局面 兄弟つき 1133局面 3055秒
+seed 6019 対局 1/1 済み
+seed 6018 対局 1/1 済み
+seed 6017 対局 1/1 済み
+seed 6016 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-5-20261125/d5.npz: 20局 1420局面 兄弟つき 1417局面 3868秒
+seed 6020 対局 1/1 済み
+seed 6023 対局 1/1 済み
+seed 6021 対局 1/1 済み
+seed 6022 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-5-20261125/d5.npz: 24局 1704局面 兄弟つき 1701局面 4616秒
+seed 6027 対局 1/1 済み
+seed 6024 対局 1/1 済み
+seed 6026 対局 1/1 済み
+seed 6025 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-5-20261125/d5.npz: 28局 1988局面 兄弟つき 1985局面 5323秒
+seed 6030 対局 1/1 済み
+seed 6031 対局 1/1 済み
+seed 6029 対局 1/1 済み
+seed 6028 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-5-20261125/d5.npz: 32局 2271局面 兄弟つき 2268局面 6068秒
+seed 6033 対局 1/1 済み
+seed 6034 対局 1/1 済み
+seed 6032 対局 1/1 済み
+seed 6035 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-5-20261125/d5.npz: 36局 2555局面 兄弟つき 2552局面 6845秒
+seed 6037 対局 1/1 済み
+seed 6038 対局 1/1 済み
+seed 6039 対局 1/1 済み
+seed 6036 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-5-20261125/d5.npz: 40局 2839局面 兄弟つき 2836局面 7572秒
+seed 6042 対局 1/1 済み
+seed 6041 対局 1/1 済み
+seed 6043 対局 1/1 済み
+seed 6040 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-5-20261125/d5.npz: 44局 3123局面 兄弟つき 3120局面 8261秒
+seed 6047 対局 1/1 済み
+seed 6044 対局 1/1 済み
+seed 6045 対局 1/1 済み
+seed 6046 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-5-20261125/d5.npz: 48局 3406局面 兄弟つき 3403局面 8966秒
+seed 6048 対局 1/1 済み
+seed 6050 対局 1/1 済み
+seed 6049 対局 1/1 済み
+seed 6051 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-5-20261125/d5.npz: 52局 3690局面 兄弟つき 3687局面 9697秒
+seed 6052 対局 1/1 済み
+seed 6053 対局 1/1 済み
+seed 6055 対局 1/1 済み
+seed 6054 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-5-20261125/d5.npz: 56局 3974局面 兄弟つき 3971局面 10488秒
+seed 6056 対局 1/1 済み
+seed 6057 対局 1/1 済み
+seed 6058 対局 1/1 済み
+seed 6059 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-5-20261125/d5.npz: 60局 4258局面 兄弟つき 4255局面 11137秒
+seed 6063 対局 1/1 済み
+seed 6062 対局 1/1 済み
+seed 6060 対局 1/1 済み
+seed 6061 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-5-20261125/d5.npz: 64局 4542局面 兄弟つき 4538局面 11923秒
+seed 6067 対局 1/1 済み
+seed 6064 対局 1/1 済み
+seed 6066 対局 1/1 済み
+seed 6065 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-5-20261125/d5.npz: 68局 4825局面 兄弟つき 4821局面 12823秒
+seed 6071 対局 1/1 済み
+seed 6069 対局 1/1 済み
+seed 6068 対局 1/1 済み
+seed 6070 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-5-20261125/d5.npz: 72局 5109局面 兄弟つき 5105局面 13703秒
+seed 6072 対局 1/1 済み
+seed 6075 対局 1/1 済み
+seed 6073 対局 1/1 済み
+seed 6074 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-5-20261125/d5.npz: 76局 5393局面 兄弟つき 5388局面 14424秒
+seed 6079 対局 1/1 済み
+seed 6076 対局 1/1 済み
+seed 6078 対局 1/1 済み
+seed 6077 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-5-20261125/d5.npz: 80局 5677局面 兄弟つき 5671局面 15164秒
+seed 6080 対局 1/1 済み
+seed 6081 対局 1/1 済み
+seed 6083 対局 1/1 済み
+seed 6082 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-5-20261125/d5.npz: 84局 5961局面 兄弟つき 5955局面 15838秒
+seed 6084 対局 1/1 済み
+seed 6086 対局 1/1 済み
+seed 6085 対局 1/1 済み
+seed 6087 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-5-20261125/d5.npz: 88局 6245局面 兄弟つき 6239局面 16648秒
+seed 6091 対局 1/1 済み
+seed 6089 対局 1/1 済み
+seed 6088 対局 1/1 済み
+seed 6090 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-5-20261125/d5.npz: 92局 6529局面 兄弟つき 6523局面 17397秒
+seed 6092 対局 1/1 済み
+seed 6094 対局 1/1 済み
+seed 6095 対局 1/1 済み
+seed 6093 対局 1/1 済み
+/home/runner/work/_temp/out/r024-gen-5-20261125/d5.npz: 96局 6813局面 兄弟つき 6807局面 18135秒
