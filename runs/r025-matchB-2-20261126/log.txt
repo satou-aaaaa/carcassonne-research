@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "/home/runner/work/carcassonne-research/carcassonne-research/scripts/run_match.py", line 104, in <module>
+    main()
+  File "/home/runner/work/carcassonne-research/carcassonne-research/scripts/run_match.py", line 99, in main
+    summary = run_match(parse_agent(args.a), parse_agent(args.b), seeds, args.log, args.workers)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/carcassonne-research/carcassonne-research/src/carcassonne/arena.py", line 159, in run_match
+    for fut in as_completed(futs):
+               ^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/concurrent/futures/_base.py", line 243, in as_completed
+    waiter.event.wait(wait_timeout)
+  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/threading.py", line 655, in wait
+    signaled = self._cond.wait(timeout)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/threading.py", line 355, in wait
+    waiter.acquire()
+KeyboardInterrupt
