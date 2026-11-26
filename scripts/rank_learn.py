@@ -28,6 +28,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from carcassonne.fast import (
+    NT,
     SC_CUR,
     SC_OVER,
     SC_PL,
@@ -91,11 +92,15 @@ def _play(args):
     f = np.zeros(NF)
     xs, ys, ps, gs = [], [], [], []
     cf, cn = [], []  # 局面ごとの兄弟の特徴量（先生の手が先頭）と兄弟の数
+    # 局面そのもの（R-025）: 対局ごとの山札と手順、兄弟つきの局面ごとの（対局, 手数, 兄弟の手）。
+    # 新しい特徴の候補を、対局し直さずに同じ局面で計算できるようにする（`replay`）
+    decks, hist, pg, pply, cand = [], [], [], [], []
     for gi in range(n_games):
         deck = base[:]
         rng.shuffle(deck)
         S = fast.new_game(deck)
         players = []
+        played = []
         while not S[10][SC_OVER]:
             me = int(S[10][SC_PL])
             features(S, fast.T, fast.P, me, f)
@@ -112,13 +117,21 @@ def _play(args):
                 F = child_features(S, fast, [moves[best], *others], me)
                 cf.append(F)
                 cn.append(len(F))
+                pg.append(gi)
+                pply.append(len(played))
+                cand.extend([moves[best], *others])
             if rng.random() < eps:  # 先生だけの道筋に偏らないよう、ときどき乱手で局面を散らす
                 cell, g, piece = random_move(
                     S, fast.T, fast.P, 0.3, sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g, sc.free
                 )
+            played.append((int(cell), int(g), int(piece)))
             apply_move(
                 S, fast.T, fast.P, cell, g, piece, sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g
             )
+        decks.append(deck)
+        h = np.full((NT, 3), -2, np.int32)
+        h[: len(played)] = played
+        hist.append(h)
         d = int(S[10][SC_S0]) - int(S[10][SC_S1])
         ys.extend(d if me == 0 else -d for me in players)
         ps.extend(players)
@@ -131,6 +144,11 @@ def _play(args):
         np.array(gs),
         np.concatenate(cf).astype(np.float32),
         np.array(cn),
+        np.array(decks, np.int16),
+        np.array(hist, np.int32),
+        np.array(pg),
+        np.array(pply),
+        np.array(cand, np.int32),
     )
 
 
@@ -150,12 +168,31 @@ def gen(a) -> None:
             parts.extend(ex.map(_play, jobs))
             done += k
             rnd += 1
-            X, y, p, g, C, n = (np.concatenate([q[i] for q in parts]) for i in range(6))
-            np.savez_compressed(a.out, X=X, y=y, p=p, g=g, C=C, n=n)
+            X, y, p, g, C, n, decks, hist = (
+                np.concatenate([q[i] for q in parts]) for i in range(8)
+            )
+            # 局面の対局番号は、ファイルの中の通し番号（decks・hist の行）にそろえる
+            ng = np.cumsum([0] + [len(q[6]) for q in parts[:-1]])
+            pos_game = np.concatenate([q[8] + o for q, o in zip(parts, ng, strict=True)])
+            pos_ply = np.concatenate([q[9] for q in parts])
+            cand = np.concatenate([q[10] for q in parts])
+            np.savez_compressed(
+                a.out, X=X, y=y, p=p, g=g, C=C, n=n, decks=decks, hist=hist,
+                pos_game=pos_game, pos_ply=pos_ply, cand=cand,
+            )  # fmt: skip
             print(
                 f"{a.out}: {done}局 {len(y)}局面 兄弟つき {len(n)}局面 {time.time() - t0:.0f}秒",
                 flush=True,
             )
+
+
+def replay(fast, deck, hist, ply: int):
+    """山札 deck と手順 hist の ply 手目を指す前の局面を作る（`gen` が保存したものから）。"""
+    sc = fast.scratch
+    S = fast.new_game([int(t) for t in deck])
+    for cell, g, piece in hist[:ply]:
+        apply_move(S, fast.T, fast.P, cell, g, piece, sc.stamp, sc.stamp_box, sc.out_cell, sc.out_g)
+    return S
 
 
 def load(paths):
