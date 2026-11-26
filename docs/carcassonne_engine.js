@@ -15,7 +15,7 @@
   const C0 = 72; // 開始タイルの座標オフセット
   const NT = 72; // タイル総数
   const MEEPLES = 7;
-  const NF = 38; // 特徴量数（fast_eval.NF）
+  const NF = 41; // 特徴量数（fast_eval.NF）
   const HARD = 3; // fast_eval.HARD
   const SC_N = 0, SC_PL = 1, SC_S0 = 2, SC_S1 = 3, SC_SUP0 = 4, SC_OVER = 6, SC_DRAW = 7, SC_CUR = 8, SC_DISC = 9, SC_NFR = 10;
   const SC_LEN = 11;
@@ -130,6 +130,9 @@
       this.pairF = new Int32Array(NT * P);
       this.done = new Int32Array(P);
       this.mf = new Int32Array(NT * P);
+      this.lp = new Float64Array(NT * P); // 根ごとの完成確率の対数（completionLogp）
+      this.seenR = new Int32Array(NT * P * 4);
+      this.seenC = new Int32Array(NT * P * 4);
       this.fpc = new Int32Array(NT * P);
       this.fpf = new Int32Array(NT * P);
       this.cnt = new Int32Array(this.nvar.length);
@@ -583,9 +586,60 @@
       return v;
     }
 
+    // 合うタイルが f 枚ある空きマスに、n 回の引きのうちに1枚以上引く確率（fast_eval.p_cell）
+    pCell(f, R, n) {
+      if (f <= 0) return 0;
+      let q = 1;
+      for (let i = 0; i < n; i++) {
+        if (R - f - i <= 0) return 1;
+        q *= (R - f - i) / (R - i);
+      }
+      return 1 - q;
+    }
+
+    // 未完成の都市・道・修道院の根ごとに、完成確率の対数（fast_eval.completion_logp。this.cnt は minFit で計算済み）
+    completionLogp(S, out) {
+      const P = this.P, sc = S.sc, grid = S.grid, parent = S.parent, meep = S.meep, cnt = this.cnt;
+      let R = 0;
+      for (let i = 0; i < cnt.length; i++) R += cnt[i];
+      const n = (R + 1) >> 1;
+      out.fill(0);
+      let ns = 0;
+      const sr = this.seenR, scl = this.seenC;
+      for (let t = 0; t < sc[SC_N]; t++) {
+        const g = S.tg[t], c0 = S.tcell[t];
+        for (let s = 0; s < 4; s++) {
+          const c = c0 + DIRCELL[s];
+          if (grid[c] !== 0) continue;
+          const a = this.sidepc[g * 4 + s];
+          if (a < 0) continue;
+          const r = find(parent, t * P + a);
+          if (S.kind[r] > 1) continue;
+          let dup = false;
+          for (let q = 0; q < ns; q++) if (sr[q] === r && scl[q] === c) { dup = true; break; }
+          if (dup) continue;
+          sr[ns] = r; scl[ns] = c; ns++;
+          out[r] += Math.log(Math.max(this.pCell(this.nFit(S, c, cnt), R, n), 1e-9));
+        }
+        const mp = this.mpiece[g];
+        if (mp >= 0) {
+          const r = find(parent, t * P + mp);
+          if (meep[r * 2] + meep[r * 2 + 1] > 0) {
+            for (let dx = -1; dx <= 1; dx++) {
+              for (let dy = -1; dy <= 1; dy++) {
+                const c = c0 + dx * G + dy;
+                if (grid[c] === 0) out[r] += Math.log(Math.max(this.pCell(this.nFit(S, c, cnt), R, n), 1e-9));
+              }
+            }
+          }
+        }
+      }
+    }
+
     features(S, me, out) {
       this.endPoints(S, this.pts);
       this.minFit(S, this.mf);
+      this.completionLogp(S, this.lp);
       this.featuresFrom(S, me, out);
     }
 
@@ -593,6 +647,7 @@
     featuresBoth(S, out0, out1) {
       this.endPoints(S, this.pts);
       this.minFit(S, this.mf);
+      this.completionLogp(S, this.lp);
       this.featuresFrom(S, 0, out0);
       this.featuresFrom(S, 1, out1);
     }
@@ -635,6 +690,11 @@
             out[24] += mine; out[25] += theirs;
             if (mf[n] === 0) { out[29] += mine; out[30] += theirs; }
           }
+          if (k === 3 || (k <= 1 && S.opn[n] > 0)) {
+            // 置いたミープルが戻る見込み（完成する確率。R-025）
+            const p = Math.exp(this.lp[n]);
+            out[38] += mine * p; out[39] += theirs * p;
+          }
           if (k === 3) {
             const room = 9 - v;
             if (mine === top) out[28] += room;
@@ -662,6 +722,7 @@
       // 手持ちミープルの不足（2個を切った分。相手の分を引く）
       out[36] = Math.max(0, 2 - mysup) - Math.max(0, 2 - thsup);
       out[37] = out[36] * rem;
+      out[40] = (out[38] - out[39]) * rem;
     }
 
     // ---- 探索（fast_mcts.run_tree / search_stats / search） ------------------
