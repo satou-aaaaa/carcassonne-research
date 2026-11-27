@@ -1,0 +1,5 @@
+finished: 2026-11-27T09:16Z
+exit_code: 0
+commit: 11637cd54c2a4a1291bb003167deccac90641db3
+run: https://github.com/satou-aaaaa/carcassonne-research/actions/runs/45952679878
+command: BASE=strong A=eval=models/r026_td1000.npy,rsel=0.8,rk=6,rr=2,rb=3 B=rsel=0.8,rk=6,rr=2,rb=3 START=22025 SEEDS=25 bash scripts/sweeps/r019.sh
