@@ -11,7 +11,7 @@ import numpy as np
 from numba import njit
 
 from .fast import NT, SC_DRAW, SC_END, SC_N, SC_SUP0, G, dircell, end_points, find
-from .fast_eval import completion_logp, n_fit, p_cell, remaining_counts  # noqa: F401
+from .fast_eval import n_fit, remaining_counts
 
 NX = 11
 EXT_NAMES = (
@@ -27,6 +27,71 @@ EXT_NAMES = (
     "merge_gain_mine",
     "merge_gain_theirs",
 )
+
+
+@njit(cache=True)
+def p_cell(f, R, n):
+    """合うタイルが f 枚ある空きマスに、持ち主が n 回の引きのうちに合うタイルを1枚以上引く確率。"""
+    if f <= 0:
+        return 0.0
+    q = 1.0
+    for i in range(n):
+        if R - f - i <= 0:
+            return 1.0
+        q *= (R - f - i) / (R - i)
+    return 1.0 - q
+
+
+@njit(cache=True)
+def completion_logp(S, T, P, out):
+    """未完成の都市・道・修道院の根ごとに、完成確率の対数（空きマスごとの確率の積）を書く。"""
+    grid, tg, tcell, parent, kind, meep = S[0], S[1], S[2], S[3], S[4], S[9]
+    sidepc, mpiece = T[8], T[10]
+    cnt = remaining_counts(S, T)
+    R = int(cnt.sum())
+    n = (R + 1) // 2
+    req = np.empty(4, np.int8)
+    out[:] = 0.0
+    NN = NT * P
+    # 同じ (根, マス) を二重に数えない
+    seen_r = np.empty(NN * 4, np.int32)
+    seen_c = np.empty(NN * 4, np.int32)
+    ns = 0
+    for t in range(S[10][SC_N]):
+        g = tg[t]
+        c0 = tcell[t]
+        for s in range(4):
+            c = c0 + dircell(s)
+            if grid[c] != 0:
+                continue
+            a = sidepc[g, s]
+            if a < 0:
+                continue
+            r = find(parent, t * P + a)
+            if kind[r] > 1:
+                continue
+            dup = False
+            for q in range(ns):
+                if seen_r[q] == r and seen_c[q] == c:
+                    dup = True
+                    break
+            if dup:
+                continue
+            seen_r[ns] = r
+            seen_c[ns] = c
+            ns += 1
+            p = p_cell(n_fit(S, T, c, cnt, req), R, n)
+            out[r] += np.log(max(p, 1e-9))
+        mp = mpiece[g]
+        if mp >= 0:
+            r = find(parent, t * P + mp)
+            if meep[r * 2] + meep[r * 2 + 1] > 0:
+                for dx in range(-1, 2):
+                    for dy in range(-1, 2):
+                        c = c0 + dx * G + dy
+                        if grid[c] == 0:
+                            p = p_cell(n_fit(S, T, c, cnt, req), R, n)
+                            out[r] += np.log(max(p, 1e-9))
 
 
 @njit(cache=True)

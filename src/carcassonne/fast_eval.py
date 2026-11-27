@@ -104,8 +104,7 @@ def min_fit(S, T, P, out):
                             out[r] = min(out[r], n_fit(S, T, c, cnt, req))
 
 
-NF = 41
-NF_V10 = 38  # 置いたミープルが戻る見込み（38〜40、R-025）を足す前の数（旧形式のMLPの読み込み用）
+NF = 38
 NF_V9 = 36  # 手持ちミープル不足の特徴量（36・37）を足す前の数（旧形式のMLPの読み込み用）
 SHORT = 2  # 手持ちがこの数を下回った分を「不足」とする
 NF_V6 = 22  # v6 までの特徴量数（旧形式の重み・MLPの読み込み用）
@@ -149,75 +148,7 @@ FEATURE_NAMES = (
     "field_open_cities_x_remaining",
     "meeple_short",
     "meeple_short_x_remaining",
-    "exp_return_mine",
-    "exp_return_theirs",
-    "exp_return_x_remaining",
 )
-
-
-@njit(cache=True)
-def p_cell(f, R, n):
-    """合うタイルが f 枚ある空きマスに、持ち主が n 回の引きのうちに合うタイルを1枚以上引く確率。"""
-    if f <= 0:
-        return 0.0
-    q = 1.0
-    for i in range(n):
-        if R - f - i <= 0:
-            return 1.0
-        q *= (R - f - i) / (R - i)
-    return 1.0 - q
-
-
-@njit(cache=True)
-def completion_logp(S, T, P, out):
-    """未完成の都市・道・修道院の根ごとに、完成確率の対数（空きマスごとの確率の積）を書く。"""
-    grid, tg, tcell, parent, kind, meep = S[0], S[1], S[2], S[3], S[4], S[9]
-    sidepc, mpiece = T[8], T[10]
-    cnt = remaining_counts(S, T)
-    R = int(cnt.sum())
-    n = (R + 1) // 2
-    req = np.empty(4, np.int8)
-    out[:] = 0.0
-    NN = NT * P
-    # 同じ (根, マス) を二重に数えない
-    seen_r = np.empty(NN * 4, np.int32)
-    seen_c = np.empty(NN * 4, np.int32)
-    ns = 0
-    for t in range(S[10][SC_N]):
-        g = tg[t]
-        c0 = tcell[t]
-        for s in range(4):
-            c = c0 + dircell(s)
-            if grid[c] != 0:
-                continue
-            a = sidepc[g, s]
-            if a < 0:
-                continue
-            r = find(parent, t * P + a)
-            if kind[r] > 1:
-                continue
-            dup = False
-            for q in range(ns):
-                if seen_r[q] == r and seen_c[q] == c:
-                    dup = True
-                    break
-            if dup:
-                continue
-            seen_r[ns] = r
-            seen_c[ns] = c
-            ns += 1
-            p = p_cell(n_fit(S, T, c, cnt, req), R, n)
-            out[r] += np.log(max(p, 1e-9))
-        mp = mpiece[g]
-        if mp >= 0:
-            r = find(parent, t * P + mp)
-            if meep[r * 2] + meep[r * 2 + 1] > 0:
-                for dx in range(-1, 2):
-                    for dy in range(-1, 2):
-                        c = c0 + dx * G + dy
-                        if grid[c] == 0:
-                            p = p_cell(n_fit(S, T, c, cnt, req), R, n)
-                            out[r] += np.log(max(p, 1e-9))
 
 
 @njit(cache=True)
@@ -233,8 +164,6 @@ def features(S, T, P, me, out):
     mf = np.empty(NN, np.int32)
     min_fit(S, T, P, mf)
     out[34] = field_open_cities(S, T, P, me, mf)
-    lp = np.empty(NN)
-    completion_logp(S, T, P, lp)
     parent, meep, tg, npc = S[3], S[9], S[1], T[1]
     for t in range(sc[SC_N]):
         for i in range(npc[tg[t]]):
@@ -289,11 +218,6 @@ def features(S, T, P, me, out):
                     # 完成不能な特徴に閉じ込められたミープル（終局まで戻らない）
                     out[29] += mine
                     out[30] += theirs
-            if k == 3 or (k <= 1 and S[5][r] > 0):
-                # 置いたミープルが戻る見込み（完成する確率、`completion_logp`。R-025）
-                p = np.exp(lp[r])
-                out[38] += mine * p
-                out[39] += theirs * p
             if k == 3:
                 room = 9.0 - v  # 修道院の周囲の空きマス（これから増える得点の上限）
                 if mine == top:
@@ -322,7 +246,6 @@ def features(S, T, P, me, out):
     # 手持ちミープルの不足（2個を切った分。相手の分を引く）。使い切ると次の好機に置けない
     out[36] = max(0, SHORT - mysup) - max(0, SHORT - thsup)
     out[37] = out[36] * rem
-    out[40] = (out[38] - out[39]) * rem
 
 
 @njit(cache=True)
@@ -420,7 +343,7 @@ def load_eval(path: str) -> tuple[np.ndarray, int]:
         return w, -1
     if len(w) <= NF:
         return np.concatenate([w, np.zeros(NF - len(w))]), 1
-    for nf in (NF, NF_V10, NF_V9, NF_V7, NF_V6):
+    for nf in (NF, NF_V9, NF_V7, NF_V6):
         H = (len(w) - 2 * nf - 1) // (nf + 2)
         # 長さだけでは形式が決まらないことがあるので、標準偏差の欄がすべて正であることも確かめる
         if H > 0 and 2 * nf + nf * H + 2 * H + 1 == len(w) and np.all(w[nf : 2 * nf] > 0):
