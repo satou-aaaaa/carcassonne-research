@@ -120,9 +120,7 @@ def candidate_matrix(paths, names) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     width = sum(SETS[k][0] for k in names)
     outs, Cs, ns = [], [], []
     for path in paths:
-        # np.load の npz は d[名前] のたびに読み直す（展開する）ので、先に全部読む
-        with np.load(path) as z:
-            d = {k: z[k] for k in z.files}
+        d = np.load(path)
         n = d["n"]
         st = np.concatenate([[0], np.cumsum(n)])
         Z = np.zeros((int(n.sum()), width))
