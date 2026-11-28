@@ -35,7 +35,8 @@ from .fast import (
     rollout,
     seed_rng,
 )
-from .fast_eval import NF, eval_value, features, load_eval
+from .fast_eval import NF, load_eval
+from .nnue import evaluate
 from .state import Move, State
 
 
@@ -251,8 +252,7 @@ def run_tree(
                             X, T, P, opt_a[o + j], opt_b[o + j], -1, stamp, stamp_box,
                             out_cell, out_g,
                         )  # fmt: skip
-                        features(X, T, P, me, fbuf)
-                        opt_p[o + j] = eval_value(eval_w, eval_mode, fbuf)
+                        opt_p[o + j] = evaluate(X, T, P, me, fbuf, eval_w, eval_mode)
                         vmax = max(vmax, opt_p[o + j])
                     zs = 0.0
                     for j in range(cnt):
@@ -313,8 +313,7 @@ def run_tree(
                             X, T, P, opt_a[o + j], opt_b[o + j], -1, stamp, stamp_box,
                             out_cell, out_g,
                         )  # fmt: skip
-                        features(X, T, P, me, fbuf)
-                        opt_p[o + j] = eval_value(eval_w, eval_mode, fbuf)
+                        opt_p[o + j] = evaluate(X, T, P, me, fbuf, eval_w, eval_mode)
                     ranked[node] = True
                 if ranked[node]:
                     idx = 0
@@ -388,10 +387,8 @@ def run_tree(
                     W, T, P, meeple_prob, depth, stamp, stamp_box, out_cell, out_g, free, rec, farm
                 )
             if wsc[SC_OVER] == 0:
-                features(W, T, P, 0, fbuf)
-                v0 = eval_value(eval_w, eval_mode, fbuf)
-                features(W, T, P, 1, fbuf)
-                v1m = eval_value(eval_w, eval_mode, fbuf)
+                v0 = evaluate(W, T, P, 0, fbuf, eval_w, eval_mode)
+                v1m = evaluate(W, T, P, 1, fbuf, eval_w, eval_mode)
             else:
                 v0 = float(wsc[SC_S0] - wsc[SC_S1])
                 v1m = -v0
@@ -579,8 +576,7 @@ def next_tile_value(
             apply_move(X, T, P, cells[ci], gs[ci], pieces[ci], stamp, stamp_box, out_cell, out_g)
             if X[10][SC_OVER] != 0 or X[10][SC_CUR] != t or X[10][SC_DRAW] != lo + 1:
                 continue
-            features(X, T, P, 1 - me, fbuf)
-            tot -= n * eval_value(eval_w, eval_mode, fbuf)
+            tot -= n * evaluate(X, T, P, 1 - me, fbuf, eval_w, eval_mode)
             wsum += n
         out[ci] = tot / wsum if wsum > 0 else np.nan
     return out
@@ -646,8 +642,7 @@ def next_tile_reply_value(
                         d = float(Y[10][SC_S0] - Y[10][SC_S1])
                         v = d if me == 0 else -d
                     else:
-                        features(Y, T, P, me, fbuf)
-                        v = eval_value(eval_w, eval_mode, fbuf)
+                        v = evaluate(Y, T, P, me, fbuf, eval_w, eval_mode)
                     best = min(best, v)
             if best < 1e29:
                 tot += n * best
@@ -681,8 +676,7 @@ def _side_best(Y, Z, T, P, me, eval_w, eval_mode, fbuf, stamp, stamp_box, out_ce
                 d = float(Z[10][SC_S0] - Z[10][SC_S1])
                 v = d if me == 0 else -d
             else:
-                features(Z, T, P, me, fbuf)
-                v = eval_value(eval_w, eval_mode, fbuf)
+                v = evaluate(Z, T, P, me, fbuf, eval_w, eval_mode)
             found = True
             if mover == me:
                 best = max(best, v)
@@ -765,8 +759,7 @@ def next_tile_reply2_value(
                         m_v[nm] = d if me == 0 else -d
                         m_end[nm] = True
                     else:
-                        features(Y, T, P, me, fbuf)
-                        m_v[nm] = eval_value(eval_w, eval_mode, fbuf)
+                        m_v[nm] = evaluate(Y, T, P, me, fbuf, eval_w, eval_mode)
                         m_end[nm] = False
                     m_cell[nm] = rc[q]
                     m_g[nm] = rg[q]
@@ -863,8 +856,7 @@ def _rank_moves(X, T, P, me, eval_w, eval_mode, fbuf, stamp, stamp_box, out_cell
                 m_v[nm] = d if me == 0 else -d
                 m_end[nm] = True
             else:
-                features(Y, T, P, me, fbuf)
-                m_v[nm] = eval_value(eval_w, eval_mode, fbuf)
+                m_v[nm] = evaluate(Y, T, P, me, fbuf, eval_w, eval_mode)
                 m_end[nm] = False
             m_cell[nm] = rc[q]
             m_g[nm] = rg[q]

@@ -327,6 +327,7 @@ def eval_value(p, mode, f):
 
 
 SPLIT_TAG = -12345.0  # 切り替え型の目印（末尾）
+NNUE_TAG = -27027.0  # NNUE 風の目印（先頭、`carcassonne.nnue.TAG` と同じ）
 SPLIT_LEN = 2 * NF + 2
 
 
@@ -341,6 +342,8 @@ def load_eval(path: str) -> tuple[np.ndarray, int]:
     w = np.load(path).astype(np.float64)
     if len(w) == SPLIT_LEN and w[-1] == SPLIT_TAG:
         return w, -1
+    if len(w) > 4 and w[0] == NNUE_TAG:
+        return w, -2  # NNUE 風（`carcassonne.nnue`、探索では `nnue.evaluate` が使う）
     if len(w) <= NF:
         return np.concatenate([w, np.zeros(NF - len(w))]), 1
     for nf in (NF, NF_V9, NF_V7, NF_V6):
