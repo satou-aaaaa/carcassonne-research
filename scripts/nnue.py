@@ -53,9 +53,9 @@ class _Rows:
 
 
 def build(a) -> None:
-    from carcassonne.fast_mcts import FastMCTSAgent
-
     import rank_learn as rl
+
+    from carcassonne.fast_mcts import FastMCTSAgent
 
     fast = FastMCTSAgent(n_sims=10, eval_path="models/eval_champion.npy").fast
     T, P, sc = fast.T, fast.P, fast.scratch
